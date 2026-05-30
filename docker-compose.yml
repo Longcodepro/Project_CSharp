@@ -1,0 +1,53 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Long@12345!"
+    volumes:
+      - sql-data:/var/opt/mssql
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Long@12345!' -Q 'SELECT 1' -No"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./src
+      dockerfile: TuneVault.API/Dockerfile
+    container_name: tunevault_backend
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=TuneVaultDb;User Id=sa;Password=Long@12345!;TrustServerCertificate=True;"
+      Anthropic__ApiKey: "${ANTHROPIC_API_KEY}"
+      Jwt__Secret: "${JWT_SECRET}"
+      Jwt__Issuer: "TuneVault"
+      Jwt__Audience: "TuneVaultUsers"
+    volumes:
+      - media-files:/app/wwwroot/media
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: tunevault_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: on-failure
+
+volumes:
+  sql-data:
+  media-files:
