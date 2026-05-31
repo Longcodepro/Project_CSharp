@@ -1,35 +1,17 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TuneVault</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <title>Tune Vault</title>
   </head>
   <body>
-    <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">TuneVault</p>
-        <h1>Media streaming skeleton</h1>
-        <p class="lede">
-          Khung khởi động cho backend, frontend và Docker. Nhóm có thể bắt đầu chia việc ngay từ đây.
-        </p>
-
-        <div class="actions">
-          <a class="button primary" href="http://localhost:5000/health" target="_blank" rel="noreferrer">Open backend</a>
-          <button class="button secondary" id="refresh-btn" type="button">Check backend</button>
-        </div>
-      </section>
-
-      <section class="status-card">
-        <div class="status-header">
-          <span>Backend status</span>
-          <span class="pill" id="status-pill">idle</span>
-        </div>
-        <pre id="status-output">Chưa kiểm tra.</pre>
-      </section>
-    </main>
-
-    <script src="/app.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
