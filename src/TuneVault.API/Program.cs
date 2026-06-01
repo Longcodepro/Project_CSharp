@@ -38,7 +38,9 @@ builder.Services.AddSingleton<DapperContext>();
 /// builder.Services.AddScoped<PlaylistDAO>();
 /// </summary>
 builder.Services.AddScoped<UserDAO>();
-
+builder.Services.AddScoped<AlbumDAO>();
+builder.Services.AddScoped<PlaylistDAO>();
+builder.Services.AddScoped<SearchDAO>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
