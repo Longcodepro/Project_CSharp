@@ -16,7 +16,7 @@ namespace TuneVault.Infrastructure.DAO
         public async Task<IEnumerable<MediaItem>> SearchMediaAsync(string keyword)
         {
             var sql = @"
-                SELECT * FROM MediaItems
+                SELECT * FROM MediaItem
                 WHERE IsPublic = 1
                 AND Title LIKE @Keyword";
             using var connection = _context.CreateConnection();

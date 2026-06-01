@@ -100,7 +100,7 @@ namespace TuneVault.Infrastructure.DAO
         public async Task<IEnumerable<MediaItem>> GetTracksAsync(string albumId)
         {
             var sql = @"
-                SELECT m.* FROM MediaItems m
+                SELECT m.* FROM MediaItem m
                 INNER JOIN AlbumTracks at ON m.Id = at.MediaItemId
                 WHERE at.AlbumId = @AlbumId
                 ORDER BY at.TrackOrder";
