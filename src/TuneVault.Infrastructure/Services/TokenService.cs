@@ -1,9 +1,12 @@
 using TuneVault.Application.Abstractions;
+using TuneVault.Domain.Enums;
 
 namespace TuneVault.Infrastructure.Services;
 
 public sealed class TokenService : ITokenService
 {
-    public Task<string> CreateTokenAsync(string userId, string userName, string role, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+    public string CreateToken(Guid userId, string email, UserRole role)
+    {
+        throw new NotImplementedException("Implement JWT creation here.");
+    }
 }

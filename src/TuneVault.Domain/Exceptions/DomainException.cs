@@ -1,4 +1,3 @@
-// Lỗi nghiệp vụ chung.
 namespace TuneVault.Domain.Exceptions;
 
 public class DomainException : Exception

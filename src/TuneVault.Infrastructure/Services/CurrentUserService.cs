@@ -1,12 +1,12 @@
 using TuneVault.Application.Abstractions;
+using TuneVault.Domain.Enums;
 
 namespace TuneVault.Infrastructure.Services;
 
 public sealed class CurrentUserService : ICurrentUserService
 {
-    public string? UserId => throw new NotImplementedException();
-
-    public string? UserName => throw new NotImplementedException();
-
-    public bool IsAuthenticated => throw new NotImplementedException();
+    public Guid? UserId => null;
+    public string? UserName => null;
+    public UserRole? Role => null;
+    public bool IsAuthenticated => false;
 }
