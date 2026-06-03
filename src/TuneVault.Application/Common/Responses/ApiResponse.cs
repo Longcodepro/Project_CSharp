@@ -1,8 +1,7 @@
 namespace TuneVault.Application.Common.Responses;
 
-public record ApiResponse<T>(bool Success, T? Data = default, string[]? Errors = null)
+public record ApiResponse(bool Success, string? Message = null)
 {
-    public static ApiResponse<T> Ok(T data) => new(true, data);
-
-    public static ApiResponse<T> Fail(params string[] errors) => new(false, default, errors);
+    public static ApiResponse Ok(string? message = null) => new(true, message);
+    public static ApiResponse Fail(string message) => new(false, message);
 }

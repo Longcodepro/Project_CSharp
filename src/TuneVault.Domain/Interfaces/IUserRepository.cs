@@ -1,6 +1,13 @@
-// Quản lý các hành động với người dùng.
+using TuneVault.Domain.Entities;
+
 namespace TuneVault.Domain.Interfaces;
 
 public interface IUserRepository
 {
+    Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
+    Task<User?> GetByIdDisplayAsync(string idDisplay, CancellationToken cancellationToken = default);
+    Task AddAsync(User user, CancellationToken cancellationToken = default);
+    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }
