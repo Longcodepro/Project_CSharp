@@ -1,7 +1,9 @@
 import React from 'react';
+import {useNavigate} from 'react-router-dom';
 import '../CSS/Login_style.css';
 function Login()
 {
+    const navigate=useNavigate();
     return(
         <div className="login-page">
             <header className="login-header">
@@ -47,7 +49,7 @@ function Login()
 
                 <div className="signup-prompt">
                     <p>Bạn chưa có tài khoản?</p>
-                    <button className="btn-signup">Đăng ký</button>
+                    <button className="btn-signup" onClick={()=>navigate('/signup')}>Đăng ký</button>
                 </div>
             </div>
         </div>

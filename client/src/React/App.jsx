@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import {Routes, Route, useNavigate} from 'react-router-dom';
+import Login from './Login.jsx';
+import Signup from './Signup.jsx'
 import '../CSS/App_style.css';
 
 function TopView() {
+  const navigate=useNavigate();
   return (
     <div style={{ display: 'flex', alignItems: 'center', padding:'8px 20px', color:'white', height:'100%'}}>
       
@@ -10,8 +14,9 @@ function TopView() {
         <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_White.png"
             alt="Spotify Logo"
             style={{ width: '110px', marginRight: '20px', cursor: 'pointer' }}
+            onClick={()=>navigate('/')}
         />
-        <div className="btn-home" title="Trang chủ">
+        <div className="btn-home" title="Trang chủ" onClick={()=>navigate('/')}>
           <i className="fa-solid fa-house" style={{ color: 'white', fontSize: '18px' }}></i>
         </div>
       </div>
@@ -32,12 +37,12 @@ function TopView() {
       </div>
      
       <div className="btn-notification" title="có gì mới">
-        <i class="fa-solid fa-bell" style={{color:'white', fontSize:'18px'}}></i>
+        <i className="fa-solid fa-bell" style={{color:'white', fontSize:'18px'}}></i>
       </div>
 
       <div style={{display:'flex',alignItems:'center', gap:'16px',borderLeft:'1px solid #333',paddingLeft:'24px'}}>
-        <button className="text-link">Đăng ký</button>
-        <button className="btn-login">Đăng nhập</button>
+        <button className="text-link" onClick={()=>navigate('/signup')}>Đăng ký</button>
+        <button className="btn-login" onClick={()=>navigate('/login')}>Đăng nhập</button>
       </div>
     </div>
   );
@@ -69,7 +74,7 @@ function Sidebar() {
 }
 
 // 2. Thành phần MainView (Khu vực nội dung chính)
-function MainView() {
+function MainView({onPlaySong}) {
   //Dữ liệu giả lập cho MainView (Playlist database-sau này chèn database vào đây)-chủ đề game
   const genshinPlaylists = [
     {
@@ -124,7 +129,7 @@ function MainView() {
     }
   ];
   const renderCard = (item) => (
-    <div className="card" key={item.id}>
+    <div className="card" key={item.id} onClick={()=>onPlaySong(item)}>
       <div className="card-image-container">
         <img src={item.imgUrl} alt={item.title} className="card-image" />
         <button className="btn-play-card">
@@ -203,23 +208,33 @@ function Player({currentSong}) {
   );
 }
 
+function Dashboard(activeSong, setActiveSong)
+{
+  return(
+    <div className="spotify-app">
+      <div className="spotify-header">
+        <TopView/>
+      </div>
+      <div className="spotify-body">
+        <Sidebar/>
+        <MainView onPlaySong={setActiveSong}/>
+      </div>
+      <div className="spotify-footer">
+        <Player currentSong={activeSong}/>
+      </div>
+    </div>
+  );
+}
 // 4. Thành phần chính kết hợp tất cả lại
 function App() {
   const [activeSong, setActiveSong] = useState(null);
   return (
     
-    <div className="spotify-app">
-      <div className="spotify-header">
-        <TopView />
-      </div>
-      <div className="spotify-body">
-        <Sidebar />
-        <MainView onPlaySong={setActiveSong} />
-      </div>
-      <div className="spotify-footer">
-        <Player currentSong={activeSong} />
-      </div>
-    </div>
+    <Routes>
+      <Route path="/" element={<Dashboard activeSong={activeSong} setActiveSong={setActiveSong}/>}/>
+      <Route path="/login" element={<Login />}/>
+      <Route path="/signup" element={<Signup />}/>
+    </Routes>
   );
 }
 
