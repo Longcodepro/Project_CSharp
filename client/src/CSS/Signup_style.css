@@ -136,7 +136,7 @@
     border-color: white;
 }
 
-.login-prompt
+.signup-prompt
 {
     display:flex;
     flex-direction: column;
@@ -145,14 +145,14 @@
     max-width: 324px;
 }
 
-.login-prompt p
+.signup-prompt p
 {
     color:#a7a7a7;
     font-weight:  bold;
     margin-bottom: 20px;
 }
 
-.btn-login
+.btn-login-redirect
 {
     
     background-color: transparent;
@@ -164,7 +164,7 @@
     cursor: pointer;
 }
 
-.btn-login:hover
+.btn-login-redirect:hover
 {
     transform: scale(1.05); 
 }

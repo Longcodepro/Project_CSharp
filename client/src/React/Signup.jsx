@@ -1,7 +1,9 @@
 import React from 'react';
+import {useNavigate} from 'react-router-dom';
 import '../CSS/Signup_style.css';
 function Signup()
 {
+    const navigate=useNavigate();
     return(
         <div className="signup-page">
             <header className="signup-header">
@@ -44,9 +46,9 @@ function Signup()
 
                 <hr className="signup-divider"/>
 
-                <div className="login-promtp">
+                <div className="signup-promtp">
                     <p>Bạn đã có tài khoản?</p>
-                    <button className="btn-login">Đăng nhập</button>
+                    <button className="btn-login-redirect" onClick={()=>navigate('/login')}>Đăng nhập</button>
                 </div>
             </div>
         </div>
