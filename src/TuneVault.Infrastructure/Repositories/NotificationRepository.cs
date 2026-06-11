@@ -1,6 +1,7 @@
+/*
 <<<<<<< HEAD
 =======
-/*using Dapper;
+using Dapper;
 >>>>>>> 44e6411 (feat: add delete track and search pagination)
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Interfaces;

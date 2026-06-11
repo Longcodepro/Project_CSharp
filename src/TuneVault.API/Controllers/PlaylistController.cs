@@ -14,6 +14,7 @@ namespace TuneVault.API.Controllers;
 /// Endpoints:
 /// - GET    /api/Playlist?userId=xxx               → Lấy danh sách playlist của user
 /// - POST   /api/Playlist                          → Tạo playlist mới
+/// - DELETE /api/Playlist/{playlistId}             → Xóa playlist
 /// - POST   /api/Playlist/{playlistId}/tracks      → Thêm track vào playlist
 /// - DELETE /api/Playlist/{playlistId}/tracks/{mediaItemId} → Xóa track khỏi playlist
 /// </summary>
@@ -78,6 +79,21 @@ public sealed class PlaylistController : BaseApiController
     }
 
     /// <summary>
+    /// Xóa toàn bộ playlist theo playlistId.
+    /// </summary>
+    [HttpDelete("{playlistId}")]
+    public async Task<IActionResult> Delete(string playlistId)
+    {
+        var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+        if (playlist == null)
+            return NotFound($"Playlist '{playlistId}' không tồn tại");
+
+        await _playlistRepository.DeleteAsync(playlistId);
+
+        return Ok(new { message = "Playlist deleted successfully" });
+    }
+
+    /// <summary>
     /// Thêm track mới vào playlist hiện có.
     /// </summary>
     [HttpPost("{playlistId}/tracks")]
@@ -104,8 +120,6 @@ public sealed class PlaylistController : BaseApiController
     /// <summary>
     /// Xóa track khỏi playlist.
     /// </summary>
-    /// <param name="playlistId">Mã playlist.</param>
-    /// <param name="mediaItemId">Mã media item cần xóa.</param>
     [HttpDelete("{playlistId}/tracks/{mediaItemId}")]
     public async Task<IActionResult> RemoveTrack(string playlistId, string mediaItemId)
     {
