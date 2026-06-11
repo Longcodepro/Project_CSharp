@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import '../CSS/Signup_style.css';
 function Signup()
 {
-    
     const navigate=useNavigate();
-    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -14,12 +13,10 @@ function Signup()
 
     const isMismatch = confirmPassword !== '' && password !== confirmPassword;
 
-    
-
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!isMismatch && password !== '') {
-            navigate('/otp', { state: { email: email } });
+           navigate('/otp', { state: { email: phone } });
         }
     };
 
@@ -44,13 +41,13 @@ function Signup()
 
                 <form className="signup-form" onSubmit={handleSubmit}>
                     <div className="input-group">
-                        <label htmlFor='email'>Email của bạn</label>
+                        <label htmlFor='phone'>Số điện thoại của bạn</label>
                         <input 
-                            type="email" 
-                            id="email" 
-                            placeholder="Nhập email của bạn"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            type="tel" 
+                            id="phone" 
+                            placeholder="Nhập SĐT của bạn"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
                             required
                         />
                     </div>
@@ -119,9 +116,9 @@ function Signup()
                 <hr className="signup-divider"/>
 
                 <div className="otherSignup">
-                    <button className="btn-other" onClick={()=>navigate('/Phone_Signup')}>
-                        <i className="fa-solid fa-mobile-screen"></i>
-                        Đăng ký bằng SĐT
+                    <button className="btn-other"  onClick={()=>navigate('/Signup')}>
+                        <i className="fa-solid fa-envelope" ></i>
+                        Đăng ký bằng Email
                     </button>
                     <button className="btn-other">
                         <i className="fa-brands fa-facebook"></i> Đăng ký với Facebook

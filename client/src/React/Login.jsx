@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {useNavigate} from 'react-router-dom';
 import '../CSS/Login_style.css';
 function Login()
 {
     const navigate=useNavigate();
+    const [email,setEmail]=useState('');
+    const [password, setPassword]=useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    
     return(
         <div className="login-page">
             <header className="login-header">
@@ -20,8 +25,21 @@ function Login()
 
                 <form className="login-form">
                     <div className="input-group">
-                        <label htmlFor='email'>Email</label>
-                        <input type="text" id="email"/>
+                        <label htmlFor='email'>Email / Số điện thoại</label>
+                        <input 
+                        type="text" 
+                        id="email"
+                        value={email}
+                        onChange={(e)=>setEmail(e.target.value)}/>
+                    </div>
+                    <div className="input-group">
+                        <label htmlFor='password'>Mật khẩu</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
                     </div>
                     <button type="button" className="btn-submit">Tiếp tục</button>
                 </form>
@@ -29,10 +47,6 @@ function Login()
                 <hr className="login-divider"/>
 
                 <div className="otherLogin">
-                    <button className="btn-other">
-                        <i className="fa-solid fa-mobile-screen"></i>
-                        Tiếp tục với SĐT
-                    </button>
                     <button className="btn-other">
                         <i className="fa-brands fa-google"></i>
                         Tiếp tục với Google
