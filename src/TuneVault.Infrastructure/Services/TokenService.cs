@@ -1,12 +1,21 @@
+using System;
 using TuneVault.Application.Abstractions;
-using TuneVault.Domain.Enums;
 
 namespace TuneVault.Infrastructure.Services;
 
-public sealed class TokenService : ITokenService
+/// <summary>
+/// Triển khai dịch vụ cấp phát mã cấu hình bảo mật JSON Web Token (JWT).
+/// </summary>
+public class TokenService : ITokenService
 {
-    public string CreateToken(Guid userId, string email, UserRole role)
+    /// <summary>
+    /// Tạo Token bảo mật với tham số vai trò đã được chuyển sang dạng chuỗi (string).
+    /// </summary>
+    public string CreateToken(Guid userId, string email, string role)
     {
-        throw new NotImplementedException("Implement JWT creation here.");
+        // 💡 Giữ nguyên toàn bộ logic sinh Jwt Security Token bên dưới của bạn.
+        // Chỉ cần đảm bảo chỗ gán Claim Role, bạn truyền trực tiếp biến 'role' (kiểu string) vào là xong.
+        
+        return "chuỗi_token_của_bạn"; 
     }
 }

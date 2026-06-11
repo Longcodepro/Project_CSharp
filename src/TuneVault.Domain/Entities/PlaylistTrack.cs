@@ -30,7 +30,7 @@ public class PlaylistTrack
     /// <summary>
     /// Mã định danh của vật phẩm phương tiện (MediaItem) được liên kết. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string MediaItemId { get; private set; }
+    public string MediaItemId { get; private set; } 
 
     /// <summary>
     /// Vị trí/Thứ tự hiển thị và phát của bài hát bên trong Playlist (Giới hạn từ 1 đến 100).
