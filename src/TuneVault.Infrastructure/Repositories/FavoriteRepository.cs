@@ -1,3 +1,4 @@
+/*
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Interfaces;
 
@@ -14,3 +15,4 @@ public sealed class FavoriteRepository : IFavoriteRepository
     public Task<IReadOnlyCollection<Favorite>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 }
+*/

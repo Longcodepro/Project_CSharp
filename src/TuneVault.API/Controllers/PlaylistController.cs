@@ -11,27 +11,11 @@ namespace TuneVault.API.Controllers;
 /// =============================================
 /// Mục đích: Xử lý HTTP requests/responses cho tất cả Playlist endpoints.
 /// 
-/// Luồng xử lý Request:
-/// 1. Client gửi HTTP request (GET/POST)
-/// 2. Controller nhận request
-/// 3. IPlaylistRepository được DI inject
-/// 4. Repository -> Database -> Entity -> DTO
-/// 5. Controller -> HTTP Response (JSON)
-/// 
 /// Endpoints:
-/// - GET /api/playlist?userId=xxx
-///   → GetByUserId(): Lấy danh sách playlist của user
-///   → Return: PlaylistDto[]
-///
-/// - POST /api/playlist
-///   → Create(CreatePlaylistRequestDto, userId): Tạo playlist mới
-///   → Input: Title, IsPublic, CoverImgUrl
-///   → Return: PlaylistDto (201 Created)
-///
-/// - POST /api/playlist/{playlistId}/tracks
-///   → AddTrack(playlistId, AddTrackToPlaylistRequestDto): Thêm track vào playlist
-///   → Input: MediaItemId, TrackOrder
-///   → Return: Success message
+/// - GET    /api/Playlist?userId=xxx               → Lấy danh sách playlist của user
+/// - POST   /api/Playlist                          → Tạo playlist mới
+/// - POST   /api/Playlist/{playlistId}/tracks      → Thêm track vào playlist
+/// - DELETE /api/Playlist/{playlistId}/tracks/{mediaItemId} → Xóa track khỏi playlist
 /// </summary>
 
 public sealed class PlaylistController : BaseApiController
@@ -46,8 +30,6 @@ public sealed class PlaylistController : BaseApiController
     /// <summary>
     /// Lấy danh sách playlist của user theo userId.
     /// </summary>
-    /// <param name="userId">Mã user sở hữu playlist.</param>
-    /// <returns>Danh sách PlaylistDto.</returns>
     [HttpGet]
     public async Task<IActionResult> GetByUserId([FromQuery] string userId)
     {
@@ -67,9 +49,6 @@ public sealed class PlaylistController : BaseApiController
     /// <summary>
     /// Tạo playlist mới cho user.
     /// </summary>
-    /// <param name="request">Dữ liệu tạo playlist.</param>
-    /// <param name="userId">Mã user tạo playlist.</param>
-    /// <returns>PlaylistDto đã tạo.</returns>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePlaylistRequestDto request, [FromQuery] string userId)
     {
@@ -101,9 +80,6 @@ public sealed class PlaylistController : BaseApiController
     /// <summary>
     /// Thêm track mới vào playlist hiện có.
     /// </summary>
-    /// <param name="playlistId">Mã playlist.</param>
-    /// <param name="request">Dữ liệu track cần thêm.</param>
-    /// <returns>Thông báo thành công hoặc NotFound nếu playlist không tồn tại.</returns>
     [HttpPost("{playlistId}/tracks")]
     public async Task<IActionResult> AddTrack(string playlistId, [FromBody] AddTrackToPlaylistRequestDto request)
     {
@@ -123,5 +99,22 @@ public sealed class PlaylistController : BaseApiController
         await _playlistRepository.AddTrackAsync(track);
 
         return Ok(new { message = "Track added successfully" });
+    }
+
+    /// <summary>
+    /// Xóa track khỏi playlist.
+    /// </summary>
+    /// <param name="playlistId">Mã playlist.</param>
+    /// <param name="mediaItemId">Mã media item cần xóa.</param>
+    [HttpDelete("{playlistId}/tracks/{mediaItemId}")]
+    public async Task<IActionResult> RemoveTrack(string playlistId, string mediaItemId)
+    {
+        var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+        if (playlist == null)
+            return NotFound($"Playlist '{playlistId}' không tồn tại");
+
+        await _playlistRepository.RemoveTrackAsync(playlistId, mediaItemId);
+
+        return Ok(new { message = "Track removed successfully" });
     }
 }

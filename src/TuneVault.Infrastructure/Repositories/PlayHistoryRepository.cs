@@ -1,3 +1,4 @@
+/*
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Interfaces;
 
@@ -11,3 +12,4 @@ public sealed class PlayHistoryRepository : IPlayHistoryRepository
     public Task<IReadOnlyCollection<PlayHistory>> GetRecentByUserIdAsync(Guid userId, int take = 20, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 }
+*/

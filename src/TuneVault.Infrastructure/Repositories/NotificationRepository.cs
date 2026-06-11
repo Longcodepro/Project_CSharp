@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+/*using Dapper;
+>>>>>>> 44e6411 (feat: add delete track and search pagination)
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Interfaces;
 
@@ -17,3 +21,4 @@ public sealed class NotificationRepository : INotificationRepository
     public Task MarkAsReadAsync(Guid notificationId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 }
+*/

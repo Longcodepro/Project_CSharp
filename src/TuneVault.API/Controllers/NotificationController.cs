@@ -1,3 +1,4 @@
+/*
 using Microsoft.AspNetCore.Mvc;
 
 namespace TuneVault.API.Controllers;
@@ -10,3 +11,4 @@ public sealed class NotificationController : BaseApiController
     [HttpPost("{id}/read")]
     public IActionResult MarkAsRead(string id) => StatusCode(StatusCodes.Status501NotImplemented);
 }
+*/
