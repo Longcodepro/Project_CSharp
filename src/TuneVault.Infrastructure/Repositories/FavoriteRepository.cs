@@ -5,12 +5,12 @@ namespace TuneVault.Infrastructure.Repositories;
 
 public sealed class FavoriteRepository : IFavoriteRepository
 {
-    public Task ToggleAsync(string userId, string mediaItemId, CancellationToken cancellationToken = default)
+    public Task ToggleAsync(Guid userId, Guid mediaItemId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<bool> IsFavoriteAsync(string userId, string mediaItemId, CancellationToken cancellationToken = default)
+    public Task<bool> IsFavoriteAsync(Guid userId, Guid mediaItemId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<IEnumerable<Favorite>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<Favorite>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 }

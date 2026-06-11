@@ -5,12 +5,12 @@ namespace TuneVault.Infrastructure.Repositories;
 
 public sealed class MediaShareRepository : IMediaShareRepository
 {
-    public Task CreateAsync(MediaShare mediaShare, CancellationToken cancellationToken = default)
+    public Task ShareAsync(MediaShare mediaShare, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<IEnumerable<MediaShare>> GetSharedByMeAsync(string senderId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<MediaShare>> GetSharedByMeAsync(Guid senderId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<IEnumerable<MediaShare>> GetSharedWithMeAsync(string receiverId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<MediaShare>> GetSharedWithMeAsync(Guid receiverId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 }

@@ -8,6 +8,6 @@ public sealed class PlayHistoryRepository : IPlayHistoryRepository
     public Task RecordAsync(PlayHistory playHistory, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<IEnumerable<PlayHistory>> GetRecentByUserIdAsync(string userId, int take = 10, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<PlayHistory>> GetRecentByUserIdAsync(Guid userId, int take = 20, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 }

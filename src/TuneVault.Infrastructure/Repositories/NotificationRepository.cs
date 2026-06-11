@@ -5,15 +5,15 @@ namespace TuneVault.Infrastructure.Repositories;
 
 public sealed class NotificationRepository : INotificationRepository
 {
-    public Task CreateAsync(Notification notification, CancellationToken cancellationToken = default)
+    public Task AddAsync(Notification notification, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<IEnumerable<Notification>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<Notification>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task MarkAllAsReadAsync(string userId, CancellationToken cancellationToken = default)
+    public Task MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task MarkAsReadAsync(string notificationId, CancellationToken cancellationToken = default)
+    public Task MarkAsReadAsync(Guid notificationId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 }

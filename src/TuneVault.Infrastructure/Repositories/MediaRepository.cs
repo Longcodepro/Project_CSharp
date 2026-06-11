@@ -5,19 +5,16 @@ namespace TuneVault.Infrastructure.Repositories;
 
 public sealed class MediaRepository : IMediaRepository
 {
-    public Task CreateAsync(MediaItem mediaItem, CancellationToken cancellationToken = default)
+    public Task AddAsync(MediaItem mediaItem, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<IEnumerable<MediaItem>> GetAllAsync(CancellationToken cancellationToken = default)
+    public Task<MediaItem?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<MediaItem?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
-
-    public Task<IEnumerable<MediaItem>> SearchAsync(string keyword, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<MediaItem>> SearchAsync(string keyword, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
     public Task UpdateAsync(MediaItem mediaItem, CancellationToken cancellationToken = default)

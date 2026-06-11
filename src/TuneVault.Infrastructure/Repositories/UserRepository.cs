@@ -5,19 +5,19 @@ namespace TuneVault.Infrastructure.Repositories;
 
 public sealed class UserRepository : IUserRepository
 {
-    public Task CreateAsync(User user, CancellationToken cancellationToken = default)
+    public Task AddAsync(User user, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
-
-    public Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken = default)
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<User?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+
+    public Task<User?> GetByIdDisplayAsync(string idDisplay, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
     public Task UpdateAsync(User user, CancellationToken cancellationToken = default)

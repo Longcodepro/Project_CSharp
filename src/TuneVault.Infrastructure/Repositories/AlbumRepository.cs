@@ -8,13 +8,16 @@ public sealed class AlbumRepository : IAlbumRepository
     public Task AddTrackAsync(string albumId, string mediaItemId, int trackOrder, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task CreateAsync(Album album, CancellationToken cancellationToken = default)
+    public Task AddAsync(Album album, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<Album?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public Task<Album?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+
+    public Task<IReadOnlyCollection<Album>> GetByArtistIdAsync(Guid artistId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
     public Task<IEnumerable<Album>> GetByOwnerIdAsync(string ownerId, CancellationToken cancellationToken = default)
