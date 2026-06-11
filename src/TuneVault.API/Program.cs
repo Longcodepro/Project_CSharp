@@ -3,7 +3,9 @@
 /// để Program.cs có thể nhận diện và đăng ký vào DI container
 /// </summary>
 using TuneVault.Infrastructure.DAO;
-
+using TuneVault.Domain.Interfaces;
+using TuneVault.Infrastructure.Repositories;
+using Dapper;
 /// <summary>
 /// Khởi tạo builder — đối tượng dùng để cấu hình toàn bộ ứng dụng
 /// Tự động đọc appsettings.json và các biến môi trường
@@ -23,20 +25,15 @@ builder.Services.AddSingleton<DapperContext>();
 
 
 /// <summary>
-/// Đăng ký UserDAO vào DI container với kiểu Scoped.
-/// Scoped nghĩa là mỗi HTTP request sẽ tạo 1 instance UserDAO mới,
-/// dùng xuyên suốt request đó rồi tự hủy khi request kết thúc.
-/// 
-/// Tại sao dùng Scoped thay vì Singleton cho DAO?
-/// - Singleton: 1 instance dùng chung cho TẤT CẢ request
-///   → Nguy hiểm! Nếu 2 user cùng gọi API 1 lúc có thể bị xung đột dữ liệu
-/// - Scoped: mỗi request có instance RIÊNG
-///   → An toàn! Các request độc lập nhau hoàn toàn
-/// 
-/// Các DAO khác (SongDAO, PlaylistDAO, ...) cũng đăng ký tương tự:
-/// builder.Services.AddScoped<SongDAO>();
-/// builder.Services.AddScoped<PlaylistDAO>();
+/// Đăng ký Repositories vào DI container với kiểu Scoped
+/// Repository pattern tách biệt logic truy cập dữ liệu từ Business Logic
 /// </summary>
+builder.Services.AddScoped<IPlaylistRepository, PlaylistRepository>();
+builder.Services.AddScoped<ISearchRepository, SearchRepository>();
+//test
+builder.Services.AddEndpointsApiExplorer();  // ← có chưa?
+builder.Services.AddSwaggerGen();             // ← có chưa?
+// Giữ DAOs cho các chức năng khác
 builder.Services.AddScoped<UserDAO>();
 builder.Services.AddScoped<AlbumDAO>();
 builder.Services.AddScoped<PlaylistDAO>();
@@ -52,7 +49,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseCors("Frontend");
 app.UseStaticFiles();
 
@@ -77,3 +75,16 @@ app.MapGet("/health", () => Results.Ok(new
 .WithName("Health");
 
 app.Run();
+app.MapGet("/test-db", async (DapperContext context) =>
+{
+    try
+    {
+        using var conn = context.CreateConnection();
+        var result = await conn.QuerySingleAsync<int>("SELECT 1");
+        return Results.Ok(new { status = "Connected to SQL Server!" });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message);
+    }
+});
