@@ -1,4 +1,3 @@
-// Đường dẫn: src/TuneVault.Application/Features/User/Queries/GetAllArtists/GetAllArtistsQueryHandler.cs
 using MediatR;
 using TuneVault.Application.Features.User.DTOs;
 using TuneVault.Domain.Interfaces;
@@ -6,39 +5,47 @@ using TuneVault.Domain.Interfaces;
 namespace TuneVault.Application.Features.User.Queries.GetAllArtists;
 
 /// <summary>
-/// Bộ xử lý nghiệp vụ (Handler) chịu trách nhiệm tiếp nhận truy vấn lấy toàn bộ
-/// danh sách người dùng đã được xác thực là nghệ sĩ trong hệ thống.
+/// Handler xử lý <see cref="GetAllArtistsQuery"/>.
+/// Lấy tập hợp <see cref="TuneVault.Domain.Entities.User"/> Entity là nghệ sĩ
+/// và map từng Entity sang <see cref="UserDto"/> — không lộ thông tin nhạy cảm.
 /// </summary>
 public class GetAllArtistsQueryHandler : IRequestHandler<GetAllArtistsQuery, IEnumerable<UserDto>>
 {
     private readonly IUserRepository _userRepository;
 
     /// <summary>
-    /// Khởi tạo một phiên bản xử lý mới của lớp <see cref="GetAllArtistsQueryHandler"/> cùng với kho dữ liệu người dùng.
+    /// Khởi tạo Handler với dependency là <see cref="IUserRepository"/>.
     /// </summary>
-    /// <param name="userRepository">Giao diện kết nối kho dữ liệu thực thể User.</param>
+    /// <param name="userRepository">Interface kho dữ liệu User, được inject qua DI container.</param>
     public GetAllArtistsQueryHandler(IUserRepository userRepository)
     {
         _userRepository = userRepository;
     }
 
     /// <summary>
-    /// Thực hiện xử lý logic nghiệp vụ lấy danh sách nghệ sĩ từ tầng Domain
-    /// và ánh xạ sang danh sách UserDto chỉ chứa các trường thông tin công khai.
+    /// Xử lý luồng lấy danh sách nghệ sĩ:
+    /// truy vấn tập hợp Entity (IsArtist = true, IsActive = true) → map từng Entity sang DTO → trả về.
     /// </summary>
-    /// <param name="request">Đối tượng truy vấn không có tham số đầu vào.</param>
-    /// <param name="cancellationToken">Mã token điều phối hủy bỏ luồng nếu có sự cố ngắt kết nối.</param>
-    /// <returns>Danh sách các đối tượng <see cref="UserDto"/> đại diện cho các nghệ sĩ đang hoạt động.</returns>
-    public async Task<IEnumerable<UserDto>> Handle(GetAllArtistsQuery request, CancellationToken cancellationToken)
+    /// <param name="request">Query không có tham số — lấy toàn bộ danh sách nghệ sĩ.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>
+    /// Tập hợp <see cref="UserDto"/> đại diện cho tất cả nghệ sĩ đang hoạt động.
+    /// Trả về tập hợp rỗng nếu chưa có nghệ sĩ nào trong hệ thống.
+    /// </returns>
+    public async Task<IEnumerable<UserDto>> Handle(GetAllArtistsQuery request, CancellationToken ct)
     {
-        var artists = await _userRepository.GetAllArtistsAsync(cancellationToken);
+        // Step 1: Truy vấn tập hợp User Entity có IsArtist = true và IsActive = true
+        var artists = await _userRepository.GetAllArtistsAsync(ct);
 
-        return artists.Select(user => new UserDto
+        // Step 2: Map từng Entity sang UserDto — ẩn Id hệ thống, Email, PasswordHash
+        //         Role luôn là "Artist" vì đây là kết quả đã lọc từ repository
+        return artists.Select(u => new UserDto
         {
-            IdDisplay = user.IdDisplay,
-            DisplayName = user.DisplayName,
-            Role = "Artist",
-            IsActive = user.IsActive
+            IdDisplay   = u.IdDisplay,
+            DisplayName = u.DisplayName,
+            AvatarUrl   = u.AvatarUrl,
+            Role        = "Artist",
+            IsActive    = u.IsActive
         });
     }
 }

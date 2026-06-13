@@ -1,11 +1,12 @@
-// Đường dẫn: src/TuneVault.Application/Features/Users/Queries/GetUserById/GetUserByIdQuery.cs
 using MediatR;
 using TuneVault.Application.Features.User.DTOs;
 
 namespace TuneVault.Application.Features.User.Queries.GetUserById;
 
 /// <summary>
-/// Gói tin truy vấn (Query) đại diện cho yêu cầu tìm kiếm thông tin người dùng dựa theo ID.
+/// Query (yêu cầu đọc) đại diện cho nghiệp vụ lấy thông tin cơ bản của người dùng theo Id hệ thống.
+/// Dùng trong các trường hợp cần thông tin nhanh (header, mention, tag) — không cần đầy đủ như profile page.
+/// Kết quả trả về là <see cref="UserDto"/> — chỉ gồm các trường công khai cơ bản.
 /// </summary>
-/// <param name="Id">Mã định danh hệ thống của người dùng cần được truy vấn dữ liệu.</param>
-public record GetUserByIdQuery(string Id) : IRequest<UserDto>;
+/// <param name="Id">Mã định danh hệ thống của người dùng (ví dụ: U001).</param>
+public record GetUserByIdQuery(string Id) : IRequest<UserDto?>;

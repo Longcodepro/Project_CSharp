@@ -1,4 +1,3 @@
-// Đường dẫn: src/TuneVault.Application/Features/User/Queries/GetUserById/GetUserByIdQueryHandler.cs
 using MediatR;
 using TuneVault.Application.Features.User.DTOs;
 using TuneVault.Domain.Interfaces;
@@ -6,41 +5,51 @@ using TuneVault.Domain.Interfaces;
 namespace TuneVault.Application.Features.User.Queries.GetUserById;
 
 /// <summary>
-/// Bộ xử lý nghiệp vụ (Handler) chịu trách nhiệm tiếp nhận truy vấn lấy thông tin người dùng cụ thể dựa trên Id.
+/// Handler xử lý <see cref="GetUserByIdQuery"/>.
+/// Lấy <see cref="TuneVault.Domain.Entities.User"/> Entity và map sang <see cref="UserDto"/>
+/// chứa thông tin cơ bản — không lộ Id hệ thống, Email hay PasswordHash.
+/// Trả về <c>null</c> nếu không tìm thấy (soft-not-found — cho phép caller xử lý tùy ý).
 /// </summary>
-public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDto>
+public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDto?>
 {
     private readonly IUserRepository _userRepository;
 
     /// <summary>
-    /// Khởi tạo một phiên bản xử lý mới của lớp <see cref="GetUserByIdQueryHandler"/> cùng với kho dữ liệu người dùng.
+    /// Khởi tạo Handler với dependency là <see cref="IUserRepository"/>.
     /// </summary>
-    /// <param name="userRepository">Giao diện kết nối kho dữ liệu thực thể User.</param>
+    /// <param name="userRepository">Interface kho dữ liệu User, được inject qua DI container.</param>
     public GetUserByIdQueryHandler(IUserRepository userRepository)
     {
         _userRepository = userRepository;
     }
 
     /// <summary>
-    /// Thực hiện xử lý logic nghiệp vụ đọc dữ liệu từ tầng Domain và ánh xạ kết quả sang UserDto công khai.
+    /// Xử lý luồng lấy thông tin cơ bản người dùng theo Id:
+    /// truy vấn Entity → kiểm tra null → map sang DTO → trả về.
     /// </summary>
-    /// <param name="request">Đối tượng chứa tham số Id của người dùng cần tìm kiếm.</param>
-    /// <param name="cancellationToken">Mã token điều phối hủy bỏ luồng nếu có sự cố ngắt kết nối.</param>
-    /// <returns>Đối tượng <see cref="UserDto"/> chứa thông tin công khai trả về phía Client.</returns>
-    /// <exception cref="KeyNotFoundException">Ném ra ngoại lệ nếu mã Id gửi lên không khớp với bất kỳ bản ghi nào trong hệ thống.</exception>
-    public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+    /// <param name="request">Query chứa Id của người dùng cần tìm.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>
+    /// <see cref="UserDto"/> nếu tìm thấy; <c>null</c> nếu không tồn tại.
+    /// </returns>
+    public async Task<UserDto?> Handle(GetUserByIdQuery request, CancellationToken ct)
     {
-        var user = await _userRepository.GetByIdAsync(request.Id, cancellationToken);
+        // Step 1: Truy vấn User Entity từ repository theo Id hệ thống
+        var user = await _userRepository.GetByIdAsync(request.Id, ct);
 
-        if (user == null)
-            throw new KeyNotFoundException($"User với Id '{request.Id}' không tồn tại.");
+        // Step 2: Trả về null nếu không tìm thấy (soft not-found)
+        if (user is null)
+            return null;
 
+        // Step 3: Map Entity sang UserDto — ẩn Id hệ thống, Email, PasswordHash, Bio
+        //         UserDto chỉ chứa thông tin đủ để hiển thị trong danh sách hoặc mention
         return new UserDto
         {
-            IdDisplay = user.IdDisplay,
+            IdDisplay   = user.IdDisplay,
             DisplayName = user.DisplayName,
-            Role = user.IsArtist ? "Artist" : "User",
-            IsActive = user.IsActive
+            AvatarUrl   = user.AvatarUrl,
+            Role        = user.IsArtist ? "Artist" : "User",
+            IsActive    = user.IsActive
         };
     }
 }

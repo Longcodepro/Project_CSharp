@@ -1,51 +1,56 @@
-// Đường dẫn: src/TuneVault.Application/Features/User/Queries/GetUserProfile/GetUserProfileQueryHandler.cs
 using MediatR;
 using TuneVault.Application.Features.User.DTOs;
+using TuneVault.Domain.Exceptions;
 using TuneVault.Domain.Interfaces;
 
-namespace TuneVault.Application.Features.User.Queries.GetUserProfile;
+namespace TuneVault.Application.Features.User.Queries.GetProfile;
 
 /// <summary>
-/// Bộ xử lý nghiệp vụ (Handler) chịu trách nhiệm tiếp nhận truy vấn lấy profile đầy đủ của người dùng theo Id.
+/// Handler xử lý <see cref="GetUserProfileQuery"/>.
+/// Lấy <see cref="TuneVault.Domain.Entities.User"/> Entity từ repository và map sang
+/// <see cref="UserProfileDto"/> để trả về thông tin profile đầy đủ mà không lộ dữ liệu nhạy cảm.
 /// </summary>
 public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, UserProfileDto>
 {
     private readonly IUserRepository _userRepository;
 
     /// <summary>
-    /// Khởi tạo một phiên bản xử lý mới của lớp <see cref="GetUserProfileQueryHandler"/> cùng với kho dữ liệu người dùng.
+    /// Khởi tạo Handler với dependency là <see cref="IUserRepository"/>.
     /// </summary>
-    /// <param name="userRepository">Giao diện kết nối kho dữ liệu thực thể User.</param>
+    /// <param name="userRepository">Interface kho dữ liệu User, được inject qua DI container.</param>
     public GetUserProfileQueryHandler(IUserRepository userRepository)
     {
         _userRepository = userRepository;
     }
 
     /// <summary>
-    /// Thực hiện xử lý logic nghiệp vụ đọc toàn bộ thông tin profile từ tầng Domain
-    /// và ánh xạ sang UserProfileDto chỉ chứa các trường thông tin công khai.
+    /// Xử lý luồng lấy profile người dùng:
+    /// truy vấn Entity từ repository → kiểm tra tồn tại → map sang DTO → trả về.
     /// </summary>
-    /// <param name="request">Đối tượng chứa tham số Id của người dùng cần lấy profile.</param>
-    /// <param name="cancellationToken">Mã token điều phối hủy bỏ luồng nếu có sự cố ngắt kết nối.</param>
-    /// <returns>Đối tượng <see cref="UserProfileDto"/> chứa thông tin profile công khai trả về phía Client.</returns>
-    /// <exception cref="KeyNotFoundException">Ném ra ngoại lệ nếu mã Id gửi lên không khớp với bất kỳ bản ghi nào trong hệ thống.</exception>
-    public async Task<UserProfileDto> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
+    /// <param name="request">Query chứa Id của người dùng cần lấy profile.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns><see cref="UserProfileDto"/> chứa toàn bộ thông tin profile công khai.</returns>
+    /// <exception cref="DomainException">Ném ra nếu không tìm thấy User với Id tương ứng.</exception>
+    public async Task<UserProfileDto> Handle(GetUserProfileQuery request, CancellationToken ct)
     {
-        var user = await _userRepository.GetByIdAsync(request.Id, cancellationToken);
+        // Step 1: Truy vấn User Entity từ repository theo Id hệ thống
+        var user = await _userRepository.GetByIdAsync(request.Id, ct);
 
-        if (user == null)
-            throw new KeyNotFoundException($"User với Id '{request.Id}' không tồn tại.");
+        // Step 2: Kiểm tra sự tồn tại — ném exception nếu không tìm thấy
+        if (user is null)
+            throw new DomainException($"Người dùng với Id '{request.Id}' không tồn tại.");
 
+        // Step 3: Map Entity sang UserProfileDto — ẩn Id hệ thống, Email, PasswordHash
         return new UserProfileDto
         {
-            IdDisplay = user.IdDisplay,
-            DisplayName = user.DisplayName,
-            AvatarUrl = user.AvatarUrl,
-            Bio = user.Bio,
-            Role = user.IsArtist ? "Artist" : "User",
+            IdDisplay      = user.IdDisplay,
+            DisplayName    = user.DisplayName,
+            AvatarUrl      = user.AvatarUrl,
+            Bio            = user.Bio,
+            Role           = user.IsArtist ? "Artist" : "User",
             TotalFollowers = user.TotalFollowers,
-            CreatedAt = user.CreatedAt,
-            IsActive = user.IsActive
+            CreatedAt      = user.CreatedAt,
+            IsActive       = user.IsActive
         };
     }
 }
