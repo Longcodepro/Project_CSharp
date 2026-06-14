@@ -10,4 +10,8 @@
     <ProjectReference Include="../TuneVault.Infrastructure/TuneVault.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
+  </ItemGroup>
+
 </Project>

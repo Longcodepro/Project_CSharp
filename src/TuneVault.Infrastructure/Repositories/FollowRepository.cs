@@ -1,101 +1,252 @@
-using TuneVault.Domain.Entities;
-using TuneVault.Domain.Interfaces;
+using Dapper;
+using System.Data;
+using TuneVault.Application.Features.Follow.Commands;
 using TuneVault.Infrastructure.DAO;
 
-namespace TuneVault.Infrastructure.Repositories;
-
-/// <summary>
-/// Repository triển khai các thao tác quản lý quan hệ follow trong TuneVault.
-/// Lớp này sử dụng InteractionDAO để lưu, xóa, kiểm tra và ánh xạ dữ liệu follow sang entity Domain.
-/// </summary>
-public sealed class FollowRepository : IFollowRepository
+namespace TuneVault.Infrastructure.Repositories
 {
-    private readonly InteractionDAO _interactionDao;
-
     /// <summary>
-    /// Khởi tạo một instance mới của FollowRepository với DAO xử lý dữ liệu tương tác.
+    /// Repository xử lý SQL cho Follow.
+    /// File này chỉ chứa database, không chứa logic notification.
     /// </summary>
-    public FollowRepository(InteractionDAO interactionDao)
+    public sealed class FollowRepository : IFollowSqlRepository
     {
-        _interactionDao = interactionDao;
-    }
+        private readonly DapperContext _context;
 
-    /// <summary>
-    /// Tạo quan hệ theo dõi từ người dùng đến người dùng hoặc nghệ sĩ khác.
-    /// </summary>
-    public async Task FollowAsync(Guid followerId, Guid followeeId, CancellationToken cancellationToken = default)
-    {
-        await _interactionDao.FollowArtistAsync(
-            RepositoryMappingHelper.ToDatabaseId(followerId),
-            RepositoryMappingHelper.ToDatabaseId(followeeId));
-    }
+        public FollowRepository(DapperContext context)
+        {
+            _context = context;
+        }
 
-    /// <summary>
-    /// Hủy quan hệ theo dõi giữa người dùng và đối tượng đang được theo dõi.
-    /// </summary>
-    public async Task UnfollowAsync(Guid followerId, Guid followeeId, CancellationToken cancellationToken = default)
-    {
-        await _interactionDao.UnfollowArtistAsync(
-            RepositoryMappingHelper.ToDatabaseId(followerId),
-            RepositoryMappingHelper.ToDatabaseId(followeeId));
-    }
+        /// <summary>
+        /// Follow một user/nghệ sĩ.
+        /// Nếu đã có quan hệ follow nhưng IsActive = 0 thì bật lại IsActive = 1.
+        /// Nếu chưa có thì insert mới.
+        /// </summary>
+        public async Task<bool> FollowAsync(string followerId, string followeeId)
+        {
+            using var connection = _context.CreateConnection();
 
-    /// <summary>
-    /// Kiểm tra người dùng có đang theo dõi một người dùng hoặc nghệ sĩ khác hay không.
-    /// </summary>
-    public async Task<bool> IsFollowingAsync(Guid followerId, Guid followeeId, CancellationToken cancellationToken = default)
-    {
-        return await _interactionDao.IsFollowingAsync(
-            RepositoryMappingHelper.ToDatabaseId(followerId),
-            RepositoryMappingHelper.ToDatabaseId(followeeId));
-    }
+            var existing = await connection.QueryFirstOrDefaultAsync<dynamic?>(@"
+                SELECT Id, IsActive
+                FROM Follows
+                WHERE FollowerId = @FollowerId
+                  AND FolloweeId = @FolloweeId;",
+                new
+                {
+                    FollowerId = followerId,
+                    FolloweeId = followeeId
+                });
 
-    /// <summary>
-    /// Lấy danh sách những người đang theo dõi một người dùng hoặc nghệ sĩ.
-    /// </summary>
-    public async Task<IReadOnlyCollection<Follow>> GetFollowersAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        var followeeId = RepositoryMappingHelper.ToDatabaseId(userId);
-        var rows = await _interactionDao.GetFollowersAsync(followeeId);
+            if (existing != null)
+            {
+                bool isActive = existing.IsActive;
 
-        return rows.Select(row => MapFollow(
-            followerId: RepositoryMappingHelper.ReadString(row, "Id"),
-            followeeId: followeeId,
-            followedAt: RepositoryMappingHelper.ReadDateTime(row, "FollowedAt"))).ToList();
-    }
+                if (isActive)
+                    return false;
 
-    /// <summary>
-    /// Lấy danh sách người dùng hoặc nghệ sĩ mà một người dùng đang theo dõi.
-    /// </summary>
-    public async Task<IReadOnlyCollection<Follow>> GetFollowingAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        var followerId = RepositoryMappingHelper.ToDatabaseId(userId);
-        var rows = await _interactionDao.GetFollowingArtistsAsync(followerId);
+                await connection.ExecuteAsync(@"
+                    UPDATE Follows
+                    SET IsActive = 1,
+                        FollowedAt = GETDATE()
+                    WHERE Id = @Id;
 
-        return rows.Select(row => MapFollow(
-            followerId: followerId,
-            followeeId: RepositoryMappingHelper.ReadString(row, "Id"),
-            followedAt: RepositoryMappingHelper.ReadDateTime(row, "FollowedAt"))).ToList();
-    }
+                    UPDATE Users
+                    SET TotalFollowers = TotalFollowers + 1
+                    WHERE Id = @FolloweeId;",
+                    new
+                    {
+                        Id = (string)existing.Id,
+                        FolloweeId = followeeId
+                    });
 
-    /// <summary>
-    /// Đếm số lượng người theo dõi của một người dùng hoặc nghệ sĩ.
-    /// </summary>
-    public async Task<int> CountFollowersAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        return await _interactionDao.CountFollowersAsync(RepositoryMappingHelper.ToDatabaseId(userId));
-    }
+                return true;
+            }
 
-    /// <summary>
-    /// Tạo entity Follow từ các giá trị đã được đọc từ dữ liệu nguồn.
-    /// </summary>
-    private static Follow MapFollow(string followerId, string followeeId, DateTime followedAt)
-    {
-        return RepositoryMappingHelper.CreateEntity<Follow>(
-            (nameof(Follow.Id), string.Empty),
-            (nameof(Follow.FollowerId), followerId),
-            (nameof(Follow.FolloweeId), followeeId),
-            (nameof(Follow.FollowedAt), followedAt),
-            (nameof(Follow.IsActive), true));
+            var id = await GenerateNextFollowIdAsync(connection);
+
+            await connection.ExecuteAsync(@"
+                INSERT INTO Follows
+                    (Id, FollowerId, FolloweeId, FollowedAt, IsActive)
+                VALUES
+                    (@Id, @FollowerId, @FolloweeId, GETDATE(), 1);
+
+                UPDATE Users
+                SET TotalFollowers = TotalFollowers + 1
+                WHERE Id = @FolloweeId;",
+                new
+                {
+                    Id = id,
+                    FollowerId = followerId,
+                    FolloweeId = followeeId
+                });
+
+            return true;
+        }
+
+        /// <summary>
+        /// Bỏ follow bằng cách chuyển IsActive = 0.
+        /// Không xóa dòng khỏi database.
+        /// </summary>
+        public async Task<bool> UnfollowAsync(string followerId, string followeeId)
+        {
+            using var connection = _context.CreateConnection();
+
+            var affectedRows = await connection.ExecuteAsync(@"
+                UPDATE Follows
+                SET IsActive = 0
+                WHERE FollowerId = @FollowerId
+                  AND FolloweeId = @FolloweeId
+                  AND IsActive = 1;
+
+                IF @@ROWCOUNT > 0
+                BEGIN
+                    UPDATE Users
+                    SET TotalFollowers = CASE WHEN TotalFollowers > 0 THEN TotalFollowers - 1 ELSE 0 END
+                    WHERE Id = @FolloweeId;
+                END",
+                new
+                {
+                    FollowerId = followerId,
+                    FolloweeId = followeeId
+                });
+
+            return affectedRows > 0;
+        }
+
+        /// <summary>
+        /// Kiểm tra follower có đang follow followee không.
+        /// </summary>
+        public async Task<bool> IsFollowingAsync(string followerId, string followeeId)
+        {
+            using var connection = _context.CreateConnection();
+
+            var count = await connection.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM Follows
+                WHERE FollowerId = @FollowerId
+                  AND FolloweeId = @FolloweeId
+                  AND IsActive = 1;",
+                new
+                {
+                    FollowerId = followerId,
+                    FolloweeId = followeeId
+                });
+
+            return count > 0;
+        }
+
+        /// <summary>
+        /// Lấy danh sách nghệ sĩ/user mà user đang follow.
+        /// </summary>
+        public async Task<IEnumerable<dynamic>> GetFollowingAsync(string followerId)
+        {
+            using var connection = _context.CreateConnection();
+
+            var sql = @"
+                SELECT
+                    u.Id,
+                    u.IdDisplay,
+                    u.IdDisplay AS UserName,
+                    u.Email,
+                    u.DisplayName,
+                    u.AvatarUrl,
+                    u.Bio,
+                    u.IsArtist,
+                    u.TotalFollowers,
+                    u.CreatedAt,
+                    f.FollowedAt
+                FROM Follows f
+                INNER JOIN Users u ON f.FolloweeId = u.Id
+                WHERE f.FollowerId = @FollowerId
+                  AND f.IsActive = 1
+                  AND u.IsArtist = 1
+                ORDER BY f.FollowedAt DESC;";
+
+            return await connection.QueryAsync(sql, new
+            {
+                FollowerId = followerId
+            });
+        }
+
+        /// <summary>
+        /// Lấy danh sách người đang follow một user/nghệ sĩ.
+        /// </summary>
+        public async Task<IEnumerable<dynamic>> GetFollowersAsync(string followeeId)
+        {
+            using var connection = _context.CreateConnection();
+
+            var sql = @"
+                SELECT
+                    u.Id,
+                    u.IdDisplay,
+                    u.IdDisplay AS UserName,
+                    u.Email,
+                    u.DisplayName,
+                    u.AvatarUrl,
+                    u.Bio,
+                    u.IsArtist,
+                    u.TotalFollowers,
+                    u.CreatedAt,
+                    f.FollowedAt
+                FROM Follows f
+                INNER JOIN Users u ON f.FollowerId = u.Id
+                WHERE f.FolloweeId = @FolloweeId
+                  AND f.IsActive = 1
+                ORDER BY f.FollowedAt DESC;";
+
+            return await connection.QueryAsync(sql, new
+            {
+                FolloweeId = followeeId
+            });
+        }
+
+        /// <summary>
+        /// Đếm số follower của một user/nghệ sĩ.
+        /// </summary>
+        public async Task<int> CountFollowersAsync(string followeeId)
+        {
+            using var connection = _context.CreateConnection();
+
+            return await connection.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM Follows
+                WHERE FolloweeId = @FolloweeId
+                  AND IsActive = 1;",
+                new
+                {
+                    FolloweeId = followeeId
+                });
+        }
+
+        /// <summary>
+        /// Tạo Id follow dạng FW001, FW002...
+        /// Không dùng DaoSqlHelper nữa.
+        /// </summary>
+        private static async Task<string> GenerateNextFollowIdAsync(IDbConnection connection)
+        {
+            const string prefix = "FW";
+
+            var lastId = await connection.QueryFirstOrDefaultAsync<string>(@"
+                SELECT TOP 1 Id
+                FROM Follows
+                WHERE Id LIKE @PrefixLike
+                ORDER BY TRY_CONVERT(INT, SUBSTRING(Id, LEN(@Prefix) + 1, 20)) DESC;",
+                new
+                {
+                    Prefix = prefix,
+                    PrefixLike = $"{prefix}%"
+                });
+
+            if (string.IsNullOrWhiteSpace(lastId))
+                return $"{prefix}001";
+
+            var numberPart = lastId[prefix.Length..];
+
+            if (!int.TryParse(numberPart, out var currentNumber))
+                currentNumber = 0;
+
+            return $"{prefix}{currentNumber + 1:000}";
+        }
     }
 }

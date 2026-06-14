@@ -1,111 +1,295 @@
 using Dapper;
-using TuneVault.Domain.Entities;
-using TuneVault.Domain.Enums;
-using TuneVault.Domain.Interfaces;
+using System.Data;
+using TuneVault.Application.Features.Notification.Commands;
+using TuneVault.Application.Features.Notification.Queries.GetNotifications;
 using TuneVault.Infrastructure.DAO;
-
-namespace TuneVault.Infrastructure.Repositories;
-
-/// <summary>
-/// Repository triển khai các thao tác lưu trữ và truy vấn thông báo của người dùng trong TuneVault.
-/// Lớp này kết hợp NotificationDAO và DapperContext để đọc, tạo và cập nhật trạng thái thông báo.
-/// </summary>
-public sealed class NotificationRepository : INotificationRepository
+using AppNotificationInsertModel = TuneVault.Application.Features.Notification.Commands.NotificationInsertModel;
+namespace TuneVault.Infrastructure.Repositories
 {
-    private readonly NotificationDAO _notificationDao;
-    private readonly DapperContext _context;
-
     /// <summary>
-    /// Khởi tạo một instance mới của NotificationRepository với DAO và context kết nối cơ sở dữ liệu.
+    /// Repository xử lý database cho bảng Notifications.
+    /// File này chỉ viết SQL, không chứa logic nghiệp vụ.
     /// </summary>
-    public NotificationRepository(NotificationDAO notificationDao, DapperContext context)
+    public sealed class NotificationRepository :
+    INotificationCommandRepository,
+    INotificationQueryRepository
     {
-        _notificationDao = notificationDao;
-        _context = context;
-    }
+        private readonly DapperContext _context;
 
-    /// <summary>
-    /// Thêm một thông báo mới cho người dùng vào hệ thống.
-    /// </summary>
-    public async Task AddAsync(Notification notification, CancellationToken cancellationToken = default)
-    {
-        await _notificationDao.CreateNotificationAsync(
-            notification.UserId,
-            notification.Type.ToString(),
-            notification.Message);
-    }
-
-    /// <summary>
-    /// Lấy toàn bộ thông báo của một người dùng và ánh xạ sang entity Notification.
-    /// </summary>
-    public async Task<IReadOnlyCollection<Notification>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        var rows = await _notificationDao.GetNotificationsAsync(RepositoryMappingHelper.ToDatabaseId(userId));
-        return rows.Select(MapNotification).ToList();
-    }
-
-    /// <summary>
-    /// Lấy danh sách thông báo chưa đọc của người dùng với số lượng giới hạn.
-    /// </summary>
-    public async Task<IReadOnlyCollection<Notification>> GetUnreadByUserIdAsync(Guid userId, int take = 50, CancellationToken cancellationToken = default)
-    {
-        var rows = await _notificationDao.GetUnreadNotificationsAsync(RepositoryMappingHelper.ToDatabaseId(userId), take);
-        return rows.Select(MapNotification).ToList();
-    }
-
-    /// <summary>
-    /// Đếm số lượng thông báo chưa đọc của một người dùng.
-    /// </summary>
-    public async Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        return await _notificationDao.CountUnreadNotificationsAsync(RepositoryMappingHelper.ToDatabaseId(userId));
-    }
-
-    /// <summary>
-    /// Đánh dấu một thông báo cụ thể là đã đọc bằng truy vấn cập nhật trực tiếp.
-    /// </summary>
-    public async Task MarkAsReadAsync(Guid notificationId, CancellationToken cancellationToken = default)
-    {
-        using var connection = _context.CreateConnection();
-
-        const string sql = @"
-            UPDATE [Notification]
-            SET [IsRead] = 1
-            WHERE [Id] = @NotificationId;
-        ";
-
-        await connection.ExecuteAsync(sql, new
+        public NotificationRepository(DapperContext context)
         {
-            NotificationId = RepositoryMappingHelper.ToDatabaseId(notificationId)
-        });
-    }
+            _context = context;
+        }
 
-    /// <summary>
-    /// Đánh dấu toàn bộ thông báo của một người dùng là đã đọc.
-    /// </summary>
-    public async Task MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        await _notificationDao.MarkAllNotificationsAsReadAsync(RepositoryMappingHelper.ToDatabaseId(userId));
-    }
+        /// <summary>
+        /// Insert một notification mới.
+        /// </summary>
+        public async Task<string> InsertNotificationAsync(AppNotificationInsertModel notification)
+        {
+            using var connection = _context.CreateConnection();
 
-    /// <summary>
-    /// Ánh xạ một dòng dữ liệu thông báo từ DAO thành entity Notification của tầng Domain.
-    /// Nếu payload rỗng, phương thức sẽ dùng tiêu đề mặc định theo loại thông báo làm nội dung.
-    /// </summary>
-    private static Notification MapNotification(object row)
-    {
-        var type = RepositoryMappingHelper.ReadEnum(row, "Type", NotificationType.SystemAlert);
-        var message = RepositoryMappingHelper.ReadString(row, "PayloadJson");
-        if (string.IsNullOrWhiteSpace(message))
-            message = type.ToTitle();
+            var notificationId = await GenerateNextNotificationIdAsync(connection);
 
-        return RepositoryMappingHelper.CreateEntity<Notification>(
-            (nameof(Notification.Id), RepositoryMappingHelper.ReadString(row, "Id")),
-            (nameof(Notification.UserId), RepositoryMappingHelper.ReadString(row, "UserId")),
-            (nameof(Notification.Type), type),
-            (nameof(Notification.Title), type.ToTitle()),
-            (nameof(Notification.Message), message),
-            (nameof(Notification.IsRead), RepositoryMappingHelper.ReadBool(row, "IsRead")),
-            (nameof(Notification.CreatedAt), RepositoryMappingHelper.ReadDateTime(row, "CreatedAt")));
+            await connection.ExecuteAsync(@"
+                INSERT INTO Notifications
+                    (Id, UserId, SenderId, NotifyType, Title, Message, IsRead, CreatedAt, IsActive)
+                VALUES
+                    (@Id, @UserId, @SenderId, @NotifyType, @Title, @Message, 0, GETDATE(), 1);",
+                new
+                {
+                    Id = notificationId,
+                    notification.UserId,
+                    notification.SenderId,
+                    notification.NotifyType,
+                    notification.Title,
+                    notification.Message
+                });
+
+            return notificationId;
+        }
+
+        /// <summary>
+        /// Lấy danh sách notification còn hiển thị của user.
+        /// </summary>
+        public async Task<IEnumerable<dynamic>> GetNotificationsAsync(string userId, int limit = 50)
+        {
+            if (limit <= 0)
+                limit = 50;
+
+            using var connection = _context.CreateConnection();
+
+            var sql = BaseNotificationSelectSql(@"
+                WHERE n.UserId = @UserId
+                  AND n.IsActive = 1
+                ORDER BY n.CreatedAt DESC;");
+
+            return await connection.QueryAsync(sql, new
+            {
+                UserId = userId,
+                Limit = limit
+            });
+        }
+
+        /// <summary>
+        /// Lấy danh sách notification chưa đọc của user.
+        /// </summary>
+        public async Task<IEnumerable<dynamic>> GetUnreadNotificationsAsync(string userId, int limit = 50)
+        {
+            if (limit <= 0)
+                limit = 50;
+
+            using var connection = _context.CreateConnection();
+
+            var sql = BaseNotificationSelectSql(@"
+                WHERE n.UserId = @UserId
+                  AND n.IsActive = 1
+                  AND n.IsRead = 0
+                ORDER BY n.CreatedAt DESC;");
+
+            return await connection.QueryAsync(sql, new
+            {
+                UserId = userId,
+                Limit = limit
+            });
+        }
+
+        /// <summary>
+        /// Đếm số notification chưa đọc.
+        /// </summary>
+        public async Task<int> CountUnreadNotificationsAsync(string userId)
+        {
+            using var connection = _context.CreateConnection();
+
+            return await connection.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM Notifications
+                WHERE UserId = @UserId
+                  AND IsActive = 1
+                  AND IsRead = 0;",
+                new { UserId = userId });
+        }
+
+        /// <summary>
+        /// Đánh dấu notification là đã đọc.
+        /// </summary>
+        public async Task<bool> MarkAsReadAsync(string notificationId, string userId)
+        {
+            using var connection = _context.CreateConnection();
+
+            var affectedRows = await connection.ExecuteAsync(@"
+                UPDATE Notifications
+                SET IsRead = 1
+                WHERE Id = @NotificationId
+                  AND UserId = @UserId
+                  AND IsActive = 1;",
+                new
+                {
+                    NotificationId = notificationId,
+                    UserId = userId
+                });
+
+            return affectedRows > 0;
+        }
+
+        /// <summary>
+        /// Xóa mềm một notification.
+        /// </summary>
+        public async Task<bool> DeleteAsync(string notificationId, string userId)
+        {
+            using var connection = _context.CreateConnection();
+
+            var affectedRows = await connection.ExecuteAsync(@"
+                UPDATE Notifications
+                SET IsActive = 0
+                WHERE Id = @NotificationId
+                  AND UserId = @UserId
+                  AND IsActive = 1;",
+                new
+                {
+                    NotificationId = notificationId,
+                    UserId = userId
+                });
+
+            return affectedRows > 0;
+        }
+
+        /// <summary>
+        /// Xóa mềm toàn bộ notification của user.
+        /// </summary>
+        public async Task<int> DeleteAllAsync(string userId)
+        {
+            using var connection = _context.CreateConnection();
+
+            var affectedRows = await connection.ExecuteAsync(@"
+                UPDATE Notifications
+                SET IsActive = 0
+                WHERE UserId = @UserId
+                  AND IsActive = 1;",
+                new { UserId = userId });
+
+            return affectedRows;
+        }
+
+        /// <summary>
+        /// Lấy thông tin ngắn gọn của user.
+        /// </summary>
+        public async Task<UserBrief?> GetUserBriefAsync(string userId)
+        {
+            using var connection = _context.CreateConnection();
+
+            return await connection.QueryFirstOrDefaultAsync<UserBrief>(@"
+                SELECT DisplayName, IdDisplay, AvatarUrl
+                FROM Users
+                WHERE Id = @UserId;",
+                new { UserId = userId });
+        }
+
+        /// <summary>
+        /// Lấy tên bài hát/media.
+        /// </summary>
+        public async Task<string?> GetMediaTitleAsync(string mediaItemId)
+        {
+            using var connection = _context.CreateConnection();
+
+            return await connection.QueryFirstOrDefaultAsync<string>(@"
+                SELECT Title
+                FROM MediaItems
+                WHERE Id = @MediaItemId;",
+                new { MediaItemId = mediaItemId });
+        }
+
+        /// <summary>
+        /// Lấy tên album.
+        /// </summary>
+        public async Task<string?> GetAlbumTitleAsync(string albumId)
+        {
+            using var connection = _context.CreateConnection();
+
+            return await connection.QueryFirstOrDefaultAsync<string>(@"
+                SELECT Title
+                FROM Albums
+                WHERE Id = @AlbumId;",
+                new { AlbumId = albumId });
+        }
+
+        /// <summary>
+        /// Lấy tên playlist.
+        /// </summary>
+        public async Task<string?> GetPlaylistTitleAsync(string playlistId)
+        {
+            using var connection = _context.CreateConnection();
+
+            return await connection.QueryFirstOrDefaultAsync<string>(@"
+                SELECT Title
+                FROM Playlists
+                WHERE Id = @PlaylistId;",
+                new { PlaylistId = playlistId });
+        }
+
+        /// <summary>
+        /// SQL SELECT chung cho notification.
+        /// </summary>
+        private static string BaseNotificationSelectSql(string whereAndOrder)
+        {
+            return $@"
+                SELECT TOP (@Limit)
+                    n.Id,
+                    n.UserId,
+                    n.SenderId,
+                    sender.IdDisplay AS SenderIdDisplay,
+                    sender.DisplayName AS SenderDisplayName,
+                    sender.AvatarUrl AS SenderAvatarUrl,
+                    n.NotifyType,
+                    n.NotifyType AS TypeId,
+                    CASE n.NotifyType
+                        WHEN 1 THEN 'NewFollower'
+                        WHEN 2 THEN 'FriendRequest'
+                        WHEN 3 THEN 'MediaShared'
+                        WHEN 4 THEN 'SystemAlert'
+                        WHEN 5 THEN 'FriendAccepted'
+                        WHEN 6 THEN 'ArtistNewMedia'
+                        ELSE 'SystemAlert'
+                    END AS Type,
+                    n.Title,
+                    n.Message,
+                    n.IsRead,
+                    CASE WHEN n.IsRead = 1 THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS HasRead,
+                    CASE WHEN n.IsRead = 1 THEN N'Đã đọc' ELSE N'Chưa đọc' END AS ReadStatus,
+                    n.IsActive,
+                    n.CreatedAt
+                FROM Notifications n
+                LEFT JOIN Users sender ON n.SenderId = sender.Id
+                {whereAndOrder}";
+        }
+
+        /// <summary>
+        /// Tạo Id notification dạng NT001, NT002, NT003...
+        /// Hàm này thay cho DaoSqlHelper.GenerateNextIdAsync.
+        /// </summary>
+        private static async Task<string> GenerateNextNotificationIdAsync(IDbConnection connection)
+        {
+            const string prefix = "NT";
+
+            var lastId = await connection.QueryFirstOrDefaultAsync<string>(@"
+                SELECT TOP 1 Id
+                FROM Notifications
+                WHERE Id LIKE @PrefixLike
+                ORDER BY TRY_CONVERT(INT, SUBSTRING(Id, LEN(@Prefix) + 1, 20)) DESC;",
+                new
+                {
+                    Prefix = prefix,
+                    PrefixLike = $"{prefix}%"
+                });
+
+            if (string.IsNullOrWhiteSpace(lastId))
+                return $"{prefix}001";
+
+            var numberPart = lastId[prefix.Length..];
+
+            if (!int.TryParse(numberPart, out var currentNumber))
+                currentNumber = 0;
+
+            return $"{prefix}{currentNumber + 1:000}";
+        }
     }
 }
