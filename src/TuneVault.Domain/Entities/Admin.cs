@@ -15,7 +15,7 @@ public class Admin
     /// <summary>
     /// Mã định danh nghiệp vụ của quản trị viên (ví dụ: AD001).
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Tên quản trị viên.

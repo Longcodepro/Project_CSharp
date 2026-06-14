@@ -18,17 +18,17 @@ public class Friend
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của bản ghi Friend. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng chủ động gửi lời mời kết bạn (RequestedBy). Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string RequestedById { get; private set; }
+    public string RequestedById { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng nhận được lời mời kết bạn (RequestedTo). Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string RequestedToId { get; private set; }
+    public string RequestedToId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Trạng thái hiện tại của mối quan hệ bạn bè (Pending, Accepted, Blocked).

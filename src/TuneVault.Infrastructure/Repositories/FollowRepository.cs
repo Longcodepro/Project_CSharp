@@ -1,7 +1,7 @@
 using Dapper;
 using System.Data;
 using TuneVault.Application.Features.Follow.Commands;
-using TuneVault.Infrastructure.DAO;
+using TuneVault.Infrastructure.Persistence;
 
 namespace TuneVault.Infrastructure.Repositories
 {
@@ -11,11 +11,11 @@ namespace TuneVault.Infrastructure.Repositories
     /// </summary>
     public sealed class FollowRepository : IFollowSqlRepository
     {
-        private readonly DapperContext _context;
+        private readonly IDbConnectionFactory _dbConnectionFactory;
 
-        public FollowRepository(DapperContext context)
+        public FollowRepository(IDbConnectionFactory dbConnectionFactory)
         {
-            _context = context;
+            _dbConnectionFactory = dbConnectionFactory ?? throw new ArgumentNullException(nameof(dbConnectionFactory));
         }
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<bool> FollowAsync(string followerId, string followeeId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection();
 
             var existing = await connection.QueryFirstOrDefaultAsync<dynamic?>(@"
                 SELECT Id, IsActive
@@ -90,7 +90,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<bool> UnfollowAsync(string followerId, string followeeId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection();
 
             var affectedRows = await connection.ExecuteAsync(@"
                 UPDATE Follows
@@ -119,7 +119,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<bool> IsFollowingAsync(string followerId, string followeeId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection();
 
             var count = await connection.ExecuteScalarAsync<int>(@"
                 SELECT COUNT(1)
@@ -141,7 +141,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<IEnumerable<dynamic>> GetFollowingAsync(string followerId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection();
 
             var sql = @"
                 SELECT
@@ -174,7 +174,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<IEnumerable<dynamic>> GetFollowersAsync(string followeeId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection();
 
             var sql = @"
                 SELECT
@@ -206,7 +206,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<int> CountFollowersAsync(string followeeId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection();
 
             return await connection.ExecuteScalarAsync<int>(@"
                 SELECT COUNT(1)

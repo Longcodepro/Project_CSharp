@@ -1,9 +1,12 @@
 using Dapper;
 using System.Data;
-using TuneVault.Application.Features.Notification.Commands;
+// Corrected using directive for INotificationCommandRepository
+using TuneVault.Application.Features.Notification.Commands; 
 using TuneVault.Application.Features.Notification.Queries.GetNotifications;
-using TuneVault.Infrastructure.DAO;
 using AppNotificationInsertModel = TuneVault.Application.Features.Notification.Commands.NotificationInsertModel;
+using TuneVault.Domain.Interfaces; // Added for IDbConnectionFactory
+using TuneVault.Infrastructure.Persistence; // Keep this for IDbConnectionFactory
+
 namespace TuneVault.Infrastructure.Repositories
 {
     /// <summary>
@@ -14,11 +17,12 @@ namespace TuneVault.Infrastructure.Repositories
     INotificationCommandRepository,
     INotificationQueryRepository
     {
-        private readonly DapperContext _context;
+        private readonly IDbConnectionFactory _dbConnectionFactory; // Inject IDbConnectionFactory
 
-        public NotificationRepository(DapperContext context)
+        // Constructor updated to inject IDbConnectionFactory
+        public NotificationRepository(IDbConnectionFactory dbConnectionFactory)
         {
-            _context = context;
+            _dbConnectionFactory = dbConnectionFactory ?? throw new ArgumentNullException(nameof(dbConnectionFactory));
         }
 
         /// <summary>
@@ -26,7 +30,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<string> InsertNotificationAsync(AppNotificationInsertModel notification)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             var notificationId = await GenerateNextNotificationIdAsync(connection);
 
@@ -56,7 +60,7 @@ namespace TuneVault.Infrastructure.Repositories
             if (limit <= 0)
                 limit = 50;
 
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             var sql = BaseNotificationSelectSql(@"
                 WHERE n.UserId = @UserId
@@ -78,7 +82,7 @@ namespace TuneVault.Infrastructure.Repositories
             if (limit <= 0)
                 limit = 50;
 
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             var sql = BaseNotificationSelectSql(@"
                 WHERE n.UserId = @UserId
@@ -98,7 +102,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<int> CountUnreadNotificationsAsync(string userId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             return await connection.ExecuteScalarAsync<int>(@"
                 SELECT COUNT(1)
@@ -114,7 +118,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<bool> MarkAsReadAsync(string notificationId, string userId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             var affectedRows = await connection.ExecuteAsync(@"
                 UPDATE Notifications
@@ -136,7 +140,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<bool> DeleteAsync(string notificationId, string userId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             var affectedRows = await connection.ExecuteAsync(@"
                 UPDATE Notifications
@@ -158,7 +162,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<int> DeleteAllAsync(string userId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             var affectedRows = await connection.ExecuteAsync(@"
                 UPDATE Notifications
@@ -175,7 +179,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<UserBrief?> GetUserBriefAsync(string userId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             return await connection.QueryFirstOrDefaultAsync<UserBrief>(@"
                 SELECT DisplayName, IdDisplay, AvatarUrl
@@ -189,7 +193,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<string?> GetMediaTitleAsync(string mediaItemId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             return await connection.QueryFirstOrDefaultAsync<string>(@"
                 SELECT Title
@@ -203,7 +207,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<string?> GetAlbumTitleAsync(string albumId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             return await connection.QueryFirstOrDefaultAsync<string>(@"
                 SELECT Title
@@ -217,7 +221,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// </summary>
         public async Task<string?> GetPlaylistTitleAsync(string playlistId)
         {
-            using var connection = _context.CreateConnection();
+            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
 
             return await connection.QueryFirstOrDefaultAsync<string>(@"
                 SELECT Title

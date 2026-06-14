@@ -1,9 +1,9 @@
 using Dapper;
 using System.Data;
 using TuneVault.Application.Features.Favorite.Commands;
-using TuneVault.Infrastructure.DAO;
+using TuneVault.Infrastructure.Persistence; // Added for IDbConnectionFactory
 
-namespace TuneVault.Infrastructure.Repositories;
+// namespace TuneVault.Infrastructure.Repositories;
 
 /// <summary>
 /// Repository xử lý SQL cho Favorite.
@@ -11,16 +11,16 @@ namespace TuneVault.Infrastructure.Repositories;
 /// </summary>
 public sealed class FavoriteRepository : IFavoriteSqlRepository
 {
-    private readonly DapperContext _context;
+    private readonly IDbConnectionFactory _dbConnectionFactory;
 
-    public FavoriteRepository(DapperContext context)
+    public FavoriteRepository(IDbConnectionFactory dbConnectionFactory)
     {
-        _context = context;
+        _dbConnectionFactory = dbConnectionFactory ?? throw new ArgumentNullException(nameof(dbConnectionFactory));
     }
 
     public async Task<bool> IsFavoriteAsync(string userId, string mediaItemId)
     {
-        using var connection = _context.CreateConnection();
+        using var connection = _dbConnectionFactory.CreateConnection();
 
         var count = await connection.ExecuteScalarAsync<int>(@"
             SELECT COUNT(1)
@@ -38,7 +38,7 @@ public sealed class FavoriteRepository : IFavoriteSqlRepository
 
     public async Task<IEnumerable<dynamic>> GetByUserIdAsync(string userId)
     {
-        using var connection = _context.CreateConnection();
+        using var connection = _dbConnectionFactory.CreateConnection();
 
         var sql = @"
             SELECT
@@ -102,7 +102,7 @@ public sealed class FavoriteRepository : IFavoriteSqlRepository
             return;
         }
 
-        using var connection = _context.CreateConnection();
+        using var connection = _dbConnectionFactory.CreateConnection();
 
         var reactionValue = ToFavoriteReaction(reaction);
 
@@ -155,7 +155,7 @@ public sealed class FavoriteRepository : IFavoriteSqlRepository
 
     public async Task RemoveAsync(string userId, string mediaItemId)
     {
-        using var connection = _context.CreateConnection();
+        using var connection = _dbConnectionFactory.CreateConnection();
 
         await connection.ExecuteAsync(@"
             DELETE FROM Favorites

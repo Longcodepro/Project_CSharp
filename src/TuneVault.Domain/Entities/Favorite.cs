@@ -18,17 +18,17 @@ public class Favorite
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của bản ghi Favorite. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng (User) thực hiện hành động yêu thích. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string UserId { get; private set; }
+    public string UserId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của vật phẩm phương tiện (MediaItem) được yêu thích. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string MediaItemId { get; private set; }
+    public string MediaItemId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Trạng thái cảm xúc cụ thể được lựa chọn (Sử dụng Enum định nghĩa sẵn).
