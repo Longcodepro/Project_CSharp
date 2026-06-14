@@ -177,7 +177,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Frontend");
-app.UseStaticFiles();
 
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();

@@ -28,7 +28,12 @@ public enum NotificationType
     /// <summary>
     /// Thông báo khi đối phương chính thức chấp nhận lời mời kết bạn của bạn.
     /// </summary>
-    FriendAccepted = 5
+    FriendAccepted = 5,
+
+    /// <summary>
+    /// Thông báo khi nghệ sĩ đang follow đăng bài mới.
+    /// </summary>
+    ArtistNewMedia = 6
 }
 
 /// <summary>
@@ -51,6 +56,7 @@ public static class NotificationTypeExtensions
             NotificationType.MediaShared => "Nội dung được chia sẻ",
             NotificationType.SystemAlert => "Thông báo hệ thống",
             NotificationType.FriendAccepted => "Lời mời kết bạn đã được chấp nhận",
+            NotificationType.ArtistNewMedia => "Nghệ sĩ đăng bài mới",
             _ => "Thông báo mới"
         };
     }
