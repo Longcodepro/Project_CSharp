@@ -6,34 +6,50 @@ namespace TuneVault.Application.Features.User.Commands.FollowUser;
 
 /// <summary>
 /// Handler xử lý <see cref="FollowUserCommand"/>.
-/// Luồng xử lý: kiểm tra tự follow → kiểm tra tồn tại → kiểm tra đã follow rồi chưa
+/// Luồng xử lý: kiểm tra xác thực & quyền (FollowerId phải là người dùng hiện tại)
+/// → kiểm tra tự follow → kiểm tra tồn tại → kiểm tra đã follow rồi chưa
 /// → gọi <c>IncrementFollowers()</c> trên Entity → persist Entity → tạo bản ghi UserFollows.
+/// Phân quyền: chỉ Listener / Artist / Admin đã đăng nhập và đang thao tác cho chính mình.
 /// </summary>
 public class FollowUserCommandHandler : IRequestHandler<FollowUserCommand, bool>
 {
     private readonly IUserRepository _userRepository;
+    private readonly ICurrentUserContext _currentUserContext;
 
     /// <summary>
-    /// Khởi tạo Handler với dependency là <see cref="IUserRepository"/>.
+    /// Khởi tạo Handler với dependency là <see cref="IUserRepository"/> và <see cref="ICurrentUserContext"/>.
     /// </summary>
     /// <param name="userRepository">Interface kho dữ liệu User, được inject qua DI container.</param>
-    public FollowUserCommandHandler(IUserRepository userRepository)
+    /// <param name="currentUserContext">Service lấy thông tin người dùng hiện tại từ JWT để kiểm tra quyền.</param>
+    public FollowUserCommandHandler(IUserRepository userRepository, ICurrentUserContext currentUserContext)
     {
         _userRepository = userRepository;
+        _currentUserContext = currentUserContext;
     }
 
     /// <summary>
     /// Xử lý luồng theo dõi người dùng theo thứ tự:
-    /// guard clauses → gọi method Entity → persist Entity → tạo bản ghi quan hệ.
+    /// kiểm tra xác thực & quyền sở hữu → guard clauses → gọi method Entity → persist Entity → tạo bản ghi quan hệ.
     /// </summary>
     /// <param name="request">Command chứa FollowerId và FolloweeId.</param>
     /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
     /// <returns><c>true</c> nếu toàn bộ thao tác thành công.</returns>
+    /// <exception cref="UnauthorizedAccessException">Ném ra nếu chưa đăng nhập.</exception>
+    /// <exception cref="ForbiddenAccessException">Ném ra nếu FollowerId khác với người dùng hiện tại.</exception>
     /// <exception cref="DomainException">
     /// Ném ra nếu: tự follow, User không tồn tại, hoặc đã follow rồi.
     /// </exception>
     public async Task<bool> Handle(FollowUserCommand request, CancellationToken ct)
     {
+        // Step 0: Kiểm tra đã xác thực chưa
+        var currentUserId = _currentUserContext.GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+            throw new UnauthorizedAccessException("Chưa xác thực. Vui lòng đăng nhập trước khi thực hiện theo dõi.");
+
+        // Step 0.1: Chỉ cho phép người dùng thực hiện follow cho chính mình (FollowerId phải khớp người dùng hiện tại)
+        if (!currentUserId.Equals(request.FollowerId, StringComparison.OrdinalIgnoreCase))
+            throw new ForbiddenAccessException("Bạn không có quyền thực hiện theo dõi thay cho người dùng khác.");
+
         // Step 1: Guard clause — không cho phép tự follow chính mình
         if (request.FollowerId == request.FolloweeId)
             throw new DomainException("Người dùng không thể tự theo dõi chính mình.");

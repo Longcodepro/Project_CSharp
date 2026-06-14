@@ -1,4 +1,4 @@
-using TuneVault.Application.DTOs.History;
+using TuneVault.Application.Features.History.DTOs;
 
 namespace TuneVault.Application.Features.History.Commands.RecordPlayHistory;
 

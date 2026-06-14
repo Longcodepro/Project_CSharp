@@ -38,6 +38,13 @@ public interface IMediaRepository
     /// <returns>Danh sách <see cref="MediaItem"/> khớp với từ khóa.</returns>
     Task<IEnumerable<MediaItem>> SearchAsync(string keyword, CancellationToken ct = default);
 
+    /// <summary>
+    /// Sinh mã định danh tuần tự tiếp theo cho MediaItem (VD: I001, I002...).
+    /// </summary>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>Mã định danh dạng string (VD: I005).</returns>
+    Task<string> GenerateNextMediaIdAsync(CancellationToken ct = default);
+
     // =========================================================================
     // COMMANDS
     // =========================================================================

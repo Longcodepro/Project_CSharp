@@ -20,22 +20,22 @@ public class MediaShare
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của bản ghi MediaShare. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người thực hiện hành động chia sẻ (Sender). Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string SenderId { get; private set; }
+    public string SenderId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người nhận nội dung chia sẻ (Receiver). Độ dài cố định từ 4 đến 5 ký tự (Không được phép null).
     /// </summary>
-    public string ReceiverId { get; private set; }
+    public string ReceiverId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của mục nội dung được chia sẻ (Id của Bài hát, Album hoặc Playlist tương ứng). Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string SharedItemId { get; private set; }
+    public string SharedItemId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Loại nội dung âm nhạc được chia sẻ (Sử dụng Enum ShareType).

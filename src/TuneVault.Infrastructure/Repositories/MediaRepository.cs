@@ -1,3 +1,4 @@
+// Infrastructure/Repositories/MediaRepository.cs
 using Dapper;
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Interfaces;
@@ -6,96 +7,125 @@ using TuneVault.Infrastructure.Persistence;
 namespace TuneVault.Infrastructure.Repositories;
 
 /// <summary>
-/// Triển khai <see cref="IMediaRepository"/> bằng Dapper + SQL Server.
-/// Chịu trách nhiệm toàn bộ truy vấn và thao tác dữ liệu liên quan đến <see cref="MediaItem"/>.
+/// MediaRepository - Lớp quản lý dữ liệu MediaItem trên database.
+/// 
+/// Chức năng chính:
+/// - Thao tác CRUD với MediaItem entities
+/// - Quản lý MediaArtist relationships (liên kết giữa Media và Artists)
+/// - Tìm kiếm Media theo keyword (Title, Genre)
+/// - Deactivate (soft delete) Media items
+/// 
+/// Sử dụng: Dapper ORM với raw SQL queries để tối ưu performance.
 /// </summary>
 public sealed class MediaRepository : IMediaRepository
 {
-    private readonly DapperContext _context;
+    private readonly IDbConnectionFactory _db;
 
     /// <summary>
-    /// Khởi tạo repository với <see cref="DapperContext"/> được inject qua DI container.
+    /// Khởi tạo MediaRepository với IDbConnectionFactory dependency.
     /// </summary>
-    /// <param name="context">Wrapper context chứa factory tạo kết nối SQL Server.</param>
-    public MediaRepository(DapperContext context)
+    /// <param name="db">Factory để tạo kết nối database</param>
+    public MediaRepository(IDbConnectionFactory db)
     {
-        _context = context;
+        _db = db;
     }
 
     // =========================================================================
-    // QUERIES
+    // QUERIES - Các method lấy dữ liệu từ database
     // =========================================================================
 
     /// <summary>
-    /// Lấy thông tin một bài hát theo Id nội bộ.
-    /// Chỉ trả về bài hát đang IsActive = true.
+    /// Lấy MediaItem theo Id, chỉ lấy media đang active (IsActive = 1).
+    /// 
+    /// Các bước thực hiện:
+    /// 1. Tạo connection đến database
+    /// 2. SELECT * FROM MediaItems WHERE Id = @Id AND IsActive = 1
+    /// 3. Trả về MediaItem object hoặc null nếu không tìm thấy
     /// </summary>
-    /// <param name="id">Mã định danh nội bộ (VD: I001).</param>
-    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
-    /// <returns>Entity <see cref="MediaItem"/> hoặc <c>null</c> nếu không tồn tại hoặc đã bị xóa.</returns>
+    /// <param name="id">Id của MediaItem</param>
+    /// <param name="ct">CancellationToken để hủy operation</param>
+    /// <returns>MediaItem object hoặc null</returns>
     public async Task<MediaItem?> GetByIdAsync(string id, CancellationToken ct = default)
     {
-        // Step 1: Định nghĩa câu truy vấn SELECT theo PK và IsActive
         const string sql = "SELECT * FROM [MediaItems] WHERE Id = @Id AND IsActive = 1";
-
-        // Step 2: Mở connection và thực thi truy vấn
-        using var connection = _context.CreateConnection();
-        return await connection.QuerySingleOrDefaultAsync<MediaItem>(
+        using var conn = _db.CreateConnection();
+        return await conn.QuerySingleOrDefaultAsync<MediaItem>(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
     }
 
     /// <summary>
-    /// Lấy danh sách nghệ sĩ liên quan đến một bài hát (MainArtist + FeaturedArtist).
+    /// Lấy danh sách Artists liên kết với một MediaItem.
+    /// 
+    /// Các bước thực hiện:
+    /// 1. Tạo connection đến database
+    /// 2. SELECT * FROM MediaArtists WHERE MediaItemId = @MediaItemId
+    /// 3. Lấy tất cả artists liên kết (có thể là singer, composer, producer, v.v.)
+    /// 4. Trả về danh sách MediaArtist objects
     /// </summary>
-    /// <param name="mediaItemId">Mã định danh bài hát.</param>
-    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
-    /// <returns>Danh sách <see cref="MediaArtist"/>.</returns>
+    /// <param name="mediaItemId">Id của MediaItem</param>
+    /// <param name="ct">CancellationToken để hủy operation</param>
+    /// <returns>IEnumerable&lt;MediaArtist&gt; danh sách artists</returns>
     public async Task<IEnumerable<MediaArtist>> GetArtistsByMediaIdAsync(string mediaItemId, CancellationToken ct = default)
     {
-        // Step 1: Lấy toàn bộ row trong MediaArtists có MediaItemId khớp
         const string sql = "SELECT * FROM [MediaArtists] WHERE MediaItemId = @MediaItemId";
-
-        // Step 2: Mở connection và thực thi truy vấn
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync<MediaArtist>(
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync<MediaArtist>(
             new CommandDefinition(sql, new { MediaItemId = mediaItemId }, cancellationToken: ct));
     }
 
     /// <summary>
-    /// Tìm kiếm bài hát theo từ khóa trong title hoặc genre.
-    /// Chỉ tìm bài hát đang IsActive = true và IsPublic = true.
+    /// Tìm kiếm MediaItem theo keyword (Title hoặc Genre).
+    /// Chỉ lấy media đang active (IsActive = 1) và public (IsPublic = 1), sắp xếp theo upload mới nhất.
+    /// 
+    /// Các bước thực hiện:
+    /// 1. Tạo connection đến database
+    /// 2. SELECT * FROM MediaItems WHERE:
+    ///    - IsActive = 1 (chỉ lấy media không bị xóa)
+    ///    - IsPublic = 1 (chỉ lấy media công khai)
+    ///    - Title LIKE @Keyword OR Genre LIKE @Keyword (tìm kiếm linh hoạt)
+    /// 3. ORDER BY UploadedAt DESC (media mới nhất trước)
+    /// 4. Trả về danh sách MediaItem
     /// </summary>
-    /// <param name="keyword">Từ khóa tìm kiếm.</param>
-    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
-    /// <returns>Danh sách <see cref="MediaItem"/> khớp với từ khóa.</returns>
+    /// <param name="keyword">Từ khóa tìm kiếm (ví dụ: "rock", "music")</param>
+    /// <param name="ct">CancellationToken để hủy operation</param>
+    /// <returns>IEnumerable&lt;MediaItem&gt; danh sách kết quả tìm kiếm</returns>
     public async Task<IEnumerable<MediaItem>> SearchAsync(string keyword, CancellationToken ct = default)
     {
-        // Step 1: Tìm kiếm LIKE theo Title và Genre — tối ưu với NONCLUSTERED INDEX đã có
         const string sql = @"
             SELECT * FROM [MediaItems]
             WHERE IsActive = 1 AND IsPublic = 1
               AND (Title LIKE @Keyword OR Genre LIKE @Keyword)
             ORDER BY UploadedAt DESC";
 
-        // Step 2: Bọc keyword trong dấu % cho LIKE pattern
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync<MediaItem>(
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync<MediaItem>(
             new CommandDefinition(sql, new { Keyword = $"%{keyword}%" }, cancellationToken: ct));
     }
 
     // =========================================================================
-    // COMMANDS
+    // COMMANDS - Các method thay đổi dữ liệu trong database
     // =========================================================================
 
     /// <summary>
-    /// Thêm một <see cref="MediaItem"/> mới vào database.
+    /// Thêm MediaItem mới vào database.
+    /// 
+    /// Các bước thực hiện:
+    /// 1. Tạo connection đến database
+    /// 2. Chuẩn bị SQL INSERT với các cột: Id, OwnerId, Title, Description, MediaType, 
+    ///    AudioUrl, VideoUrl, CoverImageUrl, CanvasUrl, Genre, DurationSeconds, TrailerSeconds,
+    ///    AccessLevel, IsPublic, IsActive, FavoriteCount, ViewCount, UploadedAt, ReleaseDate
+    /// 3. Trích xuất dữ liệu từ MediaItem entity sang parameters:
+    ///    - MediaType: chuyển enum thành int
+    ///    - AudioUrl: lấy từ Url.Value nếu không phải video
+    ///    - VideoUrl: lấy từ Url.Value nếu là video
+    ///    - Duration: chuyển timespan sang seconds
+    ///    - AccessLevel: chuyển enum thành int
+    /// 4. Thực hiện INSERT
     /// </summary>
-    /// <param name="mediaItem">Entity bài hát cần lưu.</param>
-    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <param name="mediaItem">MediaItem entity chứa dữ liệu cần lưu</param>
+    /// <param name="ct">CancellationToken để hủy operation</param>
     public async Task AddAsync(MediaItem mediaItem, CancellationToken ct = default)
     {
-        // Step 1: INSERT toàn bộ cột vào bảng MediaItems
-        // DurationSeconds được map từ Duration.TotalSeconds (computed từ Value Object)
         const string sql = @"
             INSERT INTO [MediaItems]
                 (Id, OwnerId, Title, Description, MediaType, AudioUrl, VideoUrl,
@@ -106,23 +136,22 @@ public sealed class MediaRepository : IMediaRepository
                  @CoverImageUrl, @CanvasUrl, @Genre, @DurationSeconds, @TrailerSeconds,
                  @AccessLevel, @IsPublic, @IsActive, @FavoriteCount, @ViewCount, @UploadedAt, @ReleaseDate)";
 
-        // Step 2: Map các property của Entity sang anonymous object (tránh expose trực tiếp)
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(new CommandDefinition(sql, new
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(new CommandDefinition(sql, new
         {
             mediaItem.Id,
             mediaItem.OwnerId,
             mediaItem.Title,
             mediaItem.Description,
-            MediaType        = (int)mediaItem.Type,
-            AudioUrl         = mediaItem.Type != Domain.Enums.MediaType.Video ? mediaItem.Url.Value : null,
-            VideoUrl         = mediaItem.Type == Domain.Enums.MediaType.Video ? mediaItem.Url.Value : null,
+            MediaType       = (int)mediaItem.Type,
+            AudioUrl        = mediaItem.Type != Domain.Enums.MediaType.Video ? mediaItem.Url.Value : null,
+            VideoUrl        = mediaItem.Type == Domain.Enums.MediaType.Video ? mediaItem.Url.Value : null,
             mediaItem.CoverImageUrl,
             mediaItem.CanvasUrl,
             mediaItem.Genre,
-            DurationSeconds  = mediaItem.Duration.TotalSeconds,
-            TrailerSeconds   = mediaItem.DurationTrailer.TotalSeconds,
-            AccessLevel      = (int)mediaItem.AccessLevel,
+            DurationSeconds = mediaItem.Duration.TotalSeconds,
+            TrailerSeconds  = mediaItem.DurationTrailer.TotalSeconds,
+            AccessLevel     = (int)mediaItem.AccessLevel,
             mediaItem.IsPublic,
             mediaItem.IsActive,
             mediaItem.FavoriteCount,
@@ -133,30 +162,46 @@ public sealed class MediaRepository : IMediaRepository
     }
 
     /// <summary>
-    /// Thêm danh sách quan hệ nghệ sĩ cho bài hát (bulk insert).
+    /// Thêm danh sách Artists liên kết với MediaItem vào bảng MediaArtists.
+    /// 
+    /// Các bước thực hiện:
+    /// 1. Tạo connection đến database
+    /// 2. Chuẩn bị SQL INSERT với các cột: MediaItemId, ArtistId, Role
+    /// 3. Lặp qua danh sách artists và INSERT từng bản ghi
+    ///    - MediaItemId: Id của media
+    ///    - ArtistId: Id của artist
+    ///    - Role: vai trò của artist (singer, composer, producer, v.v.)
+    /// 4. Thực hiện batch INSERT
     /// </summary>
-    /// <param name="artists">Danh sách <see cref="MediaArtist"/> cần insert.</param>
-    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <param name="artists">Danh sách MediaArtist chứa liên kết giữa Media và Artists</param>
+    /// <param name="ct">CancellationToken để hủy operation</param>
     public async Task AddArtistsAsync(IEnumerable<MediaArtist> artists, CancellationToken ct = default)
     {
-        // Step 1: INSERT từng nghệ sĩ vào bảng MediaArtists (composite PK: MediaItemId + ArtistId)
         const string sql = @"
             INSERT INTO [MediaArtists] (MediaItemId, ArtistId, [Role])
             VALUES (@MediaItemId, @ArtistId, @Role)";
 
-        // Step 2: Dapper sẽ tự loop danh sách và bulk insert
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(new CommandDefinition(sql, artists, cancellationToken: ct));
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(new CommandDefinition(sql, artists, cancellationToken: ct));
     }
 
     /// <summary>
-    /// Cập nhật thông tin của một <see cref="MediaItem"/> trong database.
+    /// Cập nhật thông tin MediaItem (không cập nhật URL do đó là immutable).
+    /// 
+    /// Các bước thực hiện:
+    /// 1. Tạo connection đến database
+    /// 2. Chuẩn bị SQL UPDATE với các cột: Title, Description, Genre, CoverImageUrl, CanvasUrl,
+    ///    DurationSeconds, TrailerSeconds, AccessLevel, IsPublic, IsActive, FavoriteCount, ViewCount, ReleaseDate
+    /// 3. WHERE Id = @Id để xác định media cần update
+    /// 4. Trích xuất dữ liệu từ MediaItem entity sang parameters
+    ///    - Duration: chuyển timespan sang seconds
+    ///    - AccessLevel: chuyển enum thành int
+    /// 5. Thực hiện UPDATE
     /// </summary>
-    /// <param name="mediaItem">Entity bài hát với thông tin đã thay đổi.</param>
-    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <param name="mediaItem">MediaItem entity chứa dữ liệu cập nhật</param>
+    /// <param name="ct">CancellationToken để hủy operation</param>
     public async Task UpdateAsync(MediaItem mediaItem, CancellationToken ct = default)
     {
-        // Step 1: UPDATE toàn bộ các cột có thể thay đổi — không cập nhật Id, OwnerId, UploadedAt
         const string sql = @"
             UPDATE [MediaItems]
             SET Title           = @Title,
@@ -174,9 +219,8 @@ public sealed class MediaRepository : IMediaRepository
                 ReleaseDate     = @ReleaseDate
             WHERE Id = @Id";
 
-        // Step 2: Thực thi UPDATE
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(new CommandDefinition(sql, new
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(new CommandDefinition(sql, new
         {
             mediaItem.Id,
             mediaItem.Title,
@@ -196,25 +240,54 @@ public sealed class MediaRepository : IMediaRepository
     }
 
     /// <summary>
-    /// Thực hiện Soft Delete — chuyển <c>IsActive = false</c> trực tiếp qua SQL.
-    /// Nhanh hơn UpdateAsync vì chỉ cập nhật đúng 1 cột.
+    /// Deactivate MediaItem (soft delete) - đánh dấu media là không còn hoạt động.
+    /// 
+    /// Các bước thực hiện:
+    /// 1. Tạo connection đến database
+    /// 2. UPDATE MediaItems SET IsActive = 0
+    /// 3. WHERE Id = @Id AND IsActive = 1 (chỉ deactivate nếu đang active)
+    /// 4. Lấy số rows bị ảnh hưởng
+    /// 5. Trả về true nếu affected > 0 (deactivate thành công)
     /// </summary>
-    /// <param name="id">Mã định danh bài hát cần vô hiệu hóa.</param>
-    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
-    /// <returns><c>true</c> nếu có ít nhất 1 row bị ảnh hưởng.</returns>
+    /// <param name="id">Id của MediaItem cần deactivate</param>
+    /// <param name="ct">CancellationToken để hủy operation</param>
+    /// <returns>true nếu deactivate thành công, false nếu media không tồn tại hoặc đã inactive</returns>
     public async Task<bool> DeactivateAsync(string id, CancellationToken ct = default)
     {
-        // Step 1: UPDATE chỉ cột IsActive — tối ưu hơn UpdateAsync toàn bộ row
-        // Step 2: Thêm điều kiện IsActive = 1 để tránh UPDATE bản ghi đã soft-deleted
         const string sql = @"
             UPDATE [MediaItems]
             SET IsActive = 0
             WHERE Id = @Id AND IsActive = 1";
 
-        // Step 3: Thực thi và kiểm tra rowsAffected
-        using var connection = _context.CreateConnection();
-        var rowsAffected = await connection.ExecuteAsync(
+        using var conn = _db.CreateConnection();
+        var rowsAffected = await conn.ExecuteAsync(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
         return rowsAffected > 0;
+    }
+
+    /// <summary>
+    /// Sinh mã định danh tuần tự tiếp theo cho MediaItem dạng M001, M002, ..., M999.
+    /// 
+    /// Các bước thực hiện:
+    /// 1. Tạo connection đến database.
+    /// 2. Lấy số lớn nhất từ các Id hiện có trong bảng MediaItems có định dạng 'M' + 3 chữ số.
+    ///    - Sử dụng `MAX(CAST(SUBSTRING(Id, 2, 3) AS INT))` để lấy phần số.
+    ///    - `ISNULL(..., 0) + 1` để xử lý trường hợp bảng trống hoặc bắt đầu từ 1.
+    /// 3. Format số đó thành 3 chữ số có số 0 ở đầu (ví dụ: 1 -> "001", 12 -> "012", 123 -> "123").
+    /// 4. Tiền tố 'M' vào số đã định dạng.
+    /// 5. Trả về Id mới (ví dụ: "M001").
+    /// </summary>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>Id mới sinh ra (ví dụ: "M001").</returns>
+    public async Task<string> GenerateNextMediaIdAsync(CancellationToken ct = default)
+    {
+        const string sql = @"
+            SELECT ISNULL(MAX(CAST(SUBSTRING(Id, 2, 3) AS INT)), 0) + 1
+            FROM [MediaItems]
+            WHERE Id LIKE 'M[0-9][0-9][0-9]'"; // Ensure Id is M followed by exactly 3 digits
+        using var conn = _db.CreateConnection();
+        var nextNumber = await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql, cancellationToken: ct));
+        return $"M{nextNumber:D3}"; // M001, M002, ..., M999
     }
 }

@@ -40,7 +40,8 @@ public sealed class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaComma
 
         // Step 2: Kiểm tra quyền sở hữu — chỉ OwnerId (ca sĩ chính) mới được xóa
         if (mediaItem.OwnerId != request.RequesterId)
-            throw new DomainException("Bạn không có quyền xóa bài hát này. Chỉ ca sĩ chính mới có quyền thực hiện thao tác này.");
+            throw new ForbiddenAccessException(
+                "Bạn không có quyền xóa bài hát này. Chỉ ca sĩ chính (Owner) mới có quyền xóa bài hát.");
 
         // Step 3: Gọi method nghiệp vụ Deactivate() trên Entity
         // Entity tự kiểm tra IsActive trước khi cho phép xóa

@@ -1,4 +1,3 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using TuneVault.Domain.Entities;
@@ -29,10 +28,17 @@ public interface IAdminRepository
     /// <summary>
     /// Truy xuất thông tin Quản trị viên theo mã định danh khóa chính (Id).
     /// </summary>
-    /// <param name="id">Mã Guid định danh của Admin.</param>
+    /// <param name="id">Mã định danh (string) của Admin.</param>
     /// <param name="cancellationToken">Mã token hủy bỏ tiến trình bất đồng bộ.</param>
     /// <returns>Thực thể <see cref="Admin"/> tương ứng hoặc null nếu không tồn tại.</returns>
-    Task<Admin?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Admin?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sinh mã định danh tuần tự tiếp theo cho Admin dạng A001, A002, ..., A999.
+    /// </summary>
+    /// <param name="cancellationToken">Mã token hủy bỏ tiến trình bất đồng bộ.</param>
+    /// <returns>Mã Id mới sinh ra (ví dụ: "A001").</returns>
+    Task<string> GenerateNextIdAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Đăng ký thêm một thực thể Quản trị viên mới vào ngữ cảnh lưu trữ dữ liệu.

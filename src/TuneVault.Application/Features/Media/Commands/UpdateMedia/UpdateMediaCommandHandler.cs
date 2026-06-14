@@ -1,5 +1,5 @@
 using MediatR;
-using TuneVault.Application.DTOs.Media;
+using TuneVault.Application.Features.Media.DTOs;
 using TuneVault.Domain.Enums;
 using TuneVault.Domain.Exceptions;
 using TuneVault.Domain.Interfaces;
@@ -42,7 +42,8 @@ public sealed class UpdateMediaCommandHandler : IRequestHandler<UpdateMediaComma
 
         // Step 2: Kiểm tra quyền — chỉ OwnerId (ca sĩ chính) mới được cập nhật
         if (mediaItem.OwnerId != request.RequesterId)
-            throw new DomainException("Bạn không có quyền chỉnh sửa bài hát này.");
+            throw new ForbiddenAccessException(
+                $"Bạn không có quyền chỉnh sửa bài hát này. Chỉ ca sĩ chính (Owner) mới có thể cập nhật bài hát.");
 
         // Step 3: Cập nhật metadata qua method nghiệp vụ của Entity (Entity tự validate)
         mediaItem.UpdateDetails(dto.Title, dto.Description, dto.Genre);

@@ -20,17 +20,17 @@ public class PlayHistory
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của bản ghi lịch sử. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng (User) phát vật phẩm phương tiện. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string UserId { get; private set; }
+    public string UserId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của vật phẩm phương tiện (MediaItem) được phát. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string MediaItemId { get; private set; }
+    public string MediaItemId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Vị trí thứ tự sắp xếp trong danh sách lịch sử (Từ 1 đến 20). 

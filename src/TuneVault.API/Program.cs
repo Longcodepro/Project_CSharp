@@ -1,3 +1,4 @@
+// API/Program.cs
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
@@ -29,29 +30,38 @@ builder.Services.AddMediatR(cfg =>
 // =========================================================================
 // 3. ĐĂNG KÝ DATABASE (DAPPER)
 // =========================================================================
-// Bind DatabaseOptions từ appsettings.json
 builder.Services.Configure<DatabaseOptions>(
     builder.Configuration.GetSection("DatabaseOptions"));
 
-// Đăng ký factory và context
+// Chỉ đăng ký IDbConnectionFactory — KHÔNG đăng ký DapperContext (Rule 4.1)
 builder.Services.AddScoped<IDbConnectionFactory, DbConnectionFactory>();
-builder.Services.AddScoped<DapperContext>();
 
 // =========================================================================
 // 4. ĐĂNG KÝ REPOSITORIES
 // =========================================================================
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IUserRepository,
                             TuneVault.Infrastructure.Repositories.UserRepository>();
-
+builder.Services.AddScoped<TuneVault.Domain.Interfaces.IOtpLogRepository,
+                            TuneVault.Infrastructure.Repositories.OtpLogRepository>();
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IMediaRepository,
                             TuneVault.Infrastructure.Repositories.MediaRepository>();
+builder.Services.AddScoped<TuneVault.Domain.Interfaces.IAdminRepository,
+                            TuneVault.Infrastructure.Repositories.AdminRepository>();
 
 // =========================================================================
 // 5. ĐĂNG KÝ CÁC DỊCH VỤ BỔ SUNG
 // =========================================================================
-builder.Services.AddScoped<TuneVault.Application.Abstractions.ITokenService,
-                            TuneVault.Infrastructure.Services.TokenService>();
+builder.Services.AddScoped<TuneVault.Application.Interfaces.IJwtTokenGenerator,
+                            TuneVault.Infrastructure.Authentication.JwtTokenGenerator>();
+
+builder.Services.AddScoped<TuneVault.Application.Abstractions.IEmailService,
+                            TuneVault.Infrastructure.Services.GmailSmtpEmailService>();
+
 builder.Services.AddScoped<TuneVault.Application.Abstractions.ICurrentUserService,
+                            TuneVault.Infrastructure.Services.CurrentUserService>();
+
+// Register ICurrentUserContext (Domain level) — implement by CurrentUserService
+builder.Services.AddScoped<TuneVault.Domain.Interfaces.ICurrentUserContext,
                             TuneVault.Infrastructure.Services.CurrentUserService>();
 
 // =========================================================================
@@ -67,8 +77,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
-    ?? throw new InvalidOperationException("Không tìm thấy 'Jwt:SecretKey' trong appsettings.json.");
+// FIX: đọc từ "JwtSettings:SecretKey" để khớp với JwtTokenGenerator
+// Đồng thời sync appsettings.json (xem ghi chú bên dưới)
+var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"]
+    ?? builder.Configuration["Jwt:SecretKey"]       // fallback key cũ trong appsettings
+    ?? throw new InvalidOperationException("Không tìm thấy JWT SecretKey trong cấu hình.");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -80,7 +93,7 @@ builder.Services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey         = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSecretKey)),
+        IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
         ValidateIssuer           = false,
         ValidateAudience         = false,
         ClockSkew                = TimeSpan.Zero
@@ -92,9 +105,6 @@ builder.Services.AddAuthentication(options =>
 // =========================================================================
 var app = builder.Build();
 
-// --- Global Exception Handler ---
-// Bắt DomainException → 400 Bad Request
-// Bắt Exception chung → 500 Internal Server Error
 app.UseExceptionHandler(errApp =>
 {
     errApp.Run(async context =>
@@ -104,15 +114,44 @@ app.UseExceptionHandler(errApp =>
 
         var error = feature.Error;
 
-        // DomainException: lỗi nghiệp vụ → 400
+        // DomainException → 400
         if (error is DomainException domainEx)
         {
             context.Response.StatusCode  = StatusCodes.Status400BadRequest;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new
             {
-                statusCode = 400,
-                message    = domainEx.Message
+                success = false,
+                data    = (object?)null,
+                message = domainEx.Message
+            });
+            return;
+        }
+
+        // ForbiddenAccessException → 403
+        if (error is TuneVault.Domain.Exceptions.ForbiddenAccessException forbiddenEx)
+        {
+            context.Response.StatusCode  = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new
+            {
+                success = false,
+                data    = (object?)null,
+                message = forbiddenEx.Message
+            });
+            return;
+        }
+
+        // UnauthorizedAccessException → 401
+        if (error is UnauthorizedAccessException)
+        {
+            context.Response.StatusCode  = StatusCodes.Status401Unauthorized;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new
+            {
+                success = false,
+                data    = (object?)null,
+                message = error.Message
             });
             return;
         }
@@ -122,9 +161,10 @@ app.UseExceptionHandler(errApp =>
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new
         {
-            statusCode = 500,
-            message    = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại sau.",
-            detail     = app.Environment.IsDevelopment() ? error.Message : null
+            success = false,
+            data    = (object?)null,
+            message = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại sau.",
+            detail  = app.Environment.IsDevelopment() ? error.Message : null
         });
     });
 });
@@ -142,8 +182,8 @@ app.UseStaticFiles();
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
-// app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapGet("/", () => Results.Ok(new { service = "TuneVault API" }));

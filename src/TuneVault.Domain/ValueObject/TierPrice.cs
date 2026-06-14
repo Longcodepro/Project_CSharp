@@ -23,7 +23,7 @@ public class TierPrice
     /// <summary>
     /// Đơn vị tiền tệ pháp định (Ví dụ: VND, USD).
     /// </summary>
-    public string Currency { get; private set; }
+    public string Currency { get; private set; } = string.Empty;
 
     // --- Constructor ---
 

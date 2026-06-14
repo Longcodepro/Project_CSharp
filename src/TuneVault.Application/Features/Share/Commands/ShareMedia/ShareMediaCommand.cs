@@ -1,4 +1,4 @@
-using TuneVault.Application.DTOs.Share;
+using TuneVault.Application.Features.Share.DTOs;
 
 namespace TuneVault.Application.Features.Share.Commands.ShareMedia;
 

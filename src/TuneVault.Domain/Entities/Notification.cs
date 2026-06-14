@@ -32,7 +32,7 @@ public class Notification
     /// Mã định danh của người gửi thông báo (User hoặc Admin).
     /// Nullable — thông báo hệ thống tự động không cần người gửi cụ thể.
     /// </summary>
-    public string? SenderId { get; private set; }
+    public string? SenderId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Phân loại thông báo (dùng Enum để kiểm soát nghiệp vụ hiển thị/điều hướng).

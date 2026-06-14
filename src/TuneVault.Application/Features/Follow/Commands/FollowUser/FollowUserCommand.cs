@@ -1,4 +1,4 @@
-using TuneVault.Application.DTOs.Follow;
+using TuneVault.Application.Features.Follow.DTOs;
 
 namespace TuneVault.Application.Features.Follow.Commands.FollowUser;
 

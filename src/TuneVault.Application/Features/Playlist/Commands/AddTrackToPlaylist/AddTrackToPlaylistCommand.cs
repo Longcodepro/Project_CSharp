@@ -1,4 +1,4 @@
-using TuneVault.Application.DTOs.Playlist;
+using TuneVault.Application.Features.Playlist.DTOs;
 
 namespace TuneVault.Application.Features.Playlist.Commands.AddTrackToPlaylist;
 

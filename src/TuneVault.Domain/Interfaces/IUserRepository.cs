@@ -34,6 +34,16 @@ public interface IUserRepository
     Task<User?> GetByIdDisplayAsync(string idDisplay, CancellationToken ct);
 
     /// <summary>
+    /// Lấy thông tin đầy đủ của <see cref="User"/> theo địa chỉ Email.
+    /// </summary>
+    /// <param name="email">Địa chỉ Email của User.</param>
+    /// <param name="ct">Token dùng để hủy tác vụ bất đồng bộ khi cần thiết.</param>
+    /// <returns>
+    /// Đối tượng <see cref="User"/> nếu tìm thấy; <c>null</c> nếu không tồn tại bản ghi tương ứng.
+    /// </returns>
+    Task<User?> GetByEmailAsync(string email, CancellationToken ct);
+
+    /// <summary>
     /// Lấy danh sách tất cả <see cref="User"/> có trạng thái <c>IsArtist = true</c>.
     /// </summary>
     /// <param name="ct">Token dùng để hủy tác vụ bất đồng bộ khi cần thiết.</param>
@@ -78,6 +88,13 @@ public interface IUserRepository
     // =========================================================================
 
     /// <summary>
+    /// Sinh Id mới dạng chuỗi cho một User (vd U0000001).
+    /// </summary>
+    /// <param name="ct">Token dùng để hủy tác vụ bất đồng bộ khi cần thiết.</param>
+    /// <returns>Mã định danh User mới.</returns>
+    Task<string> GenerateNextIdAsync(CancellationToken ct);
+
+    /// <summary>
     /// Lưu toàn bộ trạng thái hiện tại của <see cref="User"/> Entity vào cơ sở dữ liệu.
     /// Phương thức này chỉ được gọi sau khi các phương thức nghiệp vụ của Entity đã được thực thi
     /// (ví dụ: <c>user.UpdateProfile(...)</c>, <c>user.VerifyAsArtist()</c>).
@@ -86,6 +103,23 @@ public interface IUserRepository
     /// <param name="ct">Token dùng để hủy tác vụ bất đồng bộ khi cần thiết.</param>
     /// <returns><c>true</c> nếu cập nhật thành công (ít nhất 1 row bị ảnh hưởng); <c>false</c> nếu không.</returns>
     Task<bool> UpdateAsync(User user, CancellationToken ct);
+
+    /// <summary>
+    /// Thêm một bản ghi User mới vào cơ sở dữ liệu.
+    /// </summary>
+    /// <param name="user">Đối tượng <see cref="User"/> cần thêm.</param>
+    /// <param name="ct">Token dùng để hủy tác vụ bất đồng bộ khi cần thiết.</param>
+    /// <returns>Tác vụ bất đồng bộ.</returns>
+    Task InsertAsync(User user, CancellationToken ct);
+
+    /// <summary>
+    /// Cập nhật hash mật khẩu cho một User.
+    /// </summary>
+    /// <param name="userId">Mã định danh của User cần cập nhật.</param>
+    /// <param name="newPasswordHash">Hash mật khẩu mới.</param>
+    /// <param name="ct">Token dùng để hủy tác vụ bất đồng bộ khi cần thiết.</param>
+    /// <returns>Tác vụ bất đồng bộ.</returns>
+    Task UpdatePasswordHashAsync(string userId, string newPasswordHash, CancellationToken ct);
 
     /// <summary>
     /// Tạo bản ghi quan hệ theo dõi (follow) giữa hai người dùng trong bảng <c>UserFollows</c>.

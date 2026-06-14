@@ -19,17 +19,17 @@ public class AlbumTrack
     /// <summary>
     /// Mã định danh duy nhất của bản ghi AlbumTrack.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của Album chứa bài hát này.
     /// </summary>
-    public string AlbumId { get; private set; }
+    public string AlbumId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của vật phẩm phương tiện (MediaItem) được liên kết.
     /// </summary>
-    public string MediaItemId { get; private set; }
+    public string MediaItemId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Vị trí/Thứ tự phát của bài hát trong Album (Giới hạn từ 1 đến 20).

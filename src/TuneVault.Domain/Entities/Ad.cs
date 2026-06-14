@@ -22,7 +22,7 @@ public class Ad
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của quảng cáo. Độ dài cố định từ 4 đến 5 ký tự để đồng bộ hệ thống.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Tiêu đề hoặc tên hiển thị của chiến dịch quảng cáo. Giới hạn tối đa 150 ký tự.
@@ -42,7 +42,7 @@ public class Ad
     /// <summary>
     /// Đối tượng giá trị chứa thông tin URL tài nguyên và thời lượng phát của quảng cáo.
     /// </summary>
-    public AdMedia Media { get; private set; }
+    public AdMedia Media { get; private set; } = null!;
 
     /// <summary>
     /// Trạng thái hoạt động của quảng cáo. True biểu thị quảng cáo khả dụng để phân phối, False biểu thị tạm dừng.

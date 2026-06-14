@@ -1,4 +1,4 @@
-using TuneVault.Application.DTOs.Favorite;
+using TuneVault.Application.Features.Favorite.DTOs;
 
 namespace TuneVault.Application.Features.Favorite.Commands.ToggleFavorite;
 

@@ -24,27 +24,27 @@ public class User
     /// <summary>
     /// Mã định danh nghiệp vụ (Primary Key) của người dùng (ví dụ: U001).
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh hiển thị công khai (handle) giữa các user.
     /// </summary>
-    public string IdDisplay { get; private set; }
+    public string IdDisplay { get; private set; } = string.Empty;
 
     /// <summary>
     /// Tên hiển thị cá nhân của người dùng.
     /// </summary>
-    public string DisplayName { get; private set; }
+    public string DisplayName { get; private set; } = string.Empty;
 
     /// <summary>
     /// Địa chỉ email đăng nhập.
     /// </summary>
-    public string Email { get; private set; }
+    public string Email { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mật khẩu đã băm.
     /// </summary>
-    public string PasswordHash { get; private set; }
+    public string PasswordHash { get; private set; } = string.Empty;
 
     /// <summary>
     /// Đường dẫn ảnh đại diện (có thể để trống).
@@ -86,13 +86,13 @@ public class User
     /// <summary>
     /// Khởi tạo người dùng mới với các định danh dạng chuỗi và thông tin bắt buộc.
     /// </summary>
-    public User(string id, string idDisplay, string displayName, string email, string passwordHash)
-    {
-        ValidateUserId(id);
-        ValidateIdDisplay(idDisplay);
-        ValidateDisplayName(displayName);
-        ValidateEmail(email);
-        ValidatePasswordHash(passwordHash);
+        public User(string id, string idDisplay, string displayName, string email, string passwordHash)
+        {
+            ValidateUserId(id);
+            ValidateIdDisplay(idDisplay);
+            ValidateDisplayName(displayName);
+            ValidateEmail(email);
+            ValidatePasswordHash(passwordHash);
 
         Id = id.Trim();
         IdDisplay = idDisplay.Trim().ToLowerInvariant();

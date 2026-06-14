@@ -1,5 +1,5 @@
 using MediatR;
-using TuneVault.Application.DTOs.Media;
+using TuneVault.Application.Features.Media.DTOs;
 using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Media.Queries.GetMediaById;

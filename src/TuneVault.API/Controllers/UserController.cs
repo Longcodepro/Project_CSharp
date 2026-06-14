@@ -1,4 +1,7 @@
+// API/Controllers/UserController.cs
+using System.Security.Claims;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TuneVault.Application.Features.User.Commands.FollowUser;
 using TuneVault.Application.Features.User.Commands.UnfollowUser;
@@ -12,105 +15,162 @@ using TuneVault.Application.Features.User.Queries.GetFollowing;
 using TuneVault.Application.Features.User.Queries.GetUserById;
 using TuneVault.Application.Features.User.Queries.GetProfile;
 using TuneVault.Application.Features.User.Queries.GetUserByIdDisplay;
+using TuneVault.Domain.Exceptions;
 
 namespace TuneVault.API.Controllers;
 
-/// <summary>
-/// Controller quản lý các tác vụ liên quan đến User trong TuneVault.
-/// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/users")]
 public class UsersController : ControllerBase
 {
-    private readonly IMediator _mediator;
+    private readonly ISender _mediator;
 
-    /// <summary>
-    /// Khởi tạo Controller với MediatR.
-    /// </summary>
-    public UsersController(IMediator mediator) => _mediator = mediator;
+    public UsersController(ISender mediator) => _mediator = mediator;
+
+    // Lấy UserId từ JWT claim (sub)
+    private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
+                                  ?? User.FindFirstValue("sub");
 
     #region Queries
 
-    /// <summary> Lấy thông tin chi tiết user theo Id. </summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id, CancellationToken ct)
-        => Ok(await _mediator.Send(new GetUserByIdQuery(id), ct));
+    {
+        var result = await _mediator.Send(new GetUserByIdQuery(id), ct);
+        return result is not null
+            ? Ok(new { success = true, data = result, message = (string?)null })
+            : NotFound(new { success = false, data = (object?)null, message = $"Không tìm thấy user '{id}'." });
+    }
 
-    /// <summary> Lấy danh sách tất cả các nghệ sĩ. </summary>
     [HttpGet("artists")]
     public async Task<IActionResult> GetAllArtists(CancellationToken ct)
-        => Ok(await _mediator.Send(new GetAllArtistsQuery(), ct));
+    {
+        var result = await _mediator.Send(new GetAllArtistsQuery(), ct);
+        return Ok(new { success = true, data = result, message = (string?)null });
+    }
 
-    /// <summary> Lấy danh sách người theo dõi của một user. </summary>
     [HttpGet("{id}/followers")]
     public async Task<IActionResult> GetFollowers(string id, CancellationToken ct)
-        => Ok(await _mediator.Send(new GetFollowersQuery(id), ct));
+    {
+        var result = await _mediator.Send(new GetFollowersQuery(id), ct);
+        return Ok(new { success = true, data = result, message = (string?)null });
+    }
 
-    /// <summary> Lấy danh sách những người mà user đang theo dõi. </summary>
     [HttpGet("{id}/following")]
     public async Task<IActionResult> GetFollowing(string id, CancellationToken ct)
-        => Ok(await _mediator.Send(new GetFollowingQuery(id), ct));
+    {
+        var result = await _mediator.Send(new GetFollowingQuery(id), ct);
+        return Ok(new { success = true, data = result, message = (string?)null });
+    }
 
-    /// <summary> Kiểm tra trạng thái theo dõi giữa follower và followee. </summary>
     [HttpGet("{followerId}/is-following/{followeeId}")]
     public async Task<IActionResult> CheckStatus(string followerId, string followeeId, CancellationToken ct)
-        => Ok(await _mediator.Send(new CheckFollowStatusQuery(followerId, followeeId), ct));
+    {
+        var result = await _mediator.Send(new CheckFollowStatusQuery(followerId, followeeId), ct);
+        return Ok(new { success = true, data = result, message = (string?)null });
+    }
+
+    [HttpGet("{id}/profile")]
+    public async Task<IActionResult> GetProfile(string id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetUserProfileQuery(id), ct);
+        return result is not null
+            ? Ok(new { success = true, data = result, message = (string?)null })
+            : NotFound(new { success = false, data = (object?)null, message = $"Không tìm thấy profile '{id}'." });
+    }
+
+    [HttpGet("display/{idDisplay}")]
+    public async Task<IActionResult> GetByIdDisplay(string idDisplay, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetUserByIdDisplayQuery(idDisplay), ct);
+        return result is not null
+            ? Ok(new { success = true, data = result, message = (string?)null })
+            : NotFound(new { success = false, data = (object?)null, message = $"Không tìm thấy user '{idDisplay}'." });
+    }
 
     #endregion
 
     #region Commands
 
-    /// <summary> Cập nhật thông tin profile (DisplayName, Bio, Avatar). </summary>
     [HttpPut("profile")]
+    [Authorize]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command, ct);
-        return result is not null ? Ok(result) : BadRequest("Không thể cập nhật profile.");
+        try
+        {
+            var result = await _mediator.Send(command, ct);
+            return Ok(new { success = true, data = result, message = (string?)null });
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+        }
     }
 
-    /// <summary> Cập nhật bảo mật (Email, Password). </summary>
     [HttpPut("security")]
+    [Authorize]
     public async Task<IActionResult> UpdateSecurity([FromBody] UpdateSecurityCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command, ct);
-        return result ? Ok() : BadRequest("Không thể cập nhật bảo mật.");
+        try
+        {
+            var result = await _mediator.Send(command, ct);
+            return result
+                ? Ok(new { success = true, data = (object?)null, message = "Cập nhật bảo mật thành công." })
+                : BadRequest(new { success = false, data = (object?)null, message = "Không thể cập nhật bảo mật." });
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+        }
     }
 
-    /// <summary> Thực hiện follow một user khác. </summary>
     [HttpPost("follow")]
+    [Authorize]
     public async Task<IActionResult> Follow([FromBody] FollowUserCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command, ct);
-        return result ? Ok() : BadRequest("Không thể thực hiện hành động follow.");
+        try
+        {
+            var result = await _mediator.Send(command, ct);
+            return result
+                ? Ok(new { success = true, data = (object?)null, message = "Đã follow thành công." })
+                : BadRequest(new { success = false, data = (object?)null, message = "Không thể thực hiện follow." });
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+        }
     }
 
-    /// <summary> Hủy follow một user khác. </summary>
     [HttpDelete("unfollow")]
+    [Authorize]
     public async Task<IActionResult> Unfollow([FromBody] UnfollowUserCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command, ct);
-        return result ? Ok() : BadRequest("Không thể thực hiện hành động unfollow.");
+        try
+        {
+            var result = await _mediator.Send(command, ct);
+            return result
+                ? Ok(new { success = true, data = (object?)null, message = "Đã unfollow thành công." })
+                : BadRequest(new { success = false, data = (object?)null, message = "Không thể thực hiện unfollow." });
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+        }
     }
 
-    /// <summary> Xác thực user là nghệ sĩ. </summary>
     [HttpPatch("{id}/verify-artist")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> VerifyArtist(string id, CancellationToken ct)
     {
-        var result = await _mediator.Send(new VerifyAsArtistCommand(id), ct);
-        return result is not null ? Ok(result) : BadRequest("Không thể xác thực nghệ sĩ.");
-    }
-
-    /// <summary> Lấy profile đầy đủ của user theo Id (avatar, bio, followers, ngày tạo...). </summary>
-    [HttpGet("{id}/profile")]
-    public async Task<IActionResult> GetProfile(string id, CancellationToken ct)
-        => Ok(await _mediator.Send(new GetUserProfileQuery(id), ct));
-
-    /// <summary> Tìm user theo handle hiển thị công khai (vd: /display/john_doe). </summary>
-    [HttpGet("display/{idDisplay}")]
-    public async Task<IActionResult> GetByIdDisplay(string idDisplay, CancellationToken ct)
-    {
-        var result = await _mediator.Send(new GetUserByIdDisplayQuery(idDisplay), ct);
-        return result is not null ? Ok(result) : NotFound($"Không tìm thấy user với handle '{idDisplay}'.");
+        try
+        {
+            var result = await _mediator.Send(new VerifyAsArtistCommand(id), ct);
+            return Ok(new { success = true, data = result, message = (string?)null });
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+        }
     }
 
     #endregion
