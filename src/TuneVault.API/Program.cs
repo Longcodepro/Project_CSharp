@@ -41,6 +41,17 @@ builder.Services.AddScoped<IDbConnectionFactory, DbConnectionFactory>();
 // =========================================================================
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IUserRepository,
                             TuneVault.Infrastructure.Repositories.UserRepository>();
+
+// Removed DapperContext registration and test endpoint as per Rule 4.1 and Rule 10
+// builder.Services.AddSingleton<DapperContext>(); // Removed
+// app.MapGet("/test-db", async (DapperContext context) => // Removed
+// { // Removed
+//     return Results.Ok(new { status = "ok", service = "TuneVault API" }); // Removed
+// }) // Removed
+// .WithName("Health"); // Removed
+
+// Note: The Health endpoint was also removed as it was on the same line as the test-db endpoint.
+// If Health endpoint is needed, it should be re-added separately.
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IOtpLogRepository,
                             TuneVault.Infrastructure.Repositories.OtpLogRepository>();
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IMediaRepository,

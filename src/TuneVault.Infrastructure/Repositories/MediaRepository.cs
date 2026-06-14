@@ -1,10 +1,11 @@
 // Infrastructure/Repositories/MediaRepository.cs
 using Dapper;
 using TuneVault.Domain.Entities;
+using TuneVault.Domain.Enums; // Added for MediaType enum
 using TuneVault.Domain.Interfaces;
 using TuneVault.Infrastructure.Persistence;
 
-// namespace TuneVault.Infrastructure.Repositories;
+namespace TuneVault.Infrastructure.Repositories;
 
 /// <summary>
 /// MediaRepository - Lớp quản lý dữ liệu MediaItem trên database.
@@ -144,8 +145,8 @@ public sealed class MediaRepository : IMediaRepository
             mediaItem.Title,
             mediaItem.Description,
             MediaType       = (int)mediaItem.Type,
-            AudioUrl        = mediaItem.Type != Domain.Enums.MediaType.Video ? mediaItem.Url.Value : null,
-            VideoUrl        = mediaItem.Type == Domain.Enums.MediaType.Video ? mediaItem.Url.Value : null,
+            AudioUrl        = mediaItem.Type != MediaType.Video ? mediaItem.Url.Value : null,
+            VideoUrl        = mediaItem.Type == MediaType.Video ? mediaItem.Url.Value : null,
             mediaItem.CoverImageUrl,
             mediaItem.CanvasUrl,
             mediaItem.Genre,

@@ -1,7 +1,7 @@
 using Dapper;
 using System.Data;
 using TuneVault.Application.Features.History.Commands;
-using TuneVault.Infrastructure.DAO;
+using TuneVault.Infrastructure.Persistence;
 
 // namespace TuneVault.Infrastructure.Repositories;
 
@@ -12,11 +12,11 @@ using TuneVault.Infrastructure.DAO;
 /// </summary>
 public sealed class PlayHistoryRepository : IPlayHistorySqlRepository
 {
-    private readonly DapperContext _context;
+    private readonly IDbConnectionFactory _dbConnectionFactory;
 
-    public PlayHistoryRepository(DapperContext context)
+    public PlayHistoryRepository(IDbConnectionFactory dbConnectionFactory)
     {
-        _context = context;
+        _dbConnectionFactory = dbConnectionFactory ?? throw new ArgumentNullException(nameof(dbConnectionFactory));
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ public sealed class PlayHistoryRepository : IPlayHistorySqlRepository
         string mediaItemId,
         double? stoppedAt = null)
     {
-        using var connection = _context.CreateConnection();
+        using var connection = _dbConnectionFactory.CreateConnection();
 
         var id = await GenerateNextPlayHistoryIdAsync(connection);
 
@@ -68,7 +68,7 @@ public sealed class PlayHistoryRepository : IPlayHistorySqlRepository
         string userId,
         int limit = 10)
     {
-        using var connection = _context.CreateConnection();
+        using var connection = _dbConnectionFactory.CreateConnection();
 
         if (limit <= 0)
             limit = 10;
