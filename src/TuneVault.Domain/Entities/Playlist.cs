@@ -221,7 +221,7 @@ public class Playlist
         if (trimmedUrl.Length > MaxUrlLength)
             throw new DomainException($"Đường dẫn ảnh bìa Playlist không được vượt quá {MaxUrlLength} ký tự.");
 
-        if (!Uri.TryCreate(trimmedUrl, UriKind.Absolute, out Uri? uriResult) || 
+        if (!Uri.TryCreate(trimmedUrl, UriKind.Absolute, out Uri? uriResult) ||
             (uriResult.Scheme != Uri.UriSchemeHttp && uriResult.Scheme != Uri.UriSchemeHttps))
         {
             throw new DomainException("Đường dẫn ảnh bìa không hợp lệ (phải bắt đầu bằng định dạng HTTP hoặc HTTPS).");
@@ -295,12 +295,12 @@ public class Playlist
         track.UpdateTrackOrder(newTrackOrder);
     }
     /// <summary>
-/// Đánh dấu Playlist này đã bị xóa (soft delete flag).
-/// Bắt buộc thực hiện qua Root để đảm bảo tính toàn vẹn của Aggregate.
-/// </summary>
-public void Delete()
-{
-    // Domain logic: có thể thêm validation nếu cần
-    // Ví dụ: không cho xóa playlist đang được phát
-}
+    /// Đánh dấu Playlist này đã bị xóa (soft delete flag).
+    /// Bắt buộc thực hiện qua Root để đảm bảo tính toàn vẹn của Aggregate.
+    /// </summary>
+    public void Delete()
+    {
+        // Domain logic: có thể thêm validation nếu cần
+        // Ví dụ: không cho xóa playlist đang được phát
+    }
 }

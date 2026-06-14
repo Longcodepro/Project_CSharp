@@ -23,27 +23,27 @@ public class AccountTier
     /// <summary>
     /// Mã định danh nghiệp vụ (Primary Key) của hạng tài khoản (Ví dụ: T0001, T002).
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã code hệ thống/nội bộ của hạng tài khoản (Ví dụ: PREMIUM_1M, VIP_YEAR).
     /// </summary>
-    public string Code { get; private set; }
+    public string Code { get; private set; } = string.Empty;
 
     /// <summary>
     /// Tên hiển thị thương mại của hạng tài khoản (Ví dụ: Gói Hội Viên Premium).
     /// </summary>
-    public string Name { get; private set; }
+    public string Name { get; private set; } = string.Empty;
 
     /// <summary>
     /// Cấu hình giá tiền và đơn vị tiền tệ của hạng tài khoản.
     /// </summary>
-    public TierPrice Price { get; private set; }
+    public TierPrice Price { get; private set; } = null!;
 
     /// <summary>
     /// Các đặc quyền, năng lực giới hạn đi kèm với hạng tài khoản này.
     /// </summary>
-    public TierCapabilities Capabilities { get; private set; }
+    public TierCapabilities Capabilities { get; private set; } = null!;
 
     /// <summary>
     /// Chu kỳ thời gian sử dụng tính bằng ngày (Ví dụ: 30 ngày, 365 ngày).

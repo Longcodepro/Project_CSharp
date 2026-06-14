@@ -18,17 +18,17 @@ public class Follow
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của bản ghi Follow. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng thực hiện hành động bấm theo dõi (Follower). Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string FollowerId { get; private set; }
+    public string FollowerId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng/nghệ sĩ được theo dõi (Followee). Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string FolloweeId { get; private set; }
+    public string FolloweeId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Thời điểm hành động theo dõi (hoặc tái theo dõi) được thiết lập thành công.

@@ -20,22 +20,22 @@ public class UserAccountTier
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của lượt đăng ký hạng tài khoản này (Ví dụ: HIST1).
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng (Khóa ngoại liên kết với User).
     /// </summary>
-    public string UserId { get; private set; }
+    public string UserId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của hạng tài khoản được đăng ký (Khóa ngoại liên kết với AccountTier).
     /// </summary>
-    public string TierId { get; private set; }
+    public string TierId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Bản sao thông tin giá tiền thực tế tại thời điểm người dùng thực hiện bấm mua hạng này.
     /// </summary>
-    public TierPrice PriceAtPurchase { get; private set; }
+    public TierPrice PriceAtPurchase { get; private set; } = null!;
 
     /// <summary>
     /// Thời điểm người dùng thực hiện giao dịch thanh toán mua hạng tài khoản thành công.

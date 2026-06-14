@@ -168,3 +168,115 @@
 {
     transform: scale(1.05); 
 }
+
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 40px; /* Chừa chỗ cho icon */
+}
+
+/* Nút con mắt */
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #a7a7a7;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.toggle-password:hover {
+    color: white;
+}
+
+/* Style khi mật khẩu không khớp */
+.input-error {
+    border: 1px solid #ed1c24 !important; /* Viền đỏ */
+}
+
+.error-text {
+    color: #ed1c24;
+    font-size: 14px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Vô hiệu hóa nút submit nếu lỗi */
+.btn-submit:disabled {
+    background-color: #535353;
+    cursor: not-allowed;
+}
+
+.input-help {
+    font-size: 12px;
+    color: #a7a7a7;
+    margin-top: 4px;
+}
+/* ==========================================================================
+   OTP VERIFICATION STYLES (Giao diện xác thực OTP)
+   ========================================================================== */
+
+.otp-container {
+    text-align: center;
+}
+
+.otp-instructions {
+    color: #a7a7a7;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+}
+
+.otp-instructions strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Khung chứa 6 ô nhập mã */
+.otp-input-group {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 32px 0;
+}
+
+/* Chi tiết từng ô input OTP */
+.otp-input {
+    width: 48px;
+    height: 56px;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    border-radius: 4px;
+    border: 1px solid #727272;
+    background-color: #121212;
+    color: #ffffff;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Hiệu ứng khi nhấn chọn vào ô nhập */
+.otp-input:focus {
+    border-color: #1db954; /* Màu xanh thương hiệu Spotify */
+    box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.3);
+}
+
+/* Phần gợi ý gửi lại mã */
+.otp-prompt {
+    margin-top: 32px;
+    text-align: center;
+}
+
+.otp-prompt p {
+    color: #a7a7a7;
+    font-size: 14px;
+    margin-bottom: 8px;
+}

@@ -66,3 +66,5 @@ nunit-*.xml
 # connect database
 appsettings.json
 appsettings.example.json
+
+client/backend/.env

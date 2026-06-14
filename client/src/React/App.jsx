@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import {Routes, Route, useNavigate} from 'react-router-dom';
 import Login from './Login.jsx';
 import Signup from './Signup.jsx'
+import OTP from './otp.jsx';
+import PhoneSignup from './Phone_Signup.jsx';
 import '../CSS/App_style.css';
+
 
 function TopView() {
   const navigate=useNavigate();
@@ -208,7 +211,7 @@ function Player({currentSong}) {
   );
 }
 
-function Dashboard(activeSong, setActiveSong)
+function Dashboard({ activeSong, setActiveSong })
 {
   return(
     <div className="spotify-app">
@@ -234,6 +237,8 @@ function App() {
       <Route path="/" element={<Dashboard activeSong={activeSong} setActiveSong={setActiveSong}/>}/>
       <Route path="/login" element={<Login />}/>
       <Route path="/signup" element={<Signup />}/>
+      <Route path="/otp" element={<OTP />}/>
+      <Route path="/Phone_Signup" element={<PhoneSignup />}/>
     </Routes>
   );
 }

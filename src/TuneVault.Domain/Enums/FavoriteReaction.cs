@@ -6,6 +6,11 @@ namespace TuneVault.Domain.Entities;
 public enum FavoriteReaction
 {
     /// <summary>
+    /// Trạng thái không thích bài hát.
+    /// </summary>
+    Dislike = 0,
+
+    /// <summary>
     /// Trạng thái Thích thông thường (Mặc định).
     /// </summary>
     Like = 1,

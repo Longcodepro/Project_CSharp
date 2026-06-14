@@ -1,7 +1,7 @@
 using Dapper;
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Interfaces;
-using TuneVault.Infrastructure.DAO;
+using TuneVault.Infrastructure.Persistence;
 
 namespace TuneVault.Infrastructure.Repositories;
 
@@ -16,12 +16,13 @@ namespace TuneVault.Infrastructure.Repositories;
 /// </summary>
 public sealed class PlaylistRepository : IPlaylistRepository
 {
-    private readonly DapperContext _context;
+    private readonly IDbConnectionFactory _db;
 
-    public PlaylistRepository(DapperContext context)
-    {
-        _context = context;
-    }
+    /// <summary>
+    /// Khởi tạo PlaylistRepository với IDbConnectionFactory dependency.
+    /// </summary>
+    /// <param name="db">Factory để tạo kết nối database.</param>
+    public PlaylistRepository(IDbConnectionFactory db) => _db = db;
 
     /// <summary>
     /// Lấy playlist theo Id.
@@ -30,8 +31,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
     public async Task<Playlist?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         const string sql = "SELECT * FROM Playlists WHERE Id = @Id";
-        using var connection = _context.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<Playlist>(sql, new { Id = id });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryFirstOrDefaultAsync<Playlist>(
+            new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -41,8 +43,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
     public async Task<IEnumerable<Playlist>> GetByOwnerIdAsync(string ownerId, CancellationToken cancellationToken = default)
     {
         const string sql = "SELECT * FROM Playlists WHERE UserId = @UserId";
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync<Playlist>(sql, new { UserId = ownerId });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync<Playlist>(
+            new CommandDefinition(sql, new { UserId = ownerId }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -53,8 +56,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
     public async Task<IEnumerable<Playlist>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         const string sql = "SELECT * FROM Playlists";
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync<Playlist>(sql);
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync<Playlist>(
+            new CommandDefinition(sql, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -65,8 +69,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
     public async Task<IEnumerable<PlaylistTrack>> GetAllTracksAsync(CancellationToken cancellationToken = default)
     {
         const string sql = "SELECT * FROM PlaylistTracks";
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync<PlaylistTrack>(sql);
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync<PlaylistTrack>(
+            new CommandDefinition(sql, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -78,8 +83,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
         const string sql = @"
             INSERT INTO Playlists (Id, UserId, Title, CoverImageUrl, IsPublic, CreatedAt)
             VALUES (@Id, @UserId, @Title, @CoverImageUrl, @IsPublic, @CreatedAt)";
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(sql, playlist);
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(
+            new CommandDefinition(sql, playlist, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -94,8 +100,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
                 CoverImageUrl = @CoverImageUrl,
                 IsPublic      = @IsPublic
             WHERE Id = @Id";
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(sql, playlist);
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(
+            new CommandDefinition(sql, playlist, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -105,8 +112,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
     public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
         const string sql = "DELETE FROM Playlists WHERE Id = @Id";
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(sql, new { Id = id });
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(
+            new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -118,8 +126,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
         const string sql = @"
             INSERT INTO PlaylistTracks (Id, PlaylistId, MediaItemId, TrackOrder, AddedAt)
             VALUES (@Id, @PlaylistId, @MediaItemId, @TrackOrder, @AddedAt)";
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(sql, track);
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(
+            new CommandDefinition(sql, track, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -129,8 +138,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
     public async Task RemoveTrackAsync(string playlistId, string mediaItemId, CancellationToken cancellationToken = default)
     {
         const string sql = "DELETE FROM PlaylistTracks WHERE PlaylistId = @PlaylistId AND MediaItemId = @MediaItemId";
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(sql, new { PlaylistId = playlistId, MediaItemId = mediaItemId });
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(
+            new CommandDefinition(sql, new { PlaylistId = playlistId, MediaItemId = mediaItemId }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -144,8 +154,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
             INNER JOIN PlaylistTracks pt ON m.Id = pt.MediaItemId
             WHERE pt.PlaylistId = @PlaylistId
             ORDER BY pt.TrackOrder ASC";
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync<MediaItem>(sql, new { PlaylistId = playlistId });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync<MediaItem>(
+            new CommandDefinition(sql, new { PlaylistId = playlistId }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -158,7 +169,8 @@ public sealed class PlaylistRepository : IPlaylistRepository
         const string sql = @"
             UPDATE PlaylistTracks SET TrackOrder = @NewTrackOrder
             WHERE PlaylistId = @PlaylistId AND Id = @TrackId";
-        using var connection = _context.CreateConnection();
-        await connection.ExecuteAsync(sql, new { PlaylistId = playlistId, TrackId = trackId, NewTrackOrder = newTrackOrder });
+        using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(
+            new CommandDefinition(sql, new { PlaylistId = playlistId, TrackId = trackId, NewTrackOrder = newTrackOrder }, cancellationToken: cancellationToken));
     }
 }

@@ -1,11 +1,11 @@
-using TuneVault.Domain.Enums;
+using System;
 
 namespace TuneVault.Application.Abstractions;
 
 public interface ICurrentUserService
 {
-    Guid? UserId { get; }
+    string? UserId { get; } // Changed from Guid? to string? to match JWT 'sub' claim
     string? UserName { get; }
-    UserRole? Role { get; }
+    string? Role { get; } // Changed to return all roles as a comma-separated string
     bool IsAuthenticated { get; }
 }

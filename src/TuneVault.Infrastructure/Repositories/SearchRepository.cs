@@ -1,6 +1,6 @@
 using Dapper;
 using TuneVault.Domain.Interfaces;
-using TuneVault.Infrastructure.DAO;
+using TuneVault.Infrastructure.Persistence;
 
 namespace TuneVault.Infrastructure.Repositories;
 
@@ -12,7 +12,7 @@ namespace TuneVault.Infrastructure.Repositories;
 /// Luồng xử lý:
 /// 1. SearchController gọi ISearchRepository (injected)
 /// 2. DI container trỏ tới SearchRepository
-/// 3. Repository mở connection từ DapperContext
+/// 3. Repository mở connection từ IDbConnectionFactory
 /// 4. Repository thực thi SQL và trả về kết quả dynamic
 /// 
 /// Các chức năng:
@@ -25,12 +25,13 @@ namespace TuneVault.Infrastructure.Repositories;
 /// </summary>
 public sealed class SearchRepository : ISearchRepository
 {
-    private readonly DapperContext _context;
+    private readonly IDbConnectionFactory _db;
 
-    public SearchRepository(DapperContext context)
-    {
-        _context = context;
-    }
+    /// <summary>
+    /// Khởi tạo SearchRepository với IDbConnectionFactory dependency.
+    /// </summary>
+    /// <param name="db">Factory để tạo kết nối database.</param>
+    public SearchRepository(IDbConnectionFactory db) => _db = db;
 
     /// <summary>
     /// Tìm kiếm bài hát / podcast theo title.
@@ -54,8 +55,9 @@ public sealed class SearchRepository : ISearchRepository
               AND m.Title LIKE @Keyword
             ORDER BY m.Title ASC;";
 
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync(sql, new { Keyword = ToLikeKeyword(keyword) });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync(
+            new CommandDefinition(sql, new { Keyword = ToLikeKeyword(keyword) }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -75,8 +77,9 @@ public sealed class SearchRepository : ISearchRepository
             WHERE (IdDisplay LIKE @Keyword OR DisplayName LIKE @Keyword)
             ORDER BY DisplayName ASC;";
 
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync(sql, new { Keyword = ToLikeKeyword(keyword) });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync(
+            new CommandDefinition(sql, new { Keyword = ToLikeKeyword(keyword) }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -92,8 +95,9 @@ public sealed class SearchRepository : ISearchRepository
               AND Title LIKE @Keyword
             ORDER BY ReleaseDate DESC, Title ASC;";
 
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync(sql, new { Keyword = ToLikeKeyword(keyword) });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync(
+            new CommandDefinition(sql, new { Keyword = ToLikeKeyword(keyword) }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -118,8 +122,9 @@ public sealed class SearchRepository : ISearchRepository
             GROUP BY p.Id, p.Title, p.CoverImageUrl, u.DisplayName, p.CreatedAt
             ORDER BY p.CreatedAt DESC, p.Title ASC;";
 
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync(sql, new { Keyword = ToLikeKeyword(keyword) });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync(
+            new CommandDefinition(sql, new { Keyword = ToLikeKeyword(keyword) }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -144,8 +149,9 @@ public sealed class SearchRepository : ISearchRepository
               AND m.Genre = @Genre
             ORDER BY m.Title ASC;";
 
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync(sql, new { Genre = genre.Trim() });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync(
+            new CommandDefinition(sql, new { Genre = genre.Trim() }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -169,8 +175,9 @@ public sealed class SearchRepository : ISearchRepository
             WHERE m.IsPublic = 1
             ORDER BY m.ViewCount DESC;";
 
-        using var connection = _context.CreateConnection();
-        return await connection.QueryAsync(sql, new { Top = Math.Clamp(top, 1, 50) });
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync(
+            new CommandDefinition(sql, new { Top = Math.Clamp(top, 1, 50) }, cancellationToken: cancellationToken));
     }
 
     /// <summary>

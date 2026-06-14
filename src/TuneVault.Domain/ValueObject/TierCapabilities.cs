@@ -23,7 +23,7 @@ public class TierCapabilities
     /// <summary>
     /// Chất lượng âm thanh tối đa được trải nghiệm (Ví dụ: Standard, High, Lossless).
     /// </summary>
-    public string AudioQuality { get; private set; }
+    public string AudioQuality { get; private set; } = null!;
 
     /// <summary>
     /// Trạng thái tắt quảng cáo khi nghe nhạc.
