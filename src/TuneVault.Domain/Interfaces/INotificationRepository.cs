@@ -37,4 +37,9 @@ public interface INotificationRepository
     /// Đánh dấu toàn bộ thông báo của một người dùng là đã đọc.
     /// </summary>
     Task MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Xóa mềm một thông báo bằng cách chuyển IsActive = false.
+    /// </summary>
+    Task DeleteAsync(Guid notificationId, Guid userId, CancellationToken cancellationToken = default);
 }

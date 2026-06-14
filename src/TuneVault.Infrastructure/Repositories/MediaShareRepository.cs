@@ -1,107 +1,236 @@
-using TuneVault.Domain.Entities;
-using TuneVault.Domain.Interfaces;
+using Dapper;
+using System.Data;
+using TuneVault.Application.Features.Share.Commands.ShareMedia;
+using TuneVault.Application.Features.Share.Queries.GetSharedWithMe;
 using TuneVault.Infrastructure.DAO;
 
 namespace TuneVault.Infrastructure.Repositories;
 
-/// <summary>
-/// Repository triển khai các thao tác lưu trữ và truy vấn dữ liệu chia sẻ media giữa người dùng.
-/// Lớp này chuyển đổi dữ liệu giữa ShareDAO và entity MediaShare trong tầng Domain.
-/// </summary>
-public sealed class MediaShareRepository : IMediaShareRepository
+public sealed class MediaShareRepository :
+    IMediaShareCommandRepository,
+    IMediaShareQueryRepository
 {
-    private readonly ShareDAO _shareDao;
+    private readonly DapperContext _context;
 
-    /// <summary>
-    /// Khởi tạo một instance mới của MediaShareRepository với DAO xử lý dữ liệu chia sẻ.
-    /// </summary>
-    public MediaShareRepository(ShareDAO shareDao)
+    public MediaShareRepository(DapperContext context)
     {
-        _shareDao = shareDao;
+        _context = context;
     }
 
-    /// <summary>
-    /// Lưu một bản ghi chia sẻ media mới từ người gửi đến người nhận.
-    /// </summary>
-    public async Task ShareAsync(MediaShare mediaShare, CancellationToken cancellationToken = default)
+    public async Task<string> CreateMediaShareAsync(
+        string senderId,
+        string receiverId,
+        string shareType,
+        string sharedItemId)
     {
-        await _shareDao.CreateMediaShareAsync(
-            mediaShare.SenderId,
-            mediaShare.ReceiverId,
-            ToDatabaseShareType(mediaShare.ShareType),
-            mediaShare.SharedItemId);
+        using var connection = _context.CreateConnection();
+
+        var shareId = await GenerateNextMediaShareIdAsync(connection);
+        var shareTypeValue = ToShareType(shareType);
+
+        await connection.ExecuteAsync(@"
+            INSERT INTO MediaShares
+                (Id, SenderId, ReceiverId, SharedItemId, ShareType, Message, SharedAt)
+            VALUES
+                (@Id, @SenderId, @ReceiverId, @SharedItemId, @ShareType, @Message, GETDATE());",
+            new
+            {
+                Id = shareId,
+                SenderId = senderId,
+                ReceiverId = receiverId,
+                SharedItemId = sharedItemId,
+                ShareType = shareTypeValue,
+                Message = (string?)null
+            });
+
+        return shareId;
     }
 
-    /// <summary>
-    /// Lấy danh sách các nội dung mà người dùng đã chia sẻ cho người khác.
-    /// </summary>
-    public async Task<IReadOnlyCollection<MediaShare>> GetSharedByMeAsync(Guid senderId, CancellationToken cancellationToken = default)
+    public async Task<bool> TrackExistsAsync(string mediaItemId)
     {
-        var rows = await _shareDao.GetSentSharesAsync(RepositoryMappingHelper.ToDatabaseId(senderId));
-        return rows.Select(MapMediaShare).ToList();
+        using var connection = _context.CreateConnection();
+
+        var count = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(1)
+            FROM MediaItems
+            WHERE Id = @MediaItemId;",
+            new
+            {
+                MediaItemId = mediaItemId
+            });
+
+        return count > 0;
     }
 
-    /// <summary>
-    /// Lấy danh sách các nội dung mà người dùng đã nhận được từ người khác.
-    /// </summary>
-    public async Task<IReadOnlyCollection<MediaShare>> GetSharedWithMeAsync(Guid receiverId, CancellationToken cancellationToken = default)
+    public async Task<bool> AlbumExistsAsync(string albumId)
     {
-        var rows = await _shareDao.GetInboxSharesAsync(RepositoryMappingHelper.ToDatabaseId(receiverId));
-        return rows.Select(MapMediaShare).ToList();
+        using var connection = _context.CreateConnection();
+
+        var count = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(1)
+            FROM Albums
+            WHERE Id = @AlbumId;",
+            new
+            {
+                AlbumId = albumId
+            });
+
+        return count > 0;
     }
 
-    /// <summary>
-    /// Đánh dấu một bản ghi chia sẻ là đã đọc đối với người nhận.
-    /// </summary>
-    public async Task MarkAsReadAsync(Guid shareId, Guid receiverId, CancellationToken cancellationToken = default)
+    public async Task<bool> PlaylistExistsAsync(string playlistId)
     {
-        await _shareDao.MarkShareAsReadAsync(
-            RepositoryMappingHelper.ToDatabaseId(shareId),
-            RepositoryMappingHelper.ToDatabaseId(receiverId));
+        using var connection = _context.CreateConnection();
+
+        var count = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(1)
+            FROM Playlists
+            WHERE Id = @PlaylistId;",
+            new
+            {
+                PlaylistId = playlistId
+            });
+
+        return count > 0;
     }
 
-    /// <summary>
-    /// Đánh dấu toàn bộ bản ghi chia sẻ của một người nhận là đã đọc.
-    /// </summary>
-    public async Task MarkAllAsReadAsync(Guid receiverId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<dynamic>> GetInboxSharesAsync(string receiverId)
     {
-        await _shareDao.MarkAllSharesAsReadAsync(RepositoryMappingHelper.ToDatabaseId(receiverId));
-    }
+        using var connection = _context.CreateConnection();
 
-    /// <summary>
-    /// Đếm số lượng bản ghi chia sẻ chưa đọc của một người nhận.
-    /// </summary>
-    public async Task<int> GetUnreadCountAsync(Guid receiverId, CancellationToken cancellationToken = default)
-    {
-        return await _shareDao.CountUnreadSharesAsync(RepositoryMappingHelper.ToDatabaseId(receiverId));
-    }
+        var sql = BaseShareSelectSql(@"
+            WHERE ms.ReceiverId = @ReceiverId
+            ORDER BY ms.SharedAt DESC;");
 
-    /// <summary>
-    /// Ánh xạ một dòng dữ liệu chia sẻ từ DAO thành entity MediaShare của tầng Domain.
-    /// </summary>
-    private static MediaShare MapMediaShare(object row)
-    {
-        return RepositoryMappingHelper.CreateEntity<MediaShare>(
-            (nameof(MediaShare.Id), RepositoryMappingHelper.ReadString(row, "Id")),
-            (nameof(MediaShare.SenderId), RepositoryMappingHelper.ReadString(row, "SenderId")),
-            (nameof(MediaShare.ReceiverId), RepositoryMappingHelper.ReadString(row, "ReceiverId")),
-            (nameof(MediaShare.SharedItemId), RepositoryMappingHelper.ReadString(row, "SharedItemId")),
-            (nameof(MediaShare.ShareType), RepositoryMappingHelper.ReadEnum(row, "ShareType", ShareType.MediaItem)),
-            (nameof(MediaShare.Message), null),
-            (nameof(MediaShare.SharedAt), RepositoryMappingHelper.ReadDateTime(row, "SharedAt")));
-    }
-
-    /// <summary>
-    /// Chuyển đổi ShareType của tầng Domain sang chuỗi giá trị tương ứng được lưu trong cơ sở dữ liệu.
-    /// </summary>
-    private static string ToDatabaseShareType(ShareType shareType)
-    {
-        return shareType switch
+        return await connection.QueryAsync(sql, new
         {
-            ShareType.MediaItem => "Track",
-            ShareType.Album => "Album",
-            ShareType.Playlist => "Playlist",
-            _ => shareType.ToString()
+            ReceiverId = receiverId
+        });
+    }
+
+    public async Task<bool> MarkShareAsReadAsync(string shareId, string receiverId)
+    {
+        using var connection = _context.CreateConnection();
+
+        var count = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(1)
+            FROM MediaShares
+            WHERE Id = @ShareId
+              AND ReceiverId = @ReceiverId;",
+            new
+            {
+                ShareId = shareId,
+                ReceiverId = receiverId
+            });
+
+        return count > 0;
+    }
+
+    public Task<int> CountUnreadSharesAsync(string receiverId)
+    {
+        return Task.FromResult(0);
+    }
+
+    private static async Task<string> GenerateNextMediaShareIdAsync(IDbConnection connection)
+    {
+        const string prefix = "MS";
+
+        var nextNumber = await connection.ExecuteScalarAsync<int>(@"
+            SELECT ISNULL(MAX(TRY_CONVERT(int, SUBSTRING(Id, LEN(@Prefix) + 1, 20))), 0) + 1
+            FROM MediaShares
+            WHERE Id LIKE @PrefixLike;",
+            new
+            {
+                Prefix = prefix,
+                PrefixLike = prefix + "%"
+            });
+
+        return $"{prefix}{nextNumber:000}";
+    }
+
+    private static int ToShareType(string? shareType)
+    {
+        return Normalize(shareType) switch
+        {
+            "album" => 2,
+            "playlist" => 3,
+            "mediaitem" => 1,
+            "media" => 1,
+            "song" => 1,
+            "track" => 1,
+            _ => 1
         };
+    }
+
+    private static string Normalize(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim()
+                   .Replace(" ", string.Empty)
+                   .Replace("_", string.Empty)
+                   .Replace("-", string.Empty)
+                   .ToLowerInvariant();
+    }
+
+    private static string BaseShareSelectSql(string whereAndOrder)
+    {
+        return $@"
+            SELECT
+                ms.Id,
+                ms.SenderId,
+                sender.IdDisplay AS SenderUserName,
+                sender.IdDisplay AS SenderIdDisplay,
+                sender.DisplayName AS SenderDisplayName,
+                sender.AvatarUrl AS SenderAvatarUrl,
+
+                ms.ReceiverId,
+                receiver.IdDisplay AS ReceiverUserName,
+                receiver.IdDisplay AS ReceiverIdDisplay,
+                receiver.DisplayName AS ReceiverDisplayName,
+                receiver.AvatarUrl AS ReceiverAvatarUrl,
+
+                ms.ShareType,
+                CASE ms.ShareType
+                    WHEN 2 THEN 'Album'
+                    WHEN 3 THEN 'Playlist'
+                    ELSE 'Track'
+                END AS ShareTypeName,
+
+                ms.SharedItemId,
+                ms.Message,
+                ms.SharedAt,
+
+                COALESCE(mi.Title, a.Title, p.Title) AS ItemTitle,
+
+                CASE
+                    WHEN ms.ShareType = 1 THEN mi.CoverImageUrl
+                    WHEN ms.ShareType = 2 THEN a.CoverImageUrl
+                    WHEN ms.ShareType = 3 THEN p.CoverImageUrl
+                    ELSE NULL
+                END AS ItemCoverImgUrl,
+
+                CASE
+                    WHEN ms.ShareType = 1 THEN mi.CoverImageUrl
+                    WHEN ms.ShareType = 2 THEN a.CoverImageUrl
+                    WHEN ms.ShareType = 3 THEN p.CoverImageUrl
+                    ELSE NULL
+                END AS ItemCoverImageUrl,
+
+                COALESCE(mi.AudioUrl, mi.VideoUrl) AS MediaUrl,
+                mi.AudioUrl,
+                mi.VideoUrl,
+                mi.DurationSeconds AS Duration,
+                mi.DurationSeconds,
+                mi.MediaType AS Type,
+                mi.MediaType,
+                mi.Genre
+            FROM MediaShares ms
+            INNER JOIN Users sender ON ms.SenderId = sender.Id
+            INNER JOIN Users receiver ON ms.ReceiverId = receiver.Id
+            LEFT JOIN MediaItems mi ON ms.ShareType = 1 AND ms.SharedItemId = mi.Id
+            LEFT JOIN Albums a ON ms.ShareType = 2 AND ms.SharedItemId = a.Id
+            LEFT JOIN Playlists p ON ms.ShareType = 3 AND ms.SharedItemId = p.Id
+            {whereAndOrder}";
     }
 }

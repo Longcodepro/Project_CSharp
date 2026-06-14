@@ -1,69 +1,98 @@
-/// <summary>
-/// Import namespace chứa DapperContext từ tầng Infrastructure
-/// để Program.cs có thể nhận diện và đăng ký vào DI container
-/// </summary>
+using TuneVault.API.Hubs;
 using TuneVault.Infrastructure.DAO;
+using TuneVault.Infrastructure.Repositories;
+using TuneVault.Application.Features.Notification.Commands;
+using TuneVault.Application.Features.Notification.Queries.GetNotifications;
+using TuneVault.Application.Features.Follow.Commands;
+using TuneVault.Application.Features.Favorite.Commands;
+using TuneVault.Application.Features.Share.Commands.ShareMedia;
+using TuneVault.Application.Features.Share.Queries.GetSharedWithMe;
+using TuneVault.Application.Features.History.Commands;
 
-/// <summary>
-/// Khởi tạo builder — đối tượng dùng để cấu hình toàn bộ ứng dụng
-/// Tự động đọc appsettings.json và các biến môi trường
-/// </summary>
 var builder = WebApplication.CreateBuilder(args);
 
-// Thêm 2 dòng này để dùng được Controller
+// Controller
 builder.Services.AddControllers();
 
-/// <summary>
-/// Đăng ký DapperContext vào DI container với kiểu Singleton
-/// Tức là chỉ tạo 1 instance duy nhất, dùng chung cho toàn bộ app
-/// Phải đặt trước builder.Build() vì sau Build() thì không đăng ký được nữa
-/// </summary>
-///  Đăng ký DapperContext - chỉ tạo 1 lần duy nhất cho toàn bộ app
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// SignalR realtime notification
+builder.Services.AddSignalR();
+
+// Database context
 builder.Services.AddSingleton<DapperContext>();
 
-
-/// <summary>
-/// Đăng ký UserDAO vào DI container với kiểu Scoped.
-/// Scoped nghĩa là mỗi HTTP request sẽ tạo 1 instance UserDAO mới,
-/// dùng xuyên suốt request đó rồi tự hủy khi request kết thúc.
-/// 
-/// Tại sao dùng Scoped thay vì Singleton cho DAO?
-/// - Singleton: 1 instance dùng chung cho TẤT CẢ request
-///   → Nguy hiểm! Nếu 2 user cùng gọi API 1 lúc có thể bị xung đột dữ liệu
-/// - Scoped: mỗi request có instance RIÊNG
-///   → An toàn! Các request độc lập nhau hoàn toàn
-/// 
-/// Các DAO khác (SongDAO, PlaylistDAO, ...) cũng đăng ký tương tự:
-/// builder.Services.AddScoped<SongDAO>();
-/// builder.Services.AddScoped<PlaylistDAO>();
-/// </summary>
+// DAO cũ
 builder.Services.AddScoped<UserDAO>();
 builder.Services.AddScoped<AlbumDAO>();
 builder.Services.AddScoped<PlaylistDAO>();
 builder.Services.AddScoped<SearchDAO>();
+builder.Services.AddScoped<InteractionDAO>();
+
+// Notification mới
+builder.Services.AddScoped<INotificationCommandRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationQueryRepository, NotificationRepository>();
+builder.Services.AddScoped<MarkNotificationAsReadCommand>();
+builder.Services.AddScoped<GetNotificationsQuery>();
+
+// Follow
+builder.Services.AddScoped<IFollowSqlRepository, FollowRepository>();
+builder.Services.AddScoped<FollowUserCommand>();
+builder.Services.AddScoped<UnFollowUserCommand>();
+
+// Favorite
+builder.Services.AddScoped<IFavoriteSqlRepository, FavoriteRepository>();
+builder.Services.AddScoped<ToggleFavoriteCommand>();
+
+builder.Services.AddScoped<IMediaShareCommandRepository, MediaShareRepository>();
+builder.Services.AddScoped<IMediaShareQueryRepository, MediaShareRepository>();
+builder.Services.AddScoped<ShareMediaCommand>();
+builder.Services.AddScoped<GetSharedWithMeQuery>();
+
+// Play History
+builder.Services.AddScoped<IPlayHistorySqlRepository, PlayHistoryRepository>();
+builder.Services.AddScoped<RecordPlayHistoryCommand>();
+
+// CORS cho frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://127.0.0.1:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
+// Swagger UI
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// Middleware
 app.UseCors("Frontend");
-app.UseStaticFiles();
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
 
-// Thêm dòng này để app nhận diện được Controller
+app.UseAuthorization();
+
+// API controllers
 app.MapControllers();
 
+// SignalR hub endpoint
+app.MapHub<NotificationHub>("/notificationHub")
+   .RequireCors("Frontend");
+
+// Test API
 app.MapGet("/", () => Results.Ok(new
 {
     service = "TuneVault API"
