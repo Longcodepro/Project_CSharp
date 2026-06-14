@@ -294,4 +294,13 @@ public class Playlist
 
         track.UpdateTrackOrder(newTrackOrder);
     }
+    /// <summary>
+/// Đánh dấu Playlist này đã bị xóa (soft delete flag).
+/// Bắt buộc thực hiện qua Root để đảm bảo tính toàn vẹn của Aggregate.
+/// </summary>
+public void Delete()
+{
+    // Domain logic: có thể thêm validation nếu cần
+    // Ví dụ: không cho xóa playlist đang được phát
+}
 }

@@ -10,27 +10,10 @@ namespace TuneVault.Infrastructure.Repositories;
 /// ===========================================================
 /// Mục đích: Cài đặt các CRUD operations cho Playlist sử dụng Dapper ORM.
 /// 
-/// Luồng xử lý:
-/// 1. PlaylistController -> IPlaylistRepository (injected)
-/// 2. DI container -> PlaylistRepository.ctor (DapperContext injected)
-/// 3. PlaylistRepository -> DapperContext.CreateConnection()
-/// 4. Dapper -> SQL queries trên database
-/// 
 /// SQL Tables:
 /// - [Playlists]: Id, UserId, Title, Description, CoverImageUrl, IsPublic, CreatedAt
 /// - [PlaylistTracks]: Id, PlaylistId, MediaItemId, TrackOrder, AddedAt
-/// 
-/// Ý nghĩa các method:
-/// - GetByIdAsync: SELECT * FROM Playlists WHERE Id = @Id
-/// - GetByOwnerIdAsync: SELECT * FROM Playlists WHERE UserId = @UserId
-/// - AddAsync: INSERT INTO Playlists (...)
-/// - UpdateAsync: UPDATE Playlists SET Title, CoverImageUrl, IsPublic
-/// - DeleteAsync: DELETE FROM Playlists
-/// - AddTrackAsync: INSERT INTO PlaylistTracks (...)
-/// - RemoveTrackAsync: DELETE FROM PlaylistTracks
-/// - GetTracksAsync: SELECT m.* FROM MediaItems INNER JOIN PlaylistTracks
 /// </summary>
-
 public sealed class PlaylistRepository : IPlaylistRepository
 {
     private readonly DapperContext _context;
@@ -63,6 +46,30 @@ public sealed class PlaylistRepository : IPlaylistRepository
     }
 
     /// <summary>
+    /// Lấy tất cả playlist trong DB.
+    /// Dùng để sinh ID tự động theo format PL001, PL002...
+    /// SQL: SELECT * FROM Playlists
+    /// </summary>
+    public async Task<IEnumerable<Playlist>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        const string sql = "SELECT * FROM Playlists";
+        using var connection = _context.CreateConnection();
+        return await connection.QueryAsync<Playlist>(sql);
+    }
+
+    /// <summary>
+    /// Lấy tất cả PlaylistTrack trong DB.
+    /// Dùng để sinh ID tự động theo format PT001, PT002...
+    /// SQL: SELECT * FROM PlaylistTracks
+    /// </summary>
+    public async Task<IEnumerable<PlaylistTrack>> GetAllTracksAsync(CancellationToken cancellationToken = default)
+    {
+        const string sql = "SELECT * FROM PlaylistTracks";
+        using var connection = _context.CreateConnection();
+        return await connection.QueryAsync<PlaylistTrack>(sql);
+    }
+
+    /// <summary>
     /// Thêm playlist mới vào database.
     /// SQL: INSERT INTO Playlists (Id, UserId, Title, CoverImageUrl, IsPublic, CreatedAt)
     /// </summary>
@@ -83,9 +90,9 @@ public sealed class PlaylistRepository : IPlaylistRepository
     {
         const string sql = @"
             UPDATE Playlists SET
-                Title        = @Title,
+                Title         = @Title,
                 CoverImageUrl = @CoverImageUrl,
-                IsPublic     = @IsPublic
+                IsPublic      = @IsPublic
             WHERE Id = @Id";
         using var connection = _context.CreateConnection();
         await connection.ExecuteAsync(sql, playlist);
@@ -139,5 +146,19 @@ public sealed class PlaylistRepository : IPlaylistRepository
             ORDER BY pt.TrackOrder ASC";
         using var connection = _context.CreateConnection();
         return await connection.QueryAsync<MediaItem>(sql, new { PlaylistId = playlistId });
+    }
+
+    /// <summary>
+    /// Cập nhật lại vị trí (TrackOrder) của một track trong playlist.
+    /// Dùng sau khi xóa track để đẩy các track phía sau lên 1 vị trí.
+    /// SQL: UPDATE PlaylistTracks SET TrackOrder = @NewTrackOrder WHERE PlaylistId = @PlaylistId AND Id = @TrackId
+    /// </summary>
+    public async Task UpdateTrackOrderAsync(string playlistId, string trackId, int newTrackOrder, CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+            UPDATE PlaylistTracks SET TrackOrder = @NewTrackOrder
+            WHERE PlaylistId = @PlaylistId AND Id = @TrackId";
+        using var connection = _context.CreateConnection();
+        await connection.ExecuteAsync(sql, new { PlaylistId = playlistId, TrackId = trackId, NewTrackOrder = newTrackOrder });
     }
 }
