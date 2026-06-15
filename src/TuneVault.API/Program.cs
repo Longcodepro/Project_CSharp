@@ -74,7 +74,12 @@ builder.Services.AddScoped<TuneVault.Application.Abstractions.ICurrentUserServic
 // Register ICurrentUserContext (Domain level) — implement by CurrentUserService
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.ICurrentUserContext,
                             TuneVault.Infrastructure.Services.CurrentUserService>();
+                            
+builder.Services.AddScoped<TuneVault.Domain.Interfaces.IPlaylistRepository,
+                            TuneVault.Infrastructure.Repositories.PlaylistRepository>();
 
+builder.Services.AddScoped<TuneVault.Domain.Interfaces.ISearchRepository,
+                            TuneVault.Infrastructure.Repositories.SearchRepository>();
 // =========================================================================
 // 6. CẤU HÌNH CORS & JWT
 // =========================================================================
