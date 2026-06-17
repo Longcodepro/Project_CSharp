@@ -20,7 +20,7 @@ public class PlayHistory
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của bản ghi lịch sử. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string Id { get; private set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng (User) phát vật phẩm phương tiện. Độ dài cố định từ 4 đến 5 ký tự.

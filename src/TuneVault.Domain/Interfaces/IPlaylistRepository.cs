@@ -21,6 +21,10 @@ public interface IPlaylistRepository
 {
     Task<Playlist?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
     Task<IEnumerable<Playlist>> GetByOwnerIdAsync(string ownerId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Lấy các track thuộc một playlist theo thứ tự phát.
+    /// </summary>
+    Task<IEnumerable<PlaylistTrack>> GetPlaylistTracksAsync(string playlistId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lấy tất cả playlist trong DB.
@@ -40,6 +44,14 @@ public interface IPlaylistRepository
     Task AddTrackAsync(PlaylistTrack track, CancellationToken cancellationToken = default);
     Task RemoveTrackAsync(string playlistId, string mediaItemId, CancellationToken cancellationToken = default);
     Task<IEnumerable<MediaItem>> GetTracksAsync(string playlistId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Kiểm tra media item còn hoạt động trước khi thêm vào playlist.
+    /// </summary>
+    Task<bool> MediaItemExistsAsync(string mediaItemId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Kiểm tra một media item đã có trong playlist hay chưa.
+    /// </summary>
+    Task<bool> TrackExistsAsync(string playlistId, string mediaItemId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Cập nhật lại vị trí (TrackOrder) của một track trong playlist.

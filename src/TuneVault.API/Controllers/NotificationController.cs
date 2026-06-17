@@ -1,205 +1,114 @@
+using System.Security.Claims;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TuneVault.Application.Features.Notification.Commands;
-using TuneVault.Application.Features.Notification.Queries.GetNotifications;
+using TuneVault.Application.Common;
+using TuneVault.Application.Features.Notification.DTOs;
+using TuneVault.Application.Features.Notification.Queries;
+using TuneVault.Application.Features.Notification.Commands.MarkAsRead;
+using TuneVault.Application.Features.Notification.Commands.DeleteNotification;
+
 
 namespace TuneVault.API.Controllers;
 
 /// <summary>
-/// Controller cung cấp các API thông báo của TuneVault.
-/// Controller không gọi DAO/Repository trực tiếp nữa.
+/// Controller quản lý notification của user hiện tại.
 /// </summary>
-public sealed class NotificationController : BaseApiController
+[ApiController]
+[Route("api/notifications")]
+[Authorize]
+public sealed class NotificationController : ControllerBase
 {
-    private readonly GetNotificationsQuery _getNotificationsQuery;
-    private readonly MarkNotificationAsReadCommand _markNotificationAsReadCommand;
+    private readonly ISender _mediator;
 
-    public NotificationController(
-        GetNotificationsQuery getNotificationsQuery,
-        MarkNotificationAsReadCommand markNotificationAsReadCommand)
+    /// <summary>
+    /// Khởi tạo controller notification với MediatR sender.
+    /// </summary>
+    /// <param name="mediator">Sender dùng để gửi command/query sang Application layer.</param>
+    public NotificationController(ISender mediator) => _mediator = mediator;
+
+    private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
+                                 ?? User.FindFirstValue("sub")
+                                 ?? throw new UnauthorizedAccessException();
+
+    /// <summary>
+    /// Lấy danh sách notification của user hiện tại.
+    /// </summary>
+    /// <param name="limit">Số notification tối đa.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Danh sách notification.</returns>
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] int limit = 50, CancellationToken ct = default)
     {
-        _getNotificationsQuery = getNotificationsQuery;
-        _markNotificationAsReadCommand = markNotificationAsReadCommand;
+        var result = await _mediator.Send(new GetNotificationsQuery(CurrentUserId, limit), ct);
+        return Ok(ApiResponse<IEnumerable<NotificationDto>>.Ok(result, "Lấy danh sách thông báo thành công."));
     }
 
     /// <summary>
-    /// Lấy danh sách thông báo còn hiển thị của một người dùng.
-    /// Chỉ lấy Notification có IsActive = 1.
+    /// Lấy danh sách notification chưa đọc của user hiện tại.
     /// </summary>
-    [HttpGet("{userId}")]
-    public async Task<IActionResult> GetAll(
-        string userId,
-        [FromQuery] int limit = 50)
+    /// <param name="limit">Số notification tối đa.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Danh sách notification chưa đọc.</returns>
+    [HttpGet("unread")]
+    public async Task<IActionResult> GetUnread([FromQuery] int limit = 50, CancellationToken ct = default)
     {
-        var items = await _getNotificationsQuery.GetAllAsync(userId, limit);
-
-        return Ok(items);
+        var result = await _mediator.Send(new GetUnreadNotificationsQuery(CurrentUserId, limit), ct);
+        return Ok(ApiResponse<IEnumerable<NotificationDto>>.Ok(result, "Lấy danh sách thông báo chưa đọc thành công."));
     }
 
     /// <summary>
-    /// Lấy danh sách thông báo chưa đọc của một người dùng.
-    /// Chỉ lấy IsActive = 1 và IsRead = 0.
+    /// Đếm số notification chưa đọc của user hiện tại.
     /// </summary>
-    [HttpGet("unread/{userId}")]
-    public async Task<IActionResult> GetUnread(
-        string userId,
-        [FromQuery] int limit = 50)
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Số notification chưa đọc.</returns>
+    [HttpGet("unread-count")]
+    public async Task<IActionResult> CountUnread(CancellationToken ct)
     {
-        var items = await _getNotificationsQuery.GetUnreadAsync(userId, limit);
-
-        return Ok(items);
+        var count = await _mediator.Send(new CountUnreadNotificationsQuery(CurrentUserId), ct);
+        var result = new UnreadNotificationCountDto(CurrentUserId, count);
+        return Ok(ApiResponse<UnreadNotificationCountDto>.Ok(result, "Lấy số lượng thông báo chưa đọc thành công."));
     }
 
     /// <summary>
-    /// Đếm số lượng thông báo chưa đọc để hiển thị badge trên frontend.
+    /// Đánh dấu một notification là đã đọc.
     /// </summary>
-    [HttpGet("unread-count/{userId}")]
-    public async Task<IActionResult> CountUnread(string userId)
-    {
-        var count = await _getNotificationsQuery.CountUnreadAsync(userId);
-
-        return Ok(new
-        {
-            userId,
-            unreadNotificationCount = count
-        });
-    }
-
-    /// <summary>
-    /// Đánh dấu một thông báo là đã đọc.
-    /// </summary>
+    /// <param name="notificationId">Mã notification cần đánh dấu đã đọc.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Kết quả cập nhật.</returns>
     [HttpPatch("{notificationId}/read")]
-    public async Task<IActionResult> MarkAsRead(
-        string notificationId,
-        [FromQuery] string userId)
+    public async Task<IActionResult> MarkAsRead(string notificationId, CancellationToken ct)
     {
-        var result = await _markNotificationAsReadCommand.MarkAsReadAsync(
-            notificationId,
-            userId);
-
-        if (!result)
-            return NotFound(new
-            {
-                message = "Không tìm thấy thông báo để đánh dấu đã đọc"
-            });
-
-        return Ok(new
-        {
-            success = true,
-            message = "Đã đánh dấu thông báo là đã đọc",
-            notificationId,
-            userId
-        });
+        var result = await _mediator.Send(new MarkNotificationAsReadCommand(notificationId, CurrentUserId), ct);
+        return result
+            ? Ok(ApiResponse<bool>.Ok(true, "Đánh dấu thông báo đã đọc thành công."))
+            : NotFound(ApiResponse<bool>.Fail($"Không tìm thấy thông báo '{notificationId}' thuộc tài khoản hiện tại hoặc thông báo đã bị xóa."));
     }
 
     /// <summary>
-    /// Xóa mềm một thông báo.
-    /// Không xóa dòng trong database, chỉ chuyển IsActive = 0.
+    /// Đánh dấu toàn bộ notification của user hiện tại là đã đọc.
     /// </summary>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Số notification đã được cập nhật.</returns>
+    [HttpPatch("read-all")]
+    public async Task<IActionResult> MarkAllAsRead(CancellationToken ct)
+    {
+        var count = await _mediator.Send(new MarkAllNotificationsAsReadCommand(CurrentUserId), ct);
+        return Ok(ApiResponse<int>.Ok(count, "Đánh dấu tất cả thông báo đã đọc thành công."));
+    }
+
+    /// <summary>
+    /// Xóa mềm một notification.
+    /// </summary>
+    /// <param name="notificationId">Mã notification cần xóa.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Kết quả xóa notification.</returns>
     [HttpDelete("{notificationId}")]
-    public async Task<IActionResult> Delete(
-        string notificationId,
-        [FromQuery] string userId)
+    public async Task<IActionResult> Delete(string notificationId, CancellationToken ct)
     {
-        var result = await _markNotificationAsReadCommand.DeleteAsync(
-            notificationId,
-            userId);
-
-        if (!result)
-            return NotFound(new
-            {
-                message = "Không tìm thấy thông báo để xóa hoặc thông báo đã bị xóa trước đó"
-            });
-
-        return Ok(new
-        {
-            success = true,
-            message = "Đã xóa thông báo",
-            notificationId,
-            userId,
-            isActive = false
-        });
-    }
-
-    /// <summary>
-    /// Xóa mềm toàn bộ thông báo của một người dùng.
-    /// Không xóa database, chỉ chuyển toàn bộ IsActive = 0.
-    /// </summary>
-    [HttpDelete("all/{userId}")]
-    public async Task<IActionResult> DeleteAll(string userId)
-    {
-        var affectedRows = await _markNotificationAsReadCommand.DeleteAllAsync(userId);
-
-        return Ok(new
-        {
-            success = true,
-            message = "Đã xóa toàn bộ thông báo của người dùng",
-            userId,
-            deletedCount = affectedRows,
-            isActive = false
-        });
-    }
-
-    /// <summary>
-    /// Tạo thông báo demo khi nghệ sĩ đăng bài mới.
-    /// API này dùng để test frontend phần ArtistNewMedia notification.
-    /// </summary>
-    [HttpPost("artist-new-media")]
-    public async Task<IActionResult> CreateArtistNewMedia(
-        [FromBody] ArtistNewMediaNotificationRequest request)
-    {
-        var notificationId = await _markNotificationAsReadCommand.CreateArtistNewMediaNotificationAsync(
-            request.UserId,
-            request.ArtistId,
-            request.MediaItemId,
-            request.Title);
-
-        return Ok(new
-        {
-            success = true,
-            message = "Đã tạo thông báo nghệ sĩ đăng bài mới",
-            notificationId,
-            request.UserId
-        });
-    }
-
-    /// <summary>
-    /// Tạo thông báo hệ thống cho một người dùng.
-    /// API này dùng để admin hoặc frontend test SystemAlert notification.
-    /// </summary>
-    [HttpPost("system")]
-    public async Task<IActionResult> CreateSystemAlert(
-        [FromBody] SystemNotificationRequest request)
-    {
-        var notificationId = await _markNotificationAsReadCommand.CreateSystemAlertAsync(
-            request.UserId,
-            request.Title,
-            request.Message,
-            request.SenderId);
-
-        return Ok(new
-        {
-            success = true,
-            message = "Đã tạo thông báo hệ thống",
-            notificationId,
-            request.UserId
-        });
+        var result = await _mediator.Send(new DeleteNotificationCommand(notificationId, CurrentUserId), ct);
+        return result
+            ? Ok(ApiResponse<bool>.Ok(true, "Xóa thông báo thành công."))
+            : NotFound(ApiResponse<bool>.Fail($"Không tìm thấy thông báo '{notificationId}' thuộc tài khoản hiện tại hoặc thông báo đã bị xóa."));
     }
 }
-
-/// <summary>
-/// Request body dùng để tạo thông báo demo khi nghệ sĩ đăng bài mới.
-/// </summary>
-public sealed record ArtistNewMediaNotificationRequest(
-    string UserId,
-    string ArtistId,
-    string MediaItemId,
-    string Title);
-
-/// <summary>
-/// Request body dùng để tạo thông báo hệ thống.
-/// </summary>
-public sealed record SystemNotificationRequest(
-    string UserId,
-    string Title,
-    string Message,
-    string? SenderId = null);

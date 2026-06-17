@@ -1,4 +1,6 @@
 using TuneVault.Domain.Entities;
+using TuneVault.Domain.Enums;
+using TuneVault.Domain.ValueObject;
 
 namespace TuneVault.Domain.Interfaces;
 
@@ -28,6 +30,16 @@ public interface IMediaRepository
     /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
     /// <returns>Danh sách <see cref="MediaArtist"/>.</returns>
     Task<IEnumerable<MediaArtist>> GetArtistsByMediaIdAsync(string mediaItemId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lấy danh sách media theo phân trang.
+    /// </summary>
+    Task<IReadOnlyCollection<MediaItem>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lấy danh sách media của một owner.
+    /// </summary>
+    Task<IReadOnlyCollection<MediaItem>> GetByOwnerAsync(string ownerId, CancellationToken ct = default);
 
     /// <summary>
     /// Tìm kiếm bài hát theo từ khóa (title, genre, artist name).
@@ -79,4 +91,14 @@ public interface IMediaRepository
     /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
     /// <returns><c>true</c> nếu thao tác thành công.</returns>
     Task<bool> DeactivateAsync(string id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lấy thông tin stream của một MediaItem theo Id.
+    /// </summary>
+    /// <param name="mediaId">Mã định danh media (VD: I001).</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    Task<MediaStreamInfo?> GetStreamAsync(
+        string mediaId,
+        MediaAssetKind assetKind = MediaAssetKind.Primary,
+        CancellationToken ct = default);
 }

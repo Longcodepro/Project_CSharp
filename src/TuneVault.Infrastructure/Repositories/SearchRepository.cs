@@ -20,7 +20,6 @@ namespace TuneVault.Infrastructure.Repositories;
 /// - SearchArtistsAsync: Tìm nghệ sĩ theo IdDisplay hoặc DisplayName
 /// - SearchAlbumsAsync: Tìm album công khai theo title
 /// - SearchPlaylistsAsync: Tìm playlist công khai theo title, JOIN Users lấy OwnerName, đếm TrackCount
-/// - SearchByGenreAsync: Lọc media theo genre
 /// - GetTrendingAsync: Lấy top media theo ViewCount
 /// </summary>
 public sealed class SearchRepository : ISearchRepository
@@ -52,6 +51,8 @@ public sealed class SearchRepository : ISearchRepository
             LEFT JOIN MediaArtists ma ON m.Id = ma.MediaItemId
             LEFT JOIN Users u ON ma.ArtistId = u.Id
             WHERE m.IsPublic = 1
+              AND m.IsActive = 1
+              AND m.IsValid = 0
               AND m.Title LIKE @Keyword
             ORDER BY m.Title ASC;";
 
@@ -74,7 +75,9 @@ public sealed class SearchRepository : ISearchRepository
                 AvatarUrl,
                 TotalFollowers
             FROM Users
-            WHERE (IdDisplay LIKE @Keyword OR DisplayName LIKE @Keyword)
+            WHERE IsActive = 1
+              AND IsArtist = 1
+              AND (IdDisplay LIKE @Keyword OR DisplayName LIKE @Keyword)
             ORDER BY DisplayName ASC;";
 
         using var conn = _db.CreateConnection();
@@ -89,11 +92,18 @@ public sealed class SearchRepository : ISearchRepository
     public async Task<IEnumerable<dynamic>> SearchAlbumsAsync(string keyword, CancellationToken cancellationToken = default)
     {
         const string sql = @"
-            SELECT *
+            SELECT
+                Id,
+                ArtistId,
+                Title,
+                Description,
+                CoverImageUrl,
+                CreatedAt
             FROM Albums
-            WHERE IsPublic = 1
+            WHERE IsActive = 1
+              AND IsPublic = 1
               AND Title LIKE @Keyword
-            ORDER BY ReleaseDate DESC, Title ASC;";
+            ORDER BY CreatedAt DESC, Title ASC;";
 
         using var conn = _db.CreateConnection();
         return await conn.QueryAsync(
@@ -118,6 +128,7 @@ public sealed class SearchRepository : ISearchRepository
             LEFT JOIN Users u ON p.UserId = u.Id
             LEFT JOIN PlaylistTracks pt ON p.Id = pt.PlaylistId
             WHERE p.IsPublic = 1
+              AND p.IsActive = 1
               AND p.Title LIKE @Keyword
             GROUP BY p.Id, p.Title, p.CoverImageUrl, u.DisplayName, p.CreatedAt
             ORDER BY p.CreatedAt DESC, p.Title ASC;";
@@ -125,33 +136,6 @@ public sealed class SearchRepository : ISearchRepository
         using var conn = _db.CreateConnection();
         return await conn.QueryAsync(
             new CommandDefinition(sql, new { Keyword = ToLikeKeyword(keyword) }, cancellationToken: cancellationToken));
-    }
-
-    /// <summary>
-    /// Lọc bài hát / podcast theo genre.
-    /// SQL: SELECT ... FROM MediaItems WHERE IsPublic = 1 AND Genre = @Genre ORDER BY Title ASC
-    /// </summary>
-    public async Task<IEnumerable<dynamic>> SearchByGenreAsync(string genre, CancellationToken cancellationToken = default)
-    {
-        const string sql = @"
-            SELECT
-                m.Id,
-                m.Title,
-                u.DisplayName AS ArtistName,
-                m.Genre,
-                m.DurationSeconds,
-                m.ViewCount,
-                m.CoverImageUrl
-            FROM MediaItems m
-            LEFT JOIN MediaArtists ma ON m.Id = ma.MediaItemId
-            LEFT JOIN Users u ON ma.ArtistId = u.Id
-            WHERE m.IsPublic = 1
-              AND m.Genre = @Genre
-            ORDER BY m.Title ASC;";
-
-        using var conn = _db.CreateConnection();
-        return await conn.QueryAsync(
-            new CommandDefinition(sql, new { Genre = genre.Trim() }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -173,6 +157,8 @@ public sealed class SearchRepository : ISearchRepository
             LEFT JOIN MediaArtists ma ON m.Id = ma.MediaItemId
             LEFT JOIN Users u ON ma.ArtistId = u.Id
             WHERE m.IsPublic = 1
+              AND m.IsActive = 1
+              AND m.IsValid = 0
             ORDER BY m.ViewCount DESC;";
 
         using var conn = _db.CreateConnection();

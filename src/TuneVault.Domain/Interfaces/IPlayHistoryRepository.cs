@@ -8,13 +8,51 @@ namespace TuneVault.Domain.Interfaces;
 /// </summary>
 public interface IPlayHistoryRepository
 {
-    /// <summary>
-    /// Ghi nhận một lượt phát media mới vào lịch sử nghe của người dùng.
-    /// </summary>
-    Task RecordAsync(PlayHistory playHistory, CancellationToken cancellationToken = default);
+    // =========================================================================
+    // QUERIES
+    // =========================================================================
 
     /// <summary>
-    /// Lấy danh sách media item được nghe gần đây của một người dùng.
+    /// Lấy một bản ghi lịch sử nghe theo UserId và MediaItemId.
     /// </summary>
-    Task<IReadOnlyCollection<PlayHistory>> GetRecentByUserIdAsync(Guid userId, int take = 10, CancellationToken cancellationToken = default);
+    /// <param name="userId">Mã định danh người dùng.</param>
+    /// <param name="mediaItemId">Mã định danh media.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>Entity <see cref="PlayHistory"/> hoặc <c>null</c> nếu không tìm thấy.</returns>
+    Task<PlayHistory?> GetByUserIdAndMediaItemIdAsync(string userId, string mediaItemId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lấy danh sách các bản ghi lịch sử nghe gần đây của người dùng.
+    /// </summary>
+    /// <param name="userId">Mã định danh người dùng.</param>
+    /// <param name="take">Số lượng bản ghi tối đa cần lấy.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>Danh sách các <see cref="PlayHistory"/> của người dùng.</returns>
+    Task<IReadOnlyCollection<PlayHistory>> GetRecentByUserIdAsync(string userId, int take = 10, CancellationToken ct = default);
+
+    /// <summary>
+    /// Kiểm tra media item còn hoạt động trước khi ghi lịch sử nghe.
+    /// </summary>
+    /// <param name="mediaItemId">Mã định danh media.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>True nếu media tồn tại và còn hoạt động.</returns>
+    Task<bool> MediaItemExistsAsync(string mediaItemId, CancellationToken ct = default);
+
+    // =========================================================================
+    // COMMANDS
+    // =========================================================================
+
+    /// <summary>
+    /// Thêm một bản ghi lịch sử nghe mới vào database.
+    /// </summary>
+    /// <param name="playHistory">Entity PlayHistory cần thêm.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    Task AddAsync(PlayHistory playHistory, CancellationToken ct = default);
+
+    /// <summary>
+    /// Cập nhật thông tin của một bản ghi lịch sử nghe trong database.
+    /// </summary>
+    /// <param name="playHistory">Entity PlayHistory với các thông tin đã thay đổi.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    Task UpdateAsync(PlayHistory playHistory, CancellationToken ct = default);
 }

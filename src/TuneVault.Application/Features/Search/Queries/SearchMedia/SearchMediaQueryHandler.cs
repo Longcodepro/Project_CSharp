@@ -1,4 +1,6 @@
+using MediatR;
 using TuneVault.Application.DTOs.Search;
+using TuneVault.Application.Features.Media.DTOs;
 using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Search.Queries.SearchMedia;
@@ -23,7 +25,7 @@ namespace TuneVault.Application.Features.Search.Queries.SearchMedia;
 /// - Controller chỉ lo nhận/trả HTTP request
 /// - Logic tìm kiếm và phân trang tập trung tại đây, dễ test, dễ bảo trì
 /// </summary>
-public sealed class SearchMediaQueryHandler
+public sealed class SearchMediaQueryHandler : IRequestHandler<SearchMediaQuery, SearchResponseDto>
 {
     private readonly ISearchRepository _searchRepository;
 
@@ -43,7 +45,7 @@ public sealed class SearchMediaQueryHandler
     /// <param name="query">Query chứa Keyword, Page và PageSize.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>
     /// <returns>Object chứa data kết quả, thông tin phân trang.</returns>
-    public async Task<SearchResponseDto> HandleAsync(SearchMediaQuery query, CancellationToken cancellationToken = default)
+    public async Task<SearchResponseDto> Handle(SearchMediaQuery query, CancellationToken cancellationToken = default)
     {
         // Chuẩn hóa page và pageSize
         var page = query.Page < 1 ? 1 : query.Page;
@@ -63,7 +65,7 @@ public sealed class SearchMediaQueryHandler
             (string?)m.Genre,
             (int)m.DurationSeconds,
             (int)m.ViewCount,
-            (string?)m.CoverImageUrl
+            string.IsNullOrWhiteSpace((string?)m.CoverImageUrl) ? null : MediaEndpointBuilder.Poster((string)m.Id)
         )).ToList();
 
         // Map dynamic -> SearchArtistResultDto
@@ -93,7 +95,7 @@ public sealed class SearchMediaQueryHandler
             (string?)m.Genre,
             (int)m.DurationSeconds,
             (int)m.ViewCount,
-            (string?)m.CoverImageUrl
+            string.IsNullOrWhiteSpace((string?)m.CoverImageUrl) ? null : MediaEndpointBuilder.Poster((string)m.Id)
         )).ToList();
 
         // Phân trang cho media

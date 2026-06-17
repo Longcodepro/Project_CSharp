@@ -1,4 +1,5 @@
 using TuneVault.Domain.Entities;
+using TuneVault.Domain.Enums;
 
 namespace TuneVault.Domain.Interfaces;
 
@@ -8,34 +9,57 @@ namespace TuneVault.Domain.Interfaces;
 /// </summary>
 public interface IFavoriteRepository
 {
+    // =========================================================================
+    // QUERIES
+    // =========================================================================
+
     /// <summary>
-    /// Kiểm tra một media item có đang được người dùng đánh dấu là yêu thích hay không.
+    /// Lấy một bản ghi Favorite theo UserId và MediaItemId.
     /// </summary>
-    Task<bool> IsFavoriteAsync(Guid userId, Guid mediaItemId, CancellationToken cancellationToken = default);
+    /// <param name="userId">Mã định danh người dùng.</param>
+    /// <param name="mediaItemId">Mã định danh media.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>Entity <see cref="Favorite"/> hoặc <c>null</c> nếu không tìm thấy.</returns>
+    Task<Favorite?> GetByUserIdAndMediaItemIdAsync(string userId, string mediaItemId, CancellationToken ct = default);
 
     /// <summary>
     /// Lấy danh sách các bản ghi media item mà người dùng đã thích.
     /// </summary>
-    Task<IReadOnlyCollection<Favorite>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    /// <param name="userId">Mã định danh người dùng.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>Danh sách các <see cref="Favorite"/> của người dùng.</returns>
+    Task<IReadOnlyCollection<Favorite>> GetByUserIdAsync(string userId, CancellationToken ct = default);
 
     /// <summary>
-    /// Lấy danh sách các bản ghi media item mà người dùng đã đánh dấu không thích.
+    /// Kiểm tra media item còn hoạt động trước khi người dùng yêu thích.
     /// </summary>
-    Task<IReadOnlyCollection<Favorite>> GetDislikedByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    /// <param name="mediaItemId">Mã định danh media.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>True nếu media tồn tại và còn hoạt động.</returns>
+    Task<bool> MediaItemExistsAsync(string mediaItemId, CancellationToken ct = default);
+
+    // =========================================================================
+    // COMMANDS
+    // =========================================================================
 
     /// <summary>
-    /// Bật hoặc tắt trạng thái yêu thích dạng Like cho một media item của người dùng.
-    /// Nếu media item đã được Like thì thao tác này sẽ xóa Like; nếu chưa Like thì sẽ thêm Like.
+    /// Thêm một bản ghi Favorite mới vào database.
     /// </summary>
-    Task ToggleAsync(Guid userId, Guid mediaItemId, CancellationToken cancellationToken = default);
+    /// <param name="favorite">Entity Favorite cần thêm.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    Task AddAsync(Favorite favorite, CancellationToken ct = default);
 
     /// <summary>
-    /// Thiết lập cảm xúc yêu thích cụ thể của người dùng cho một media item.
+    /// Cập nhật thông tin của một bản ghi Favorite trong database.
     /// </summary>
-    Task SetReactionAsync(Guid userId, Guid mediaItemId, FavoriteReaction reaction, CancellationToken cancellationToken = default);
+    /// <param name="favorite">Entity Favorite với các thông tin đã thay đổi.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    Task UpdateAsync(Favorite favorite, CancellationToken ct = default);
 
     /// <summary>
-    /// Xóa trạng thái yêu thích hoặc cảm xúc đã lưu của người dùng đối với một media item.
+    /// Xóa một bản ghi Favorite khỏi database.
     /// </summary>
-    Task RemoveAsync(Guid userId, Guid mediaItemId, CancellationToken cancellationToken = default);
+    /// <param name="id">Mã định danh của bản ghi Favorite cần xóa.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    Task RemoveAsync(string id, CancellationToken ct = default);
 }

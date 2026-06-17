@@ -1,5 +1,7 @@
-using TuneVault.Application.DTOs.Playlist;
-using TuneVault.Application.Features.Playlist.Commands.CreatePlaylist;
+using MediatR;
+using TuneVault.Application.Features.Playlist.DTOs;
+using TuneVault.Domain.Enums;
+using TuneVault.Domain.Exceptions;
 using TuneVault.Domain.Interfaces;
 using PlaylistEntity = TuneVault.Domain.Entities.Playlist;
 
@@ -23,7 +25,7 @@ namespace TuneVault.Application.Features.Playlist.Commands.CreatePlaylist;
 /// - Tăng số lên 1 → 007
 /// - Ghép lại → PL007
 /// </summary>
-public sealed class CreatePlaylistCommandHandler
+public sealed class CreatePlaylistCommandHandler : IRequestHandler<CreatePlaylistCommand, PlaylistDto>
 {
     private readonly IPlaylistRepository _playlistRepository;
 
@@ -43,10 +45,12 @@ public sealed class CreatePlaylistCommandHandler
     /// <param name="command">Command chứa OwnerId và thông tin Playlist cần tạo.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>
     /// <returns>PlaylistDto đại diện cho Playlist vừa được tạo.</returns>
-    public async Task<PlaylistDto> HandleAsync(CreatePlaylistCommand command, CancellationToken cancellationToken = default)
+    public async Task<PlaylistDto> Handle(CreatePlaylistCommand command, CancellationToken cancellationToken = default)
     {
         // Sinh ID tự động theo format PL001, PL002...
         var playlistId = await GenerateNextIdAsync(cancellationToken);
+
+        var contentType = ParseContentType(command.Request.ContentType);
 
         // Gọi Entity Constructor — Domain tự validate toàn bộ ràng buộc nghiệp vụ
         var playlist = new PlaylistEntity(
@@ -55,7 +59,9 @@ public sealed class CreatePlaylistCommandHandler
             command.Request.Title,
             command.Request.Description,
             command.Request.CoverImgUrl,
-            command.Request.IsPublic
+            command.Request.IsPublic,
+            contentType,
+            command.Request.ReleaseDate
         );
 
         // Lưu Entity xuống Database thông qua Repository
@@ -66,10 +72,28 @@ public sealed class CreatePlaylistCommandHandler
             playlist.Id,
             playlist.UserId,
             playlist.Title,
+            playlist.Description,
             playlist.CoverImageUrl,
             playlist.IsPublic,
-            playlist.CreatedAt
+            playlist.ContentType?.ToString(),
+            playlist.ReleaseDate,
+            playlist.CreatedAt,
+            Array.Empty<PlaylistTrackDto>()
         );
+    }
+
+    /// <summary>
+    /// Chuyển kiểu nội dung playlist từ request sang enum domain.
+    /// </summary>
+    private static MediaType? ParseContentType(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (Enum.TryParse<MediaType>(value, ignoreCase: true, out var mediaType))
+            return mediaType;
+
+        throw new DomainException("Kiểu nội dung playlist không hợp lệ.");
     }
 
     /// <summary>

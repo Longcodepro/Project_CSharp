@@ -1,3 +1,5 @@
+using MediatR;
+using TuneVault.Domain.Exceptions;
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Interfaces;
 
@@ -22,7 +24,7 @@ namespace TuneVault.Application.Features.Playlist.Commands.AddTrackToPlaylist;
 /// - trackOrder = số track hiện tại + 1
 /// - Ví dụ: playlist đang có 3 track → track mới sẽ là vị trí 4
 /// </summary>
-public sealed class AddTrackToPlaylistCommandHandler
+public sealed class AddTrackToPlaylistCommandHandler : IRequestHandler<AddTrackToPlaylistCommand, Unit>
 {
     private readonly IPlaylistRepository _playlistRepository;
 
@@ -41,33 +43,40 @@ public sealed class AddTrackToPlaylistCommandHandler
     /// </summary>
     /// <param name="command">Command chứa PlaylistId và MediaItemId.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>
-    /// <exception cref="InvalidOperationException">Ném ra khi Playlist không tồn tại.</exception>
-    public async Task HandleAsync(AddTrackToPlaylistCommand command, CancellationToken cancellationToken = default)
+    /// <exception cref="DomainException">Ném ra khi Playlist hoặc media không tồn tại.</exception>
+    /// <exception cref="ForbiddenAccessException">Ném ra khi user không phải chủ playlist.</exception>
+    public async Task<Unit> Handle(AddTrackToPlaylistCommand command, CancellationToken cancellationToken)
     {
-        // Lấy Playlist từ Database — kiểm tra tồn tại
-        var playlist = await _playlistRepository.GetByIdAsync(command.Request.PlaylistId, cancellationToken)
-            ?? throw new InvalidOperationException($"Playlist '{command.Request.PlaylistId}' không tồn tại.");
+        var playlist = await _playlistRepository.GetByIdAsync(command.PlaylistId, cancellationToken)
+            ?? throw new DomainException("Không tìm thấy playlist.");
 
-        // Đếm số track hiện tại → trackOrder = số track + 1 (thêm vào cuối)
-        var currentTracks = await _playlistRepository.GetTracksAsync(command.Request.PlaylistId, cancellationToken);
-        var trackOrder = currentTracks.Count() + 1;
+        if (playlist.UserId != command.UserId)
+            throw new ForbiddenAccessException("Bạn không có quyền thêm bài hát vào playlist này.");
 
-        // Sinh ID tự động theo format PT001, PT002...
+        var mediaExists = await _playlistRepository.MediaItemExistsAsync(command.Request.MediaItemId, cancellationToken);
+        if (!mediaExists)
+            throw new DomainException("Không tìm thấy bài hát.");
+
+        var trackExists = await _playlistRepository.TrackExistsAsync(command.PlaylistId, command.Request.MediaItemId, cancellationToken);
+        if (trackExists)
+            throw new DomainException("Bài hát đã tồn tại trong playlist.");
+
+        var currentTracks = await _playlistRepository.GetPlaylistTracksAsync(command.PlaylistId, cancellationToken);
+        var trackOrder = currentTracks.Any() ? currentTracks.Max(track => track.TrackOrder) + 1 : 1;
+
         var trackId = await GenerateNextTrackIdAsync(cancellationToken);
 
-        // Tạo PlaylistTrack Entity — Domain tự validate ràng buộc nghiệp vụ
         var track = new PlaylistTrack(
             trackId,
-            command.Request.PlaylistId,
+            command.PlaylistId,
             command.Request.MediaItemId,
             trackOrder
         );
 
-        // Gọi Aggregate Root để thêm Track — Entity tự kiểm tra logic
         playlist.AddTrack(track);
 
-        // Lưu Track xuống Database thông qua Repository
         await _playlistRepository.AddTrackAsync(track, cancellationToken);
+        return Unit.Value;
     }
 
     /// <summary>

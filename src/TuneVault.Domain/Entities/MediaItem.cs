@@ -89,6 +89,12 @@ public class MediaItem
     public bool IsActive { get; private set; } = true;
 
     /// <summary>
+    /// Cờ khóa tạm thời do admin bật khi media vi phạm bản quyền hoặc nguyên tắc.
+    /// Theo schema hiện tại: false = được hoạt động, true = đang bị khóa.
+    /// </summary>
+    public bool IsValid { get; private set; }
+
+    /// <summary>
     /// Tổng số lượt yêu thích (phi chuẩn hóa để tối ưu hiệu năng hiển thị).
     /// </summary>
     public int FavoriteCount { get; private set; }
@@ -166,9 +172,9 @@ public class MediaItem
     }
 
     /// <summary>
-    /// Thiết lập đường dẫn ảnh bìa sau khi xác thực URL.
+    /// Thiết lập đường dẫn ảnh bìa sau khi xác thực tham chiếu lưu trữ.
     /// </summary>
-    /// <param name="coverUrl">Đường dẫn URL ảnh bìa (phải bắt đầu bằng http/https).</param>
+    /// <param name="coverUrl">URL, storage key hoặc path nội bộ của ảnh bìa.</param>
     /// <exception cref="DomainException">Ném ra nếu URL không hợp lệ.</exception>
     public void SetCoverImage(string coverUrl)
     {
@@ -177,9 +183,9 @@ public class MediaItem
     }
 
     /// <summary>
-    /// Thiết lập đường dẫn Canvas sau khi xác thực URL.
+    /// Thiết lập đường dẫn Canvas sau khi xác thực tham chiếu lưu trữ.
     /// </summary>
-    /// <param name="canvasUrl">Đường dẫn URL hình ảnh Canvas (phải bắt đầu bằng http/https).</param>
+    /// <param name="canvasUrl">URL, storage key hoặc path nội bộ của canvas.</param>
     /// <exception cref="DomainException">Ném ra nếu URL không hợp lệ.</exception>
     public void SetCanvas(string canvasUrl)
     {
@@ -203,6 +209,26 @@ public class MediaItem
 
         AccessLevel = accessLevel;
         DurationTrailer = trailer;
+    }
+
+    /// <summary>
+    /// Cập nhật trạng thái công khai của media.
+    /// </summary>
+    /// <param name="isPublic">True nếu media được hiển thị công khai.</param>
+    public void SetVisibility(bool isPublic)
+    {
+        EnsureActive();
+        IsPublic = isPublic;
+    }
+
+    /// <summary>
+    /// Cập nhật trạng thái khóa vi phạm do admin quyết định.
+    /// </summary>
+    /// <param name="isBlocked">True nếu media đang bị khóa vì vi phạm.</param>
+    public void SetPolicyViolation(bool isBlocked)
+    {
+        EnsureActive();
+        IsValid = isBlocked;
     }
 
     /// <summary>
@@ -297,14 +323,11 @@ public class MediaItem
             throw new DomainException($"Mô tả không được vượt quá {MaxDescriptionLength} ký tự.");
     }
 
-    /// <summary>Kiểm tra tính hợp lệ của đường dẫn URL (phải bắt đầu bằng http/https).</summary>
+    /// <summary>Kiểm tra tham chiếu lưu trữ file không rỗng.</summary>
     private static void ValidateUrl(string url, string fieldName)
     {
         if (string.IsNullOrWhiteSpace(url))
             throw new DomainException($"{fieldName} không được để trống.");
-
-        if (!url.StartsWith("http://") && !url.StartsWith("https://"))
-            throw new DomainException($"{fieldName} phải là một đường dẫn hợp lệ (http/https).");
     }
 
     /// <summary>Kiểm tra biến đếm lượt yêu thích không được âm.</summary>

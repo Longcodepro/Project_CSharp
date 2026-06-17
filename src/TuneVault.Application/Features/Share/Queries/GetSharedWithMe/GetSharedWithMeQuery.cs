@@ -1,38 +1,29 @@
+using MediatR;
+using TuneVault.Application.Features.Share.DTOs;
+using TuneVault.Domain.Interfaces;
+
 namespace TuneVault.Application.Features.Share.Queries.GetSharedWithMe;
 
-public interface IMediaShareQueryRepository
+public sealed record GetSharedWithMeQuery(string ReceiverId) : IRequest<List<SharedItemDto>>;
+
+public sealed class GetSharedWithMeQueryHandler : IRequestHandler<GetSharedWithMeQuery, List<SharedItemDto>>
 {
-    Task<IEnumerable<dynamic>> GetInboxSharesAsync(string receiverId);
+    private readonly IMediaShareRepository _repo;
 
-    Task<int> CountUnreadSharesAsync(string receiverId);
-}
+    public GetSharedWithMeQueryHandler(IMediaShareRepository repo) => _repo = repo;
 
-public sealed class GetSharedWithMeQuery
-{
-    private readonly IMediaShareQueryRepository _mediaShareRepository;
-
-    public GetSharedWithMeQuery(IMediaShareQueryRepository mediaShareRepository)
+    public async Task<List<SharedItemDto>> Handle(GetSharedWithMeQuery request, CancellationToken ct)
     {
-        _mediaShareRepository = mediaShareRepository;
-    }
-
-    public async Task<IEnumerable<dynamic>> GetInboxAsync(string receiverId)
-    {
-        ValidateRequired(receiverId, nameof(receiverId));
-
-        return await _mediaShareRepository.GetInboxSharesAsync(receiverId.Trim());
-    }
-
-    public async Task<int> CountUnreadAsync(string receiverId)
-    {
-        ValidateRequired(receiverId, nameof(receiverId));
-
-        return await _mediaShareRepository.CountUnreadSharesAsync(receiverId.Trim());
-    }
-
-    private static void ValidateRequired(string value, string parameterName)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException($"{parameterName} không được để trống.", parameterName);
+        // Gọi repository lấy danh sách shared với receiverId
+        var items = await _repo.GetSharedWithMeAsync(request.ReceiverId, ct);
+        return items.Select(i => new SharedItemDto(
+            Id: i.Id.ToString(),
+            SenderId: i.SenderId,
+            ReceiverId: i.ReceiverId,
+            ShareType: i.ShareTypeName?.ToString() ?? i.ShareType.ToString(),
+            SharedItemId: i.SharedItemId,
+            SharedAt: i.SharedAt,
+            IsRead: i.IsRead
+        )).ToList();
     }
 }

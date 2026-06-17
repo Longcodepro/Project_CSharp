@@ -1,6 +1,7 @@
 using Dapper;
 using System.Data;
-using TuneVault.Application.Features.Follow.Commands;
+using TuneVault.Domain.Entities;
+using TuneVault.Domain.Interfaces;
 using TuneVault.Infrastructure.Persistence;
 
 namespace TuneVault.Infrastructure.Repositories
@@ -9,7 +10,7 @@ namespace TuneVault.Infrastructure.Repositories
     /// Repository xử lý SQL cho Follow.
     /// File này chỉ chứa database, không chứa logic notification.
     /// </summary>
-    public sealed class FollowRepository : IFollowSqlRepository
+    public sealed class FollowRepository : IFollowRepository
     {
         private readonly IDbConnectionFactory _dbConnectionFactory;
 
@@ -23,7 +24,7 @@ namespace TuneVault.Infrastructure.Repositories
         /// Nếu đã có quan hệ follow nhưng IsActive = 0 thì bật lại IsActive = 1.
         /// Nếu chưa có thì insert mới.
         /// </summary>
-        public async Task<bool> FollowAsync(string followerId, string followeeId)
+        public async Task FollowAsync(string followerId, string followeeId, CancellationToken cancellationToken = default)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
@@ -43,7 +44,7 @@ namespace TuneVault.Infrastructure.Repositories
                 bool isActive = existing.IsActive;
 
                 if (isActive)
-                    return false;
+                    return;
 
                 await connection.ExecuteAsync(@"
                     UPDATE Follows
@@ -60,7 +61,7 @@ namespace TuneVault.Infrastructure.Repositories
                         FolloweeId = followeeId
                     });
 
-                return true;
+                return;
             }
 
             var id = await GenerateNextFollowIdAsync(connection);
@@ -80,19 +81,17 @@ namespace TuneVault.Infrastructure.Repositories
                     FollowerId = followerId,
                     FolloweeId = followeeId
                 });
-
-            return true;
         }
 
         /// <summary>
         /// Bỏ follow bằng cách chuyển IsActive = 0.
         /// Không xóa dòng khỏi database.
         /// </summary>
-        public async Task<bool> UnfollowAsync(string followerId, string followeeId)
+        public async Task UnfollowAsync(string followerId, string followeeId, CancellationToken cancellationToken = default)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
-            var affectedRows = await connection.ExecuteAsync(@"
+            await connection.ExecuteAsync(@"
                 UPDATE Follows
                 SET IsActive = 0
                 WHERE FollowerId = @FollowerId
@@ -111,13 +110,12 @@ namespace TuneVault.Infrastructure.Repositories
                     FolloweeId = followeeId
                 });
 
-            return affectedRows > 0;
         }
 
         /// <summary>
         /// Kiểm tra follower có đang follow followee không.
         /// </summary>
-        public async Task<bool> IsFollowingAsync(string followerId, string followeeId)
+        public async Task<bool> IsFollowingAsync(string followerId, string followeeId, CancellationToken cancellationToken = default)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
@@ -139,72 +137,61 @@ namespace TuneVault.Infrastructure.Repositories
         /// <summary>
         /// Lấy danh sách nghệ sĩ/user mà user đang follow.
         /// </summary>
-        public async Task<IEnumerable<dynamic>> GetFollowingAsync(string followerId)
+        public async Task<IReadOnlyCollection<Follow>> GetFollowingAsync(string userId, CancellationToken cancellationToken = default)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
             var sql = @"
                 SELECT
-                    u.Id,
-                    u.IdDisplay,
-                    u.IdDisplay AS UserName,
-                    u.Email,
-                    u.DisplayName,
-                    u.AvatarUrl,
-                    u.Bio,
-                    u.IsArtist,
-                    u.TotalFollowers,
-                    u.CreatedAt,
-                    f.FollowedAt
+                    f.Id,
+                    f.FollowerId,
+                    f.FolloweeId,
+                    f.FollowedAt,
+                    f.IsActive
                 FROM Follows f
-                INNER JOIN Users u ON f.FolloweeId = u.Id
                 WHERE f.FollowerId = @FollowerId
                   AND f.IsActive = 1
-                  AND u.IsArtist = 1
                 ORDER BY f.FollowedAt DESC;";
 
-            return await connection.QueryAsync(sql, new
+            var rows = await connection.QueryAsync(sql, new
             {
-                FollowerId = followerId
+                FollowerId = userId
             });
+
+            return rows.Select(MapFollow).ToList();
         }
 
         /// <summary>
         /// Lấy danh sách người đang follow một user/nghệ sĩ.
         /// </summary>
-        public async Task<IEnumerable<dynamic>> GetFollowersAsync(string followeeId)
+        public async Task<IReadOnlyCollection<Follow>> GetFollowersAsync(string userId, CancellationToken cancellationToken = default)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
             var sql = @"
                 SELECT
-                    u.Id,
-                    u.IdDisplay,
-                    u.IdDisplay AS UserName,
-                    u.Email,
-                    u.DisplayName,
-                    u.AvatarUrl,
-                    u.Bio,
-                    u.IsArtist,
-                    u.TotalFollowers,
-                    u.CreatedAt,
-                    f.FollowedAt
+                    f.Id,
+                    f.FollowerId,
+                    f.FolloweeId,
+                    f.FollowedAt,
+                    f.IsActive
                 FROM Follows f
-                INNER JOIN Users u ON f.FollowerId = u.Id
                 WHERE f.FolloweeId = @FolloweeId
                   AND f.IsActive = 1
                 ORDER BY f.FollowedAt DESC;";
 
-            return await connection.QueryAsync(sql, new
+            var rows = await connection.QueryAsync(sql, new
             {
-                FolloweeId = followeeId
+                FolloweeId = userId
             });
+
+            return rows.Select(MapFollow).ToList();
         }
 
         /// <summary>
         /// Đếm số follower của một user/nghệ sĩ.
         /// </summary>
-        public async Task<int> CountFollowersAsync(string followeeId)
+        public async Task<int> CountFollowersAsync(string userId, CancellationToken cancellationToken = default)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
@@ -215,8 +202,18 @@ namespace TuneVault.Infrastructure.Repositories
                   AND IsActive = 1;",
                 new
                 {
-                    FolloweeId = followeeId
+                    FolloweeId = userId
                 });
+        }
+
+        private static Follow MapFollow(dynamic row)
+        {
+            var follow = new Follow(
+                (string)row.Id,
+                (string)row.FollowerId,
+                (string)row.FolloweeId);
+
+            return follow;
         }
 
         /// <summary>

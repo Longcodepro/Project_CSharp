@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {Routes, Route, useNavigate} from 'react-router-dom';
 import Login from './Login.jsx';
 import Signup from './Signup.jsx'
@@ -6,6 +6,14 @@ import OTP from './otp.jsx';
 import PhoneSignup from './Phone_Signup.jsx';
 import '../CSS/App_style.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+function toAssetUrl(url) {
+  if (!url) return '';
+  return url.startsWith('http://') || url.startsWith('https://')
+    ? url
+    : `${API_BASE_URL}${url}`;
+}
 
 function TopView() {
   const navigate=useNavigate();
@@ -78,6 +86,33 @@ function Sidebar() {
 
 // 2. Thành phần MainView (Khu vực nội dung chính)
 function MainView({onPlaySong}) {
+  const [mediaItems, setMediaItems] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMedia() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/media?page=1&pageSize=12`);
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        if (isMounted && payload?.success && Array.isArray(payload.data)) {
+          setMediaItems(payload.data);
+        }
+      } catch {
+        if (isMounted) {
+          setMediaItems([]);
+        }
+      }
+    }
+
+    loadMedia();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   //Dữ liệu giả lập cho MainView (Playlist database-sau này chèn database vào đây)-chủ đề game
   const genshinPlaylists = [
     {
@@ -134,17 +169,26 @@ function MainView({onPlaySong}) {
   const renderCard = (item) => (
     <div className="card" key={item.id} onClick={()=>onPlaySong(item)}>
       <div className="card-image-container">
-        <img src={item.imgUrl} alt={item.title} className="card-image" />
+        <img src={toAssetUrl(item.coverImageUrl || item.imgUrl)} alt={item.title} className="card-image" />
         <button className="btn-play-card">
           <i className="fa-solid fa-play"></i>
         </button>
       </div>
       <div className="card-title">{item.title}</div>
-      <div className="card-desc">{item.desc}</div>
+      <div className="card-desc">{item.description || item.desc || item.genre || 'TuneVault Media'}</div>
     </div>
   );
   return (
     <div className="main-view-container">
+      {mediaItems.length > 0 && (
+        <>
+          <h2 className="section-title">TuneVault Library</h2>
+          <div className="cards-grid">
+            {mediaItems.map(renderCard)}
+          </div>
+        </>
+      )}
+
       {/* Vùng Danh sách 1 */}
       <h2 className="section-title">Nhạc Nền Genshin Impact</h2>
       <div className="cards-grid">
@@ -163,16 +207,20 @@ function MainView({onPlaySong}) {
 
 // 3. Thành phần Player (Thanh phát nhạc dưới cùng)
 function Player({currentSong}) {
+  const audioUrl = toAssetUrl(currentSong?.audioUrl);
+  const videoUrl = toAssetUrl(currentSong?.videoUrl);
+  const posterUrl = toAssetUrl(currentSong?.coverImageUrl || currentSong?.imgUrl);
+
   return (
     <div className="player-container">
       <div className="player-left">
         {
           currentSong ? (
           <>
-          <img src={currentSong.imgUrl} alt={currentSong.title} className="player-cover" />
+          <img src={posterUrl} alt={currentSong.title} className="player-cover" />
           <div className="player-info">
             <span className="player-title">{currentSong.title}</span>
-            <span className="player-desc">Spotify User</span>
+            <span className="player-desc">{currentSong.genre || 'TuneVault Artist'}</span>
           </div>
           <i className="fa-regular fa-heart control-icon" style={{ marginLeft: '10px' }}></i>
           </>
@@ -182,20 +230,28 @@ function Player({currentSong}) {
       </div>
       {/* KHU VỰC Ở GIỮA: NÚT BẤM VÀ THANH CHẠY NHẠC */}
       <div className="player-center">
-        <div className="player-controls">
-          <i className="fa-solid fa-shuffle control-icon"></i>
-          <i className="fa-solid fa-backward-step control-icon"></i>
-          <i className="fa-solid fa-circle-play play-btn"></i>
-          <i className="fa-solid fa-forward-step control-icon"></i>
-          <i className="fa-solid fa-repeat control-icon"></i>
-        </div>
-        <div className="playback-bar">
-          <span>{currentSong ? "1:15" : "-:--"}</span>
-          <div className="progress-bar-container">
-            <div className="progress-bar-fill"></div>
-          </div>
-          <span>{currentSong ? "3:45" : "-:--"}</span>
-        </div>
+        {videoUrl ? (
+          <video className="media-player" src={videoUrl} poster={posterUrl} controls />
+        ) : audioUrl ? (
+          <audio className="media-player" src={audioUrl} controls />
+        ) : (
+          <>
+            <div className="player-controls">
+              <i className="fa-solid fa-shuffle control-icon"></i>
+              <i className="fa-solid fa-backward-step control-icon"></i>
+              <i className="fa-solid fa-circle-play play-btn"></i>
+              <i className="fa-solid fa-forward-step control-icon"></i>
+              <i className="fa-solid fa-repeat control-icon"></i>
+            </div>
+            <div className="playback-bar">
+              <span>{currentSong ? "1:15" : "-:--"}</span>
+              <div className="progress-bar-container">
+                <div className="progress-bar-fill"></div>
+              </div>
+              <span>{currentSong ? "3:45" : "-:--"}</span>
+            </div>
+          </>
+        )}
       </div>
       {/* KHU VỰC BÊN PHẢI: ÂM LƯỢNG */}
       <div className="player-right">

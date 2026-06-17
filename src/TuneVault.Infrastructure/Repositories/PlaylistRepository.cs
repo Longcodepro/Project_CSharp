@@ -11,11 +11,30 @@ namespace TuneVault.Infrastructure.Repositories;
 /// Mục đích: Cài đặt các CRUD operations cho Playlist sử dụng Dapper ORM.
 /// 
 /// SQL Tables:
-/// - [Playlists]: Id, UserId, Title, Description, CoverImageUrl, IsPublic, CreatedAt
+/// - [Playlists]: Id, UserId, Title, Description, CoverImageUrl, IsPublic, ContentType, ReleaseDate, CreatedAt, IsActive
 /// - [PlaylistTracks]: Id, PlaylistId, MediaItemId, TrackOrder, AddedAt
 /// </summary>
 public sealed class PlaylistRepository : IPlaylistRepository
 {
+    private const string MediaItemSelectColumns = """
+        m.Id,
+        m.OwnerId,
+        m.Title,
+        m.Description,
+        m.MediaType AS [Type],
+        m.CoverImageUrl,
+        m.CanvasUrl,
+        m.Genre,
+        m.AccessLevel,
+        m.IsPublic,
+        m.IsActive,
+        m.IsValid,
+        m.FavoriteCount,
+        m.ViewCount,
+        m.UploadedAt,
+        m.ReleaseDate
+        """;
+
     private readonly IDbConnectionFactory _db;
 
     /// <summary>
@@ -26,11 +45,16 @@ public sealed class PlaylistRepository : IPlaylistRepository
 
     /// <summary>
     /// Lấy playlist theo Id.
-    /// SQL: SELECT * FROM Playlists WHERE Id = @Id
+    /// SQL: SELECT * FROM Playlists WHERE Id = @Id AND IsActive = 1
     /// </summary>
     public async Task<Playlist?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        const string sql = "SELECT * FROM Playlists WHERE Id = @Id";
+        const string sql = """
+            SELECT Id, UserId, Title, Description, CoverImageUrl, IsPublic,
+                   ContentType, ReleaseDate, CreatedAt, IsActive
+            FROM Playlists
+            WHERE Id = @Id AND IsActive = 1
+            """;
         using var conn = _db.CreateConnection();
         return await conn.QueryFirstOrDefaultAsync<Playlist>(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
@@ -38,14 +62,36 @@ public sealed class PlaylistRepository : IPlaylistRepository
 
     /// <summary>
     /// Lấy tất cả playlist của một user.
-    /// SQL: SELECT * FROM Playlists WHERE UserId = @UserId
+    /// SQL: SELECT * FROM Playlists WHERE UserId = @UserId AND IsActive = 1
     /// </summary>
     public async Task<IEnumerable<Playlist>> GetByOwnerIdAsync(string ownerId, CancellationToken cancellationToken = default)
     {
-        const string sql = "SELECT * FROM Playlists WHERE UserId = @UserId";
+        const string sql = """
+            SELECT Id, UserId, Title, Description, CoverImageUrl, IsPublic,
+                   ContentType, ReleaseDate, CreatedAt, IsActive
+            FROM Playlists
+            WHERE UserId = @UserId AND IsActive = 1
+            ORDER BY CreatedAt DESC
+            """;
         using var conn = _db.CreateConnection();
         return await conn.QueryAsync<Playlist>(
             new CommandDefinition(sql, new { UserId = ownerId }, cancellationToken: cancellationToken));
+    }
+
+    /// <summary>
+    /// Lấy các track thuộc một playlist theo thứ tự phát.
+    /// </summary>
+    public async Task<IEnumerable<PlaylistTrack>> GetPlaylistTracksAsync(string playlistId, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT Id, PlaylistId, MediaItemId, TrackOrder, AddedAt
+            FROM PlaylistTracks
+            WHERE PlaylistId = @PlaylistId
+            ORDER BY TrackOrder ASC
+            """;
+        using var conn = _db.CreateConnection();
+        return await conn.QueryAsync<PlaylistTrack>(
+            new CommandDefinition(sql, new { PlaylistId = playlistId }, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -55,7 +101,11 @@ public sealed class PlaylistRepository : IPlaylistRepository
     /// </summary>
     public async Task<IEnumerable<Playlist>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        const string sql = "SELECT * FROM Playlists";
+        const string sql = """
+            SELECT Id, UserId, Title, Description, CoverImageUrl, IsPublic,
+                   ContentType, ReleaseDate, CreatedAt, IsActive
+            FROM Playlists
+            """;
         using var conn = _db.CreateConnection();
         return await conn.QueryAsync<Playlist>(
             new CommandDefinition(sql, cancellationToken: cancellationToken));
@@ -76,13 +126,16 @@ public sealed class PlaylistRepository : IPlaylistRepository
 
     /// <summary>
     /// Thêm playlist mới vào database.
-    /// SQL: INSERT INTO Playlists (Id, UserId, Title, CoverImageUrl, IsPublic, CreatedAt)
+    /// SQL: INSERT INTO Playlists (Id, UserId, Title, Description, CoverImageUrl, IsPublic, CreatedAt, IsActive)
     /// </summary>
     public async Task AddAsync(Playlist playlist, CancellationToken cancellationToken = default)
     {
-        const string sql = @"
-            INSERT INTO Playlists (Id, UserId, Title, CoverImageUrl, IsPublic, CreatedAt)
-            VALUES (@Id, @UserId, @Title, @CoverImageUrl, @IsPublic, @CreatedAt)";
+        const string sql = """
+            INSERT INTO Playlists
+                (Id, UserId, Title, Description, CoverImageUrl, IsPublic, ContentType, ReleaseDate, CreatedAt, IsActive)
+            VALUES
+                (@Id, @UserId, @Title, @Description, @CoverImageUrl, @IsPublic, @ContentType, @ReleaseDate, @CreatedAt, 1)
+            """;
         using var conn = _db.CreateConnection();
         await conn.ExecuteAsync(
             new CommandDefinition(sql, playlist, cancellationToken: cancellationToken));
@@ -90,28 +143,32 @@ public sealed class PlaylistRepository : IPlaylistRepository
 
     /// <summary>
     /// Cập nhật metadata của playlist.
-    /// SQL: UPDATE Playlists SET Title, CoverImageUrl, IsPublic WHERE Id = @Id
+    /// SQL: UPDATE Playlists SET Title, Description, CoverImageUrl, IsPublic WHERE Id = @Id AND IsActive = 1
     /// </summary>
     public async Task UpdateAsync(Playlist playlist, CancellationToken cancellationToken = default)
     {
-        const string sql = @"
+        const string sql = """
             UPDATE Playlists SET
                 Title         = @Title,
+                Description   = @Description,
                 CoverImageUrl = @CoverImageUrl,
-                IsPublic      = @IsPublic
-            WHERE Id = @Id";
+                IsPublic      = @IsPublic,
+                ContentType   = @ContentType,
+                ReleaseDate   = @ReleaseDate
+            WHERE Id = @Id AND IsActive = 1
+            """;
         using var conn = _db.CreateConnection();
         await conn.ExecuteAsync(
             new CommandDefinition(sql, playlist, cancellationToken: cancellationToken));
     }
 
     /// <summary>
-    /// Xóa playlist theo Id.
-    /// SQL: DELETE FROM Playlists WHERE Id = @Id
+    /// Xóa mềm playlist theo Id.
+    /// SQL: UPDATE Playlists SET IsActive = 0 WHERE Id = @Id
     /// </summary>
     public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        const string sql = "DELETE FROM Playlists WHERE Id = @Id";
+        const string sql = "UPDATE Playlists SET IsActive = 0 WHERE Id = @Id AND IsActive = 1";
         using var conn = _db.CreateConnection();
         await conn.ExecuteAsync(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
@@ -145,18 +202,54 @@ public sealed class PlaylistRepository : IPlaylistRepository
 
     /// <summary>
     /// Lấy danh sách tracks trong playlist theo thứ tự.
-    /// SQL: SELECT m.* FROM MediaItems INNER JOIN PlaylistTracks pt ON m.Id = pt.MediaItemId WHERE pt.PlaylistId = @PlaylistId ORDER BY pt.TrackOrder ASC
+    /// SQL: SELECT các cột media cần map, tránh map trực tiếp cột Url vào value object.
     /// </summary>
     public async Task<IEnumerable<MediaItem>> GetTracksAsync(string playlistId, CancellationToken cancellationToken = default)
     {
-        const string sql = @"
-            SELECT m.* FROM MediaItems m
+        const string sql = $"""
+            SELECT {MediaItemSelectColumns}
+            FROM MediaItems m
             INNER JOIN PlaylistTracks pt ON m.Id = pt.MediaItemId
             WHERE pt.PlaylistId = @PlaylistId
-            ORDER BY pt.TrackOrder ASC";
+              AND m.IsActive = 1
+              AND m.IsValid = 0
+            ORDER BY pt.TrackOrder ASC
+            """;
         using var conn = _db.CreateConnection();
         return await conn.QueryAsync<MediaItem>(
             new CommandDefinition(sql, new { PlaylistId = playlistId }, cancellationToken: cancellationToken));
+    }
+
+    /// <summary>
+    /// Kiểm tra media item còn hoạt động trước khi thêm vào playlist.
+    /// </summary>
+    public async Task<bool> MediaItemExistsAsync(string mediaItemId, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT COUNT(1)
+            FROM MediaItems
+            WHERE Id = @MediaItemId AND IsActive = 1 AND IsValid = 0
+            """;
+        using var conn = _db.CreateConnection();
+        var count = await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql, new { MediaItemId = mediaItemId }, cancellationToken: cancellationToken));
+        return count > 0;
+    }
+
+    /// <summary>
+    /// Kiểm tra một media item đã có trong playlist hay chưa.
+    /// </summary>
+    public async Task<bool> TrackExistsAsync(string playlistId, string mediaItemId, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT COUNT(1)
+            FROM PlaylistTracks
+            WHERE PlaylistId = @PlaylistId AND MediaItemId = @MediaItemId
+            """;
+        using var conn = _db.CreateConnection();
+        var count = await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql, new { PlaylistId = playlistId, MediaItemId = mediaItemId }, cancellationToken: cancellationToken));
+        return count > 0;
     }
 
     /// <summary>

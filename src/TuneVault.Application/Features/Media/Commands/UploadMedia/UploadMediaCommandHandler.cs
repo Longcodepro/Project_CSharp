@@ -75,9 +75,17 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
         if (!Enum.TryParse<MediaType>(dto.Type, ignoreCase: true, out var mediaType))
             throw new DomainException($"Loại media '{dto.Type}' không hợp lệ. Các loại hợp lệ: Audio, Video, Podcast, Song.");
 
-        // Step 5: Xác định URL file media chính (ưu tiên AudioUrl, fallback VideoUrl)
-        var rawUrl = dto.AudioUrl ?? dto.VideoUrl
-            ?? throw new DomainException("Phải cung cấp ít nhất một trong AudioUrl hoặc VideoUrl.");
+        // Step 5: Xác định file media chính theo đúng loại media để tránh lưu nhầm audio/video.
+        var rawUrl = mediaType == MediaType.Video
+            ? dto.VideoUrl
+            : dto.AudioUrl;
+
+        if (string.IsNullOrWhiteSpace(rawUrl))
+        {
+            throw new DomainException(mediaType == MediaType.Video
+                ? "Phải cung cấp file video."
+                : "Phải cung cấp file audio.");
+        }
 
         var mediaUrl = new MediaUrl(rawUrl);
         var accessLevel = (AccessLevel)dto.AccessLevel;
@@ -95,10 +103,7 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
         if (!string.IsNullOrWhiteSpace(dto.CanvasUrl))
             mediaItem.SetCanvas(dto.CanvasUrl);
 
-        // Step 8: Persist MediaItem vào DB
-        await _mediaRepository.AddAsync(mediaItem, ct);
-
-        // Step 9: Xây dựng danh sách quan hệ nghệ sĩ
+        // Step 8: Xây dựng và validate danh sách quan hệ nghệ sĩ trước khi ghi DB.
         var artists = new List<MediaArtist>
         {
             // Ca sĩ chính luôn được thêm đầu tiên với role MainArtist
@@ -131,7 +136,8 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             });
         }
 
-        // Step 11: Persist danh sách nghệ sĩ vào bảng MediaArtists
+        // Step 11: Persist sau khi validate xong để tránh lưu media thiếu quan hệ nghệ sĩ.
+        await _mediaRepository.AddAsync(mediaItem, ct);
         await _mediaRepository.AddArtistsAsync(artists, ct);
 
         // Step 12: Map Entity → DTO và trả về cho Controller
@@ -150,15 +156,15 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             Description:    mediaItem.Description,
             Genre:          mediaItem.Genre,
             Type:           mediaItem.Type.ToString(),
-            AudioUrl:       mediaItem.Url.Value.Contains("audio") || !mediaItem.Url.Value.Contains("video")
-                                ? mediaItem.Url.Value : null,
-            VideoUrl:       mediaItem.Type == MediaType.Video ? mediaItem.Url.Value : null,
-            CoverImageUrl:  mediaItem.CoverImageUrl,
+            AudioUrl:       mediaItem.Type != MediaType.Video ? MediaEndpointBuilder.AudioStream(mediaItem.Id) : null,
+            VideoUrl:       mediaItem.Type == MediaType.Video ? MediaEndpointBuilder.VideoStream(mediaItem.Id) : null,
+            CoverImageUrl:  string.IsNullOrWhiteSpace(mediaItem.CoverImageUrl) ? null : MediaEndpointBuilder.Poster(mediaItem.Id),
             CanvasUrl:      mediaItem.CanvasUrl,
             DurationSeconds: mediaItem.Duration.TotalSeconds,
             AccessLevel:    mediaItem.AccessLevel.ToString(),
             IsPublic:       mediaItem.IsPublic,
             IsActive:       mediaItem.IsActive,
+            IsValid:        mediaItem.IsValid,
             FavoriteCount:  mediaItem.FavoriteCount,
             ViewCount:      mediaItem.ViewCount,
             UploadedAt:     mediaItem.UploadedAt,

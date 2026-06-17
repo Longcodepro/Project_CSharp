@@ -1,6 +1,9 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using TuneVault.Application.Common;
+using TuneVault.Application.DTOs.Search;
+using TuneVault.Application.Features.Search.Queries.GetTrendingMedia;
 using TuneVault.Application.Features.Search.Queries.SearchMedia;
-using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.API.Controllers;
 
@@ -14,25 +17,21 @@ namespace TuneVault.API.Controllers;
 /// Controller → Query → QueryHandler → Repository → DTO → Response
 /// 
 /// Endpoints:
-/// - GET /api/Search?keyword=love&page=1&pageSize=10  → Tìm kiếm toàn bộ có phân trang
-/// - GET /api/Search/genre?genre=Pop                  → Lọc bài hát theo thể loại
-/// - GET /api/Search/trending?top=10                  → Lấy top bài nghe nhiều nhất
+/// - GET /api/search?keyword=love&page=1&pageSize=10  → Tìm kiếm toàn bộ có phân trang
+/// - GET /api/search/trending?top=10                  → Lấy top bài nghe nhiều nhất
 /// </summary>
+[Route("api/search")]
 public sealed class SearchController : BaseApiController
 {
-    private readonly SearchMediaQueryHandler _searchHandler;
-    private readonly SearchByGenreQueryHandler _genreHandler;
-    private readonly GetTrendingQueryHandler _trendingHandler;
+    private readonly ISender _mediator;
 
     /// <summary>
-    /// Khởi tạo Controller với các QueryHandlers được inject qua DI container.
+    /// Khởi tạo controller với MediatR sender.
     /// </summary>
-    /// <param name="searchRepository">Repository xử lý truy cập database cho Search.</param>
-    public SearchController(ISearchRepository searchRepository)
+    /// <param name="mediator">Sender dùng để gửi query sang Application layer.</param>
+    public SearchController(ISender mediator)
     {
-        _searchHandler = new SearchMediaQueryHandler(searchRepository);
-        _genreHandler = new SearchByGenreQueryHandler(searchRepository);
-        _trendingHandler = new GetTrendingQueryHandler(searchRepository);
+        _mediator = mediator;
     }
 
     /// <summary>
@@ -41,44 +40,37 @@ public sealed class SearchController : BaseApiController
     /// <param name="keyword">Từ khóa tìm kiếm.</param>
     /// <param name="page">Số trang (mặc định 1).</param>
     /// <param name="pageSize">Số kết quả mỗi trang (mặc định 10, tối đa 50).</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<SearchResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Search(
         [FromQuery] string keyword,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(keyword))
-            return BadRequest("Keyword không được để trống");
+            return BadRequest(ApiResponse<object?>.Fail("Từ khóa tìm kiếm không được để trống."));
 
         var query = new SearchMediaQuery(keyword, page, pageSize);
-        var result = await _searchHandler.HandleAsync(query);
-        return Ok(result);
+        var result = await _mediator.Send(query, ct);
+        return Ok(ApiResponse<SearchResponseDto>.Ok(result, "Tìm kiếm thành công."));
     }
 
     /// <summary>
-    /// Lọc bài hát theo thể loại (genre).
+    /// Lấy danh sách media thịnh hành cho màn hình khám phá.
     /// </summary>
-    /// <param name="genre">Thể loại cần lọc, ví dụ: Pop, R&B, Indie.</param>
-    [HttpGet("genre")]
-    public async Task<IActionResult> SearchByGenre([FromQuery] string genre)
-    {
-        if (string.IsNullOrWhiteSpace(genre))
-            return BadRequest("Genre không được để trống");
-
-        var query = new SearchByGenreQuery(genre);
-        var result = await _genreHandler.HandleAsync(query);
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Lấy danh sách bài hát nghe nhiều nhất (trending).
-    /// </summary>
-    /// <param name="top">Số lượng bài muốn lấy (mặc định 10, tối đa 50).</param>
+    /// <param name="top">Số lượng media cần lấy, tối đa được giới hạn trong repository.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>ApiResponse chứa danh sách media thịnh hành.</returns>
     [HttpGet("trending")]
-    public async Task<IActionResult> GetTrending([FromQuery] int top = 10)
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyCollection<SearchMediaResultDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTrending([FromQuery] int top = 10, CancellationToken ct = default)
     {
-        var query = new GetTrendingQuery(top);
-        var result = await _trendingHandler.HandleAsync(query);
-        return Ok(result);
+        var result = await _mediator.Send(new GetTrendingMediaQuery(top), ct);
+
+        return Ok(ApiResponse<IReadOnlyCollection<SearchMediaResultDto>>.Ok(result, "Lấy danh sách media thịnh hành thành công."));
     }
+
 }

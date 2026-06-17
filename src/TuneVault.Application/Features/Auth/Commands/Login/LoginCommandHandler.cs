@@ -59,7 +59,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResp
             throw new UnauthorizedAccessException("Tài khoản hoặc mật khẩu không chính xác.");
 
         // BƯỚC 4: Sinh JWT
-        var token = _jwtTokenGenerator.GenerateToken(userId, tokenUsername, roles);
+        var token = _jwtTokenGenerator.GenerateToken(userId, tokenUsername, string.Join(",", roles));
 
         return new AuthResponseDto(
             AccessToken: token,

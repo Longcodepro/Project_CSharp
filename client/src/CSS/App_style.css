@@ -26,7 +26,7 @@ body {
 }
 
 .spotify-footer {
-  height: 90px;
+  height: 112px;
   background-color: #000000;
 }
 
@@ -357,6 +357,13 @@ body {
   align-items: center;
   width: 40%;
   max-width: 722px;
+}
+
+.media-player {
+  width: min(100%, 640px);
+  max-height: 92px;
+  border-radius: 6px;
+  background-color: #000;
 }
 .player-controls {
   display: flex;

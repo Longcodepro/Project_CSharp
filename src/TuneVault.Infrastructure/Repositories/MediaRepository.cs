@@ -1,8 +1,10 @@
 // Infrastructure/Repositories/MediaRepository.cs
 using Dapper;
+using System.IO;
 using TuneVault.Domain.Entities;
-using TuneVault.Domain.Enums; // Added for MediaType enum
+using TuneVault.Domain.Enums;
 using TuneVault.Domain.Interfaces;
+using TuneVault.Domain.ValueObject;
 using TuneVault.Infrastructure.Persistence;
 
 namespace TuneVault.Infrastructure.Repositories;
@@ -20,6 +22,25 @@ namespace TuneVault.Infrastructure.Repositories;
 /// </summary>
 public sealed class MediaRepository : IMediaRepository
 {
+    private const string MediaItemSelectColumns = """
+        Id,
+        OwnerId,
+        Title,
+        Description,
+        MediaType AS [Type],
+        CoverImageUrl,
+        CanvasUrl,
+        Genre,
+        AccessLevel,
+        IsPublic,
+        IsActive,
+        IsValid,
+        FavoriteCount,
+        ViewCount,
+        UploadedAt,
+        ReleaseDate
+        """;
+
     private readonly IDbConnectionFactory _db;
 
     /// <summary>
@@ -48,7 +69,11 @@ public sealed class MediaRepository : IMediaRepository
     /// <returns>MediaItem object hoặc null</returns>
     public async Task<MediaItem?> GetByIdAsync(string id, CancellationToken ct = default)
     {
-        const string sql = "SELECT * FROM [MediaItems] WHERE Id = @Id AND IsActive = 1";
+        const string sql = $"""
+            SELECT {MediaItemSelectColumns}
+            FROM [MediaItems]
+            WHERE Id = @Id AND IsActive = 1
+            """;
         using var conn = _db.CreateConnection();
         return await conn.QuerySingleOrDefaultAsync<MediaItem>(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
@@ -74,6 +99,83 @@ public sealed class MediaRepository : IMediaRepository
             new CommandDefinition(sql, new { MediaItemId = mediaItemId }, cancellationToken: ct));
     }
 
+    public async Task<IReadOnlyCollection<MediaItem>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    {
+        page = page <= 0 ? 1 : page;
+        pageSize = pageSize <= 0 ? 10 : pageSize;
+
+        const string sql = $"""
+            SELECT {MediaItemSelectColumns}
+            FROM [MediaItems]
+            WHERE IsActive = 1
+              AND IsValid = 0
+            ORDER BY UploadedAt DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
+            """;
+
+        using var conn = _db.CreateConnection();
+        var items = await conn.QueryAsync<MediaItem>(
+            new CommandDefinition(sql, new
+            {
+                Offset = (page - 1) * pageSize,
+                PageSize = pageSize
+            }, cancellationToken: ct));
+
+        return items.ToList();
+    }
+
+    public async Task<IReadOnlyCollection<MediaItem>> GetByOwnerAsync(string ownerId, CancellationToken ct = default)
+    {
+        const string sql = $"""
+            SELECT {MediaItemSelectColumns}
+            FROM [MediaItems]
+            WHERE IsActive = 1
+              AND OwnerId = @OwnerId
+            ORDER BY UploadedAt DESC
+            """;
+
+        using var conn = _db.CreateConnection();
+        var items = await conn.QueryAsync<MediaItem>(
+            new CommandDefinition(sql, new { OwnerId = ownerId }, cancellationToken: ct));
+
+        return items.ToList();
+    }
+
+    public async Task<MediaStreamInfo?> GetStreamAsync(
+        string mediaId,
+        MediaAssetKind assetKind = MediaAssetKind.Primary,
+        CancellationToken ct = default)
+    {
+        const string sql = @"
+            SELECT Id, MediaType, AudioUrl, VideoUrl, CoverImageUrl
+            FROM [MediaItems]
+            WHERE Id = @MediaId AND IsActive = 1 AND IsValid = 0";
+
+        using var conn = _db.CreateConnection();
+        var row = await conn.QuerySingleOrDefaultAsync<MediaAssetRow>(
+            new CommandDefinition(sql, new { MediaId = mediaId }, cancellationToken: ct));
+
+        if (row is null)
+            return null;
+
+        var mediaType = (MediaType)row.MediaType;
+        var filePath = assetKind switch
+        {
+            MediaAssetKind.Audio => row.AudioUrl,
+            MediaAssetKind.Video => row.VideoUrl,
+            MediaAssetKind.Poster => row.CoverImageUrl,
+            _ => mediaType == MediaType.Video ? row.VideoUrl : row.AudioUrl
+        };
+
+        if (string.IsNullOrWhiteSpace(filePath))
+            return null;
+
+        var contentType = GetContentType(filePath, assetKind == MediaAssetKind.Video ? MediaType.Video : mediaType);
+        var supportsRange = true;
+
+        return new MediaStreamInfo(row.Id, filePath, contentType, supportsRange);
+    }
+
     /// <summary>
     /// Tìm kiếm MediaItem theo keyword (Title hoặc Genre).
     /// Chỉ lấy media đang active (IsActive = 1) và public (IsPublic = 1), sắp xếp theo upload mới nhất.
@@ -92,11 +194,13 @@ public sealed class MediaRepository : IMediaRepository
     /// <returns>IEnumerable&lt;MediaItem&gt; danh sách kết quả tìm kiếm</returns>
     public async Task<IEnumerable<MediaItem>> SearchAsync(string keyword, CancellationToken ct = default)
     {
-        const string sql = @"
-            SELECT * FROM [MediaItems]
-            WHERE IsActive = 1 AND IsPublic = 1
+        const string sql = $"""
+            SELECT {MediaItemSelectColumns}
+            FROM [MediaItems]
+            WHERE IsActive = 1 AND IsPublic = 1 AND IsValid = 0
               AND (Title LIKE @Keyword OR Genre LIKE @Keyword)
-            ORDER BY UploadedAt DESC";
+            ORDER BY UploadedAt DESC
+            """;
 
         using var conn = _db.CreateConnection();
         return await conn.QueryAsync<MediaItem>(
@@ -129,13 +233,15 @@ public sealed class MediaRepository : IMediaRepository
     {
         const string sql = @"
             INSERT INTO [MediaItems]
-                (Id, OwnerId, Title, Description, MediaType, AudioUrl, VideoUrl,
+                (Id, OwnerId, Title, Description, MediaType, AudioUrl, VideoUrl, Url,
                  CoverImageUrl, CanvasUrl, Genre, DurationSeconds, TrailerSeconds,
-                 AccessLevel, IsPublic, IsActive, FavoriteCount, ViewCount, UploadedAt, ReleaseDate)
+                 DurationMinutes, TrailerMinutes, AccessLevel, IsPublic, IsActive, IsValid,
+                 FavoriteCount, ViewCount, UploadedAt, ReleaseDate)
             VALUES
-                (@Id, @OwnerId, @Title, @Description, @MediaType, @AudioUrl, @VideoUrl,
+                (@Id, @OwnerId, @Title, @Description, @MediaType, @AudioUrl, @VideoUrl, @Url,
                  @CoverImageUrl, @CanvasUrl, @Genre, @DurationSeconds, @TrailerSeconds,
-                 @AccessLevel, @IsPublic, @IsActive, @FavoriteCount, @ViewCount, @UploadedAt, @ReleaseDate)";
+                 @DurationMinutes, @TrailerMinutes, @AccessLevel, @IsPublic, @IsActive, @IsValid,
+                 @FavoriteCount, @ViewCount, @UploadedAt, @ReleaseDate)";
 
         using var conn = _db.CreateConnection();
         await conn.ExecuteAsync(new CommandDefinition(sql, new
@@ -147,14 +253,18 @@ public sealed class MediaRepository : IMediaRepository
             MediaType       = (int)mediaItem.Type,
             AudioUrl        = mediaItem.Type != MediaType.Video ? mediaItem.Url.Value : null,
             VideoUrl        = mediaItem.Type == MediaType.Video ? mediaItem.Url.Value : null,
+            Url             = mediaItem.Url.Value,
             mediaItem.CoverImageUrl,
             mediaItem.CanvasUrl,
             mediaItem.Genre,
             DurationSeconds = mediaItem.Duration.TotalSeconds,
             TrailerSeconds  = mediaItem.DurationTrailer.TotalSeconds,
+            DurationMinutes = mediaItem.Duration.Minutes,
+            TrailerMinutes  = mediaItem.DurationTrailer.Minutes,
             AccessLevel     = (int)mediaItem.AccessLevel,
             mediaItem.IsPublic,
             mediaItem.IsActive,
+            mediaItem.IsValid,
             mediaItem.FavoriteCount,
             mediaItem.ViewCount,
             mediaItem.UploadedAt,
@@ -215,6 +325,7 @@ public sealed class MediaRepository : IMediaRepository
                 AccessLevel     = @AccessLevel,
                 IsPublic        = @IsPublic,
                 IsActive        = @IsActive,
+                IsValid         = @IsValid,
                 FavoriteCount   = @FavoriteCount,
                 ViewCount       = @ViewCount,
                 ReleaseDate     = @ReleaseDate
@@ -234,6 +345,7 @@ public sealed class MediaRepository : IMediaRepository
             AccessLevel     = (int)mediaItem.AccessLevel,
             mediaItem.IsPublic,
             mediaItem.IsActive,
+            mediaItem.IsValid,
             mediaItem.FavoriteCount,
             mediaItem.ViewCount,
             mediaItem.ReleaseDate
@@ -264,6 +376,36 @@ public sealed class MediaRepository : IMediaRepository
         var rowsAffected = await conn.ExecuteAsync(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
         return rowsAffected > 0;
+    }
+
+    private static string GetContentType(string filePath, MediaType mediaType)
+    {
+        var extension = Path.GetExtension(filePath).ToLowerInvariant();
+
+        return extension switch
+        {
+            ".mp3" => "audio/mpeg",
+            ".wav" => "audio/wav",
+            ".m4a" => "audio/mp4",
+            ".flac" => "audio/flac",
+            ".mp4" => "video/mp4",
+            ".webm" => "video/webm",
+            ".ogg" => "audio/ogg",
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            _ => mediaType == MediaType.Video ? "video/mp4" : "application/octet-stream"
+        };
+    }
+
+    private sealed class MediaAssetRow
+    {
+        public string Id { get; init; } = string.Empty;
+        public int MediaType { get; init; }
+        public string? AudioUrl { get; init; }
+        public string? VideoUrl { get; init; }
+        public string? CoverImageUrl { get; init; }
     }
 
     /// <summary>

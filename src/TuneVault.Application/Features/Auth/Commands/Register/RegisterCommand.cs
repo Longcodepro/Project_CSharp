@@ -8,6 +8,9 @@ using TuneVault.Domain.Interfaces; // For IUserRepository
 
 namespace TuneVault.Application.Features.Auth.Commands.Register;
 
+/// <summary>
+/// Command đăng ký tài khoản người dùng mới sau khi email đã được xác minh bằng OTP.
+/// </summary>
 public sealed record RegisterCommand(string Email, string OtpCode, string IdDisplay, string DisplayName, string Password) : IRequest<AuthResponseDto>;
 
 public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResponseDto>
@@ -39,6 +42,13 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Au
         }
 
         // 2. Check if user already exists
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var existingEmail = await _userRepo.GetByEmailAsync(normalizedEmail, cancellationToken);
+        if (existingEmail != null)
+        {
+            throw new DomainException("Email này đã được sử dụng.");
+        }
+
         var existingUser = await _userRepo.GetByIdDisplayAsync(request.IdDisplay, cancellationToken);
         if (existingUser != null)
         {
@@ -54,7 +64,7 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Au
             newUserId,
             request.IdDisplay,
             request.DisplayName,
-            request.Email.ToLowerInvariant(),
+            normalizedEmail,
             passwordHash
         );
 
@@ -62,7 +72,7 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Au
 
         // 5. Generate JWT Token
         var userRoles = new List<string> { "Listener" }; // Default role for new users
-        var token = _jwtTokenGenerator.GenerateToken(newUser.Id, newUser.IdDisplay, userRoles);
+        var token = _jwtTokenGenerator.GenerateToken(newUser.Id, newUser.IdDisplay, string.Join(",", userRoles));
 
         // 6. Return AuthResponseDto
         return new AuthResponseDto(

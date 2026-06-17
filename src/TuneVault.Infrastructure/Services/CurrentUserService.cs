@@ -14,6 +14,8 @@ namespace TuneVault.Infrastructure.Services;
 /// </summary>
 public class CurrentUserService : ICurrentUserService, ICurrentUserContext
 {
+    private const string JwtRoleClaimType = "role";
+
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     /// <summary>
@@ -42,7 +44,7 @@ public class CurrentUserService : ICurrentUserService, ICurrentUserContext
     {
         get
         {
-            var roles = _httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role);
+            var roles = GetRoleClaims();
             return roles?.Any() == true ? string.Join(", ", roles.Select(c => c.Value)) : null;
         }
     }
@@ -76,8 +78,10 @@ public class CurrentUserService : ICurrentUserService, ICurrentUserContext
         if (_httpContextAccessor.HttpContext?.User == null)
             return Enumerable.Empty<string>();
 
-        var rolesClaim = _httpContextAccessor.HttpContext.User.FindAll(ClaimTypes.Role);
-        return rolesClaim.Select(c => c.Value).Distinct();
+        return GetRoleClaims()
+            .Select(c => c.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -94,4 +98,16 @@ public class CurrentUserService : ICurrentUserService, ICurrentUserContext
     /// Implement từ ICurrentUserContext interface.
     /// </summary>
     bool ICurrentUserContext.IsAuthenticated() => !string.IsNullOrWhiteSpace(GetCurrentUserId());
+
+    /// <summary>
+    /// Lấy role từ cả claim chuẩn JWT "role" và claim URI của .NET để không lệch giữa token và middleware.
+    /// </summary>
+    private IEnumerable<Claim> GetRoleClaims()
+    {
+        var principal = _httpContextAccessor.HttpContext?.User;
+        if (principal is null)
+            return Enumerable.Empty<Claim>();
+
+        return principal.Claims.Where(c => c.Type == JwtRoleClaimType || c.Type == ClaimTypes.Role);
+    }
 }

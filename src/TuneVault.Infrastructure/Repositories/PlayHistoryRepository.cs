@@ -1,16 +1,15 @@
 using Dapper;
 using System.Data;
-using TuneVault.Application.Features.History.Commands;
+using TuneVault.Domain.Entities;
+using TuneVault.Domain.Interfaces;
 using TuneVault.Infrastructure.Persistence;
 
-// namespace TuneVault.Infrastructure.Repositories;
+namespace TuneVault.Infrastructure.Repositories;
 
 /// <summary>
 /// Repository xử lý SQL cho PlayHistory.
-/// File này chỉ chứa database, không chứa logic controller.
-/// Không dùng DaoSqlHelper.
 /// </summary>
-public sealed class PlayHistoryRepository : IPlayHistorySqlRepository
+public sealed class PlayHistoryRepository : IPlayHistoryRepository
 {
     private readonly IDbConnectionFactory _dbConnectionFactory;
 
@@ -19,101 +18,97 @@ public sealed class PlayHistoryRepository : IPlayHistorySqlRepository
         _dbConnectionFactory = dbConnectionFactory ?? throw new ArgumentNullException(nameof(dbConnectionFactory));
     }
 
-    /// <summary>
-    /// Ghi nhận một lần nghe bài hát.
-    /// Database hiện tại dùng PlayHistory(Id, UserId, MediaItemId, HistoryOrder, StoppedAt).
-    /// Theo DAO cũ, StoppedAt đang lưu GETDATE().
-    /// </summary>
-    public async Task<bool> RecordAsync(
-        string userId,
-        string mediaItemId,
-        double? stoppedAt = null)
+    public async Task<PlayHistory?> GetByUserIdAndMediaItemIdAsync(string userId, string mediaItemId, CancellationToken ct = default)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+
+        var sql = @"
+            SELECT
+                Id,
+                UserId,
+                MediaItemId,
+                HistoryOrder,
+                StoppedAt
+            FROM PlayHistory
+            WHERE UserId = @UserId
+              AND MediaItemId = @MediaItemId;";
+
+        return await connection.QueryFirstOrDefaultAsync<PlayHistory>(sql, new
+        {
+            UserId = userId,
+            MediaItemId = mediaItemId
+        });
+    }
+
+    public async Task<IReadOnlyCollection<PlayHistory>> GetRecentByUserIdAsync(string userId, int take = 10, CancellationToken ct = default)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+
+        var sql = @"
+            SELECT TOP (@Take)
+                Id,
+                UserId,
+                MediaItemId,
+                HistoryOrder,
+                StoppedAt
+            FROM PlayHistory
+            WHERE UserId = @UserId
+            ORDER BY StoppedAt DESC, HistoryOrder DESC;";
+
+        var result = await connection.QueryAsync<PlayHistory>(sql, new
+        {
+            UserId = userId,
+            Take = take
+        });
+
+        return result.ToList();
+    }
+
+    public async Task<bool> MediaItemExistsAsync(string mediaItemId, CancellationToken ct = default)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+
+        const string sql = """
+            SELECT COUNT(1)
+            FROM MediaItems
+            WHERE Id = @MediaItemId AND IsActive = 1;
+            """;
+
+        var count = await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql, new { MediaItemId = mediaItemId }, cancellationToken: ct));
+
+        return count > 0;
+    }
+
+    public async Task AddAsync(PlayHistory playHistory, CancellationToken ct = default)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
 
         var id = await GenerateNextPlayHistoryIdAsync(connection);
+        playHistory.Id = id;
 
         await connection.ExecuteAsync(@"
             INSERT INTO PlayHistory
                 (Id, UserId, MediaItemId, HistoryOrder, StoppedAt)
             VALUES
-            (
-                @Id,
-                @UserId,
-                @MediaItemId,
-                ISNULL(
-                    (
-                        SELECT MAX(HistoryOrder)
-                        FROM PlayHistory
-                        WHERE UserId = @UserId
-                    ),
-                    0
-                ) + 1,
-                GETDATE()
-            );",
-            new
-            {
-                Id = id,
-                UserId = userId,
-                MediaItemId = mediaItemId
-            });
-
-        return true;
+                (@Id, @UserId, @MediaItemId, @HistoryOrder, @StoppedAt);",
+            playHistory);
     }
 
-    /// <summary>
-    /// Lấy danh sách media item user nghe gần đây.
-    /// </summary>
-    public async Task<IEnumerable<dynamic>> GetRecentByUserIdAsync(
-        string userId,
-        int limit = 10)
+    public async Task UpdateAsync(PlayHistory playHistory, CancellationToken ct = default)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
 
-        if (limit <= 0)
-            limit = 10;
-
-        var sql = @"
-            SELECT TOP (@Limit)
-                ph.Id AS PlayHistoryId,
-                ph.HistoryOrder,
-                ph.StoppedAt,
-                ph.StoppedAt AS PlayedAt,
-
-                m.Id,
-                m.OwnerId,
-                m.Title,
-                m.Description,
-                COALESCE(m.AudioUrl, m.VideoUrl) AS MediaUrl,
-                m.AudioUrl,
-                m.VideoUrl,
-                m.CoverImageUrl,
-                m.CoverImageUrl AS CoverImgUrl,
-                m.CanvasUrl,
-                m.DurationSeconds,
-                m.DurationSeconds AS Duration,
-                m.MediaType,
-                m.MediaType AS Type,
-                m.Genre,
-                m.IsPublic,
-                m.UploadedAt,
-                m.ReleaseDate,
-                m.ViewCount
-            FROM PlayHistory ph
-            INNER JOIN MediaItems m ON ph.MediaItemId = m.Id
-            WHERE ph.UserId = @UserId
-            ORDER BY ph.HistoryOrder DESC, ph.StoppedAt DESC;";
-
-        return await connection.QueryAsync(sql, new
-        {
-            UserId = userId,
-            Limit = limit
-        });
+        await connection.ExecuteAsync(@"
+            UPDATE PlayHistory
+            SET HistoryOrder = @HistoryOrder,
+                StoppedAt = @StoppedAt
+            WHERE Id = @Id;",
+            playHistory);
     }
 
     /// <summary>
     /// Tạo Id lịch sử nghe dạng PH001, PH002, PH003...
-    /// Gộp từ DaoSqlHelper.GenerateNextIdAsync, chỉ giữ phần liên quan đến PlayHistory.
     /// </summary>
     private static async Task<string> GenerateNextPlayHistoryIdAsync(IDbConnection connection)
     {

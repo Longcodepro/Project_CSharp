@@ -1,4 +1,4 @@
-namespace TuneVault.Domain.Entities;
+namespace TuneVault.Domain.Enums;
 
 /// <summary>
 /// Định nghĩa các loại trạng thái cảm xúc hiển thị khi người dùng tương tác yêu thích một bài hát/vật phẩm phương tiện.
@@ -28,5 +28,10 @@ public enum FavoriteReaction
     /// <summary>
     /// Cảm xúc âm nhạc mang tính chất sôi động, truyền năng lượng và động lực.
     /// </summary>
-    Energetic = 4
+    Energetic = 4,
+
+    /// <summary>
+    /// Trạng thái xóa bỏ phản ứng khỏi danh sách yêu thích.
+    /// </summary>
+    Remove = 5
 }

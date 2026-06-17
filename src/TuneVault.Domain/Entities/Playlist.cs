@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TuneVault.Domain.Enums;
 using TuneVault.Domain.Exceptions;
 
 namespace TuneVault.Domain.Entities;
@@ -25,17 +26,17 @@ public class Playlist
     /// <summary>
     /// Mã định danh duy nhất (Primary Key) của Playlist. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string Id { get; private set; }
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mã định danh của người dùng (User) sở hữu Playlist này. Độ dài cố định từ 4 đến 5 ký tự.
     /// </summary>
-    public string UserId { get; private set; }
+    public string UserId { get; private set; } = string.Empty;
 
     /// <summary>
     /// Tiêu đề hiển thị của Danh sách phát.
     /// </summary>
-    public string Title { get; private set; }
+    public string Title { get; private set; } = string.Empty;
 
     /// <summary>
     /// Mô tả chi tiết về nội dung hoặc chủ đề của Playlist.
@@ -51,6 +52,22 @@ public class Playlist
     /// Trạng thái hiển thị công khai (True) hoặc riêng tư (False) của Playlist.
     /// </summary>
     public bool IsPublic { get; private set; }
+
+    /// <summary>
+    /// Kiểu nội dung chung của playlist, dùng để không trộn Song/Audio/Video trong cùng một playlist.
+    /// Null khi playlist chưa có media đầu tiên.
+    /// </summary>
+    public MediaType? ContentType { get; private set; }
+
+    /// <summary>
+    /// Ngày phát hành playlist. Sau khi đã phát hành thì không được sửa lại ngày này.
+    /// </summary>
+    public DateTime? ReleaseDate { get; private set; }
+
+    /// <summary>
+    /// Trạng thái hoạt động của playlist. False nghĩa là đã xóa mềm.
+    /// </summary>
+    public bool IsActive { get; private set; } = true;
 
     /// <summary>
     /// Thời điểm khởi tạo Playlist trong hệ thống.
@@ -78,7 +95,15 @@ public class Playlist
     /// <param name="description">Mô tả Playlist (tùy chọn).</param>
     /// <param name="coverImageUrl">Đường dẫn URL ảnh bìa hoặc ảnh nền (tùy chọn).</param>
     /// <param name="isPublic">Trạng thái công khai công bố (mặc định là false).</param>
-    public Playlist(string id, string userId, string title, string? description = null, string? coverImageUrl = null, bool isPublic = false)
+    public Playlist(
+        string id,
+        string userId,
+        string title,
+        string? description = null,
+        string? coverImageUrl = null,
+        bool isPublic = false,
+        MediaType? contentType = null,
+        DateTime? releaseDate = null)
     {
         ValidateId(id);
         ValidateUserId(userId);
@@ -96,6 +121,9 @@ public class Playlist
         Description = description?.Trim();
         CoverImageUrl = coverImageUrl?.Trim();
         IsPublic = isPublic;
+        ContentType = contentType;
+        ReleaseDate = releaseDate;
+        IsActive = true;
         CreatedAt = now;
     }
 
@@ -139,6 +167,27 @@ public class Playlist
     {
         ValidateIsPublic(isPublic);
         IsPublic = isPublic;
+    }
+
+    /// <summary>
+    /// Thiết lập kiểu nội dung chung cho playlist.
+    /// </summary>
+    /// <param name="contentType">Kiểu media được phép thêm vào playlist.</param>
+    public void SetContentType(MediaType? contentType)
+    {
+        ContentType = contentType;
+    }
+
+    /// <summary>
+    /// Thiết lập ngày phát hành khi playlist chưa được phát hành.
+    /// </summary>
+    /// <param name="releaseDate">Ngày phát hành mới hoặc null nếu phát hành ngay.</param>
+    public void SetReleaseDate(DateTime? releaseDate)
+    {
+        if (ReleaseDate.HasValue && ReleaseDate.Value <= DateTime.UtcNow && ReleaseDate != releaseDate)
+            throw new DomainException("Không thể đổi ngày phát hành sau khi playlist đã phát hành.");
+
+        ReleaseDate = releaseDate;
     }
 
     /// <summary>

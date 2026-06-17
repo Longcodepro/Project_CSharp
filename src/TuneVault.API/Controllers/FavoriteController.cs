@@ -1,135 +1,132 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TuneVault.Application.Features.Favorite.Commands;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using TuneVault.Application.Common;
+using TuneVault.Application.Features.Favorite.Commands.ToggleFavorite;
+using TuneVault.Application.Features.Favorite.DTOs;
+using TuneVault.Application.Features.Favorite.Queries.CheckFavoriteStatus;
+using TuneVault.Application.Features.Favorite.Queries.GetFavorites;
+using TuneVault.Application.Features.Media.DTOs;
+using TuneVault.Domain.Enums;
+using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.API.Controllers;
 
 /// <summary>
 /// Controller cung cấp các API tương tác yêu thích/cảm xúc của người dùng với bài hát trong TuneVault.
-/// Controller không gọi DAO trực tiếp nữa.
 /// </summary>
+[Authorize]
+[Route("api/favorites")]
 public sealed class FavoriteController : BaseApiController
 {
-    private readonly ToggleFavoriteCommand _toggleFavoriteCommand;
+    private readonly IMediator _mediator;
+    private readonly ICurrentUserContext _currentUserContext;
 
-    public FavoriteController(ToggleFavoriteCommand toggleFavoriteCommand)
+    public FavoriteController(IMediator mediator, ICurrentUserContext currentUserContext)
     {
-        _toggleFavoriteCommand = toggleFavoriteCommand;
+        _mediator = mediator;
+        _currentUserContext = currentUserContext;
     }
 
     /// <summary>
-    /// Đánh dấu một bài hát là Like cho người dùng.
-    /// Nếu bài hát đã có trạng thái Favorite thì cập nhật lại thành Like.
+    /// Thêm hoặc cập nhật cảm xúc cho một bài hát hoặc video của người dùng hiện tại.
     /// </summary>
-    [HttpPost("like")]
-    public async Task<IActionResult> Like(
-        [FromBody] FavoriteStatusRequest request,
-        CancellationToken cancellationToken)
+    /// <param name="mediaId">Mã media cần tương tác.</param>
+    /// <param name="request">Cảm xúc muốn lưu. Nếu không gửi body thì mặc định là Like.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>ApiResponse với trạng thái thành công.</returns>
+    [HttpPost("{mediaId}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> React(
+        string mediaId,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] FavoriteReactionRequestDto? request,
+        CancellationToken ct)
     {
-        await _toggleFavoriteCommand.SetReactionAsync(
-            request.UserId,
-            request.MediaItemId,
-            "Like",
-            cancellationToken);
-
-        return Ok(new
-        {
-            success = true,
-            message = "Đã Like bài hát",
-            request.UserId,
-            request.MediaItemId,
-            likeStatus = "Like"
-        });
+        var reaction = request?.Reaction ?? FavoriteReaction.Like;
+        var result = await _mediator.Send(new ToggleFavoriteCommand(mediaId, reaction), ct);
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
-    /// Đánh dấu một bài hát là Dislike cho người dùng.
-    /// DB hiện tại không lưu Dislike thật, nên Dislike được hiểu là xóa Favorite.
+    /// Lấy danh sách các loại cảm xúc hợp lệ cho Swagger hoặc frontend render lựa chọn.
     /// </summary>
-    [HttpPost("dislike")]
-    public async Task<IActionResult> Dislike(
-        [FromBody] FavoriteStatusRequest request,
-        CancellationToken cancellationToken)
+    /// <returns>ApiResponse chứa danh sách tên và giá trị enum của cảm xúc.</returns>
+    [HttpGet("reactions")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyCollection<object>>), StatusCodes.Status200OK)]
+    public IActionResult GetAvailableReactions()
     {
-        await _toggleFavoriteCommand.SetReactionAsync(
-            request.UserId,
-            request.MediaItemId,
-            "Dislike",
-            cancellationToken);
+        var reactions = Enum.GetValues<FavoriteReaction>()
+            .Where(reaction => reaction != FavoriteReaction.Remove)
+            .Select(reaction => new
+            {
+                name = reaction.ToString(),
+                value = (int)reaction
+            })
+            .ToList();
 
-        return Ok(new
-        {
-            success = true,
-            message = "Đã Dislike bài hát",
-            request.UserId,
-            request.MediaItemId,
-            likeStatus = "Dislike"
-        });
+        return Ok(ApiResponse<IReadOnlyCollection<object>>.Ok(reactions, "Lấy danh sách cảm xúc thành công."));
     }
 
     /// <summary>
-    /// Xóa trạng thái Like hoặc Dislike của một bài hát khỏi danh sách Favorite của người dùng.
+    /// Unlike một bài hát hoặc video cho người dùng hiện tại.
     /// </summary>
-    [HttpDelete]
-    public async Task<IActionResult> Remove(
-        [FromQuery] string userId,
-        [FromQuery] string mediaItemId,
-        CancellationToken cancellationToken)
+    /// <param name="mediaId">Mã media cần unlike.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>ApiResponse với trạng thái thành công.</returns>
+    [HttpDelete("{mediaId}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Unlike(string mediaId, CancellationToken ct)
     {
-        await _toggleFavoriteCommand.RemoveAsync(
-            userId,
-            mediaItemId,
-            cancellationToken);
-
-        return Ok(new
-        {
-            success = true,
-            message = "Đã xóa trạng thái Like/Dislike",
-            userId,
-            mediaItemId
-        });
+        var result = await _mediator.Send(new ToggleFavoriteCommand(mediaId, FavoriteReaction.Remove), ct);
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
     /// Lấy danh sách các bài hát mà người dùng đã Like.
     /// </summary>
-    [HttpGet("liked/{userId}")]
-    public async Task<IActionResult> GetLiked(
-        string userId,
-        CancellationToken cancellationToken)
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>ApiResponse với danh sách các MediaItemDto.</returns>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(ApiResponse<List<MediaItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<MediaItemDto>>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetFavorites(CancellationToken ct)
     {
-        var items = await _toggleFavoriteCommand.GetByUserIdAsync(
-            userId,
-            cancellationToken);
+        var userId = _currentUserContext.GetCurrentUserId();
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(ApiResponse<List<MediaItemDto>>.Fail("Bạn cần đăng nhập để thực hiện thao tác này."));
+        }
 
-        return Ok(items);
+        var query = new GetFavoritesQuery(userId);
+        var result = await _mediator.Send(query, ct);
+        return Ok(ApiResponse<List<MediaItemDto>>.Ok(result, "Lấy danh sách yêu thích thành công."));
     }
 
     /// <summary>
     /// Kiểm tra trạng thái Like/Dislike hiện tại của một bài hát đối với người dùng.
     /// </summary>
-    [HttpGet("status")]
-    public async Task<IActionResult> GetStatus(
-        [FromQuery] string userId,
-        [FromQuery] string mediaItemId,
-        CancellationToken cancellationToken)
+    /// <param name="mediaId">Mã định danh của bài hát.</param>
+    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
+    /// <returns>ApiResponse với trạng thái yêu thích (true nếu là yêu thích, false nếu không).</returns>
+    [HttpGet("status/{mediaId}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CheckFavoriteStatus(string mediaId, CancellationToken ct)
     {
-        var isFavorite = await _toggleFavoriteCommand.IsFavoriteAsync(
-            userId,
-            mediaItemId,
-            cancellationToken);
-
-        return Ok(new
+        var userId = _currentUserContext.GetCurrentUserId();
+        if (string.IsNullOrEmpty(userId))
         {
-            userId,
-            mediaItemId,
-            isFavorite
-        });
+            return Unauthorized(ApiResponse<bool>.Fail("Bạn cần đăng nhập để thực hiện thao tác này."));
+        }
+
+        var query = new CheckFavoriteStatusQuery(userId, mediaId);
+        var result = await _mediator.Send(query, ct);
+        return Ok(ApiResponse<bool>.Ok(result, "Kiểm tra trạng thái yêu thích thành công."));
     }
 }
-
-/// <summary>
-/// Request body dùng để cập nhật trạng thái Like/Dislike của một media item.
-/// </summary>
-public sealed record FavoriteStatusRequest(
-    string UserId,
-    string MediaItemId);

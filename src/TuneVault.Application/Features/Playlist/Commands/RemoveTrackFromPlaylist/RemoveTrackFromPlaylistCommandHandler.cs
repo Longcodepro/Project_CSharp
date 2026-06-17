@@ -1,3 +1,5 @@
+using MediatR;
+using TuneVault.Domain.Exceptions;
 using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Playlist.Commands.RemoveTrackFromPlaylist;
@@ -27,7 +29,7 @@ namespace TuneVault.Application.Features.Playlist.Commands.RemoveTrackFromPlayli
 /// - Track ở vị trí 5 → xuống vị trí 4
 /// - ... và cứ tiếp tục
 /// </summary>
-public sealed class RemoveTrackFromPlaylistCommandHandler
+public sealed class RemoveTrackFromPlaylistCommandHandler : IRequestHandler<RemoveTrackFromPlaylistCommand, Unit>
 {
     private readonly IPlaylistRepository _playlistRepository;
 
@@ -46,33 +48,26 @@ public sealed class RemoveTrackFromPlaylistCommandHandler
     /// </summary>
     /// <param name="command">Command chứa PlaylistId và MediaItemId cần xóa.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="DomainException">
     /// Ném ra khi Playlist không tồn tại hoặc Track không có trong Playlist.
     /// </exception>
-    public async Task HandleAsync(RemoveTrackFromPlaylistCommand command, CancellationToken cancellationToken = default)
+    /// <exception cref="ForbiddenAccessException">Ném ra khi user không phải chủ playlist.</exception>
+    public async Task<Unit> Handle(RemoveTrackFromPlaylistCommand command, CancellationToken cancellationToken)
     {
-        // Lấy Playlist từ Database — kiểm tra tồn tại
         var playlist = await _playlistRepository.GetByIdAsync(command.PlaylistId, cancellationToken)
-            ?? throw new InvalidOperationException($"Playlist '{command.PlaylistId}' không tồn tại.");
+            ?? throw new DomainException("Không tìm thấy playlist.");
 
-        // Lấy toàn bộ PlaylistTrack trong DB, lọc theo PlaylistId
-        // Dùng GetAllTracksAsync() vì GetTracksAsync() trả về MediaItem — không có TrackOrder
-        var allTracks = await _playlistRepository.GetAllTracksAsync(cancellationToken);
-        var tracks = allTracks.Where(t => t.PlaylistId == command.PlaylistId).ToList();
+        if (playlist.UserId != command.UserId)
+            throw new ForbiddenAccessException("Bạn không có quyền xóa bài hát khỏi playlist này.");
 
-        // Tìm PlaylistTrack cần xóa theo MediaItemId — throw ngay nếu không tồn tại
+        var tracks = (await _playlistRepository.GetPlaylistTracksAsync(command.PlaylistId, cancellationToken)).ToList();
         var trackToRemove = tracks.FirstOrDefault(t => t.MediaItemId == command.MediaItemId)
-            ?? throw new InvalidOperationException($"Track '{command.MediaItemId}' không tồn tại trong Playlist '{command.PlaylistId}'.");
+            ?? throw new DomainException("Bài hát không tồn tại trong playlist.");
 
         var removedOrder = trackToRemove.TrackOrder;
 
-        // Gọi Aggregate Root để xóa Track — truyền PlaylistTrack.Id (PT001...), không phải MediaItemId
-        playlist.RemoveTrack(trackToRemove.Id);
-
-        // Xóa track khỏi Database
         await _playlistRepository.RemoveTrackAsync(command.PlaylistId, command.MediaItemId, cancellationToken);
 
-        // Cập nhật lại TrackOrder của các track phía sau (giảm xuống 1)
         var tracksToUpdate = tracks
             .Where(t => t.Id != trackToRemove.Id && t.TrackOrder > removedOrder)
             .ToList();
@@ -85,5 +80,7 @@ public sealed class RemoveTrackFromPlaylistCommandHandler
                 track.TrackOrder - 1,
                 cancellationToken);
         }
+
+        return Unit.Value;
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using TuneVault.Domain.Exceptions;
+using TuneVault.Domain.Enums;
 
 namespace TuneVault.Domain.Entities;
 
@@ -11,22 +12,22 @@ public class Favorite
 {
     // --- Constants ---
     private const int MinIdLength = 4;
-    private const int MaxIdLength = 5;
+    private const int MaxIdLength = 10;
 
     // --- Properties ---
 
     /// <summary>
-    /// Mã định danh duy nhất (Primary Key) của bản ghi Favorite. Độ dài cố định từ 4 đến 5 ký tự.
+    /// Mã định danh duy nhất (Primary Key) của bản ghi Favorite. Độ dài khớp cột varchar(10) trong database.
     /// </summary>
-    public string Id { get; private set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>
-    /// Mã định danh của người dùng (User) thực hiện hành động yêu thích. Độ dài cố định từ 4 đến 5 ký tự.
+    /// Mã định danh của người dùng (User) thực hiện hành động yêu thích. Độ dài khớp cột varchar(10) trong database.
     /// </summary>
     public string UserId { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Mã định danh của vật phẩm phương tiện (MediaItem) được yêu thích. Độ dài cố định từ 4 đến 5 ký tự.
+    /// Mã định danh của vật phẩm phương tiện (MediaItem) được yêu thích. Độ dài khớp cột varchar(10) trong database.
     /// </summary>
     public string MediaItemId { get; private set; } = string.Empty;
 
@@ -97,7 +98,7 @@ public class Favorite
 
         int length = id.Trim().Length;
         if (length < MinIdLength || length > MaxIdLength)
-            throw new DomainException($"Id của bản ghi Favorite phải cố định từ {MinIdLength} đến {MaxIdLength} ký tự.");
+            throw new DomainException($"Id của bản ghi Favorite phải có độ dài từ {MinIdLength} đến {MaxIdLength} ký tự.");
     }
 
     /// <summary>
@@ -112,7 +113,7 @@ public class Favorite
 
         int length = userId.Trim().Length;
         if (length < MinIdLength || length > MaxIdLength)
-            throw new DomainException($"UserId trong danh sách yêu thích phải cố định từ {MinIdLength} đến {MaxIdLength} ký tự.");
+            throw new DomainException($"UserId trong danh sách yêu thích phải có độ dài từ {MinIdLength} đến {MaxIdLength} ký tự.");
     }
 
     /// <summary>
@@ -127,7 +128,7 @@ public class Favorite
 
         int length = mediaItemId.Trim().Length;
         if (length < MinIdLength || length > MaxIdLength)
-            throw new DomainException($"MediaItemId trong danh sách yêu thích phải cố định từ {MinIdLength} đến {MaxIdLength} ký tự.");
+            throw new DomainException($"MediaItemId trong danh sách yêu thích phải có độ dài từ {MinIdLength} đến {MaxIdLength} ký tự.");
     }
 
     /// <summary>

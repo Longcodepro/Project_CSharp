@@ -1,169 +1,168 @@
+using System.Security.Claims;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TuneVault.Application.DTOs.Playlist;
+using TuneVault.Application.Common;
 using TuneVault.Application.Features.Playlist.Commands.AddTrackToPlaylist;
 using TuneVault.Application.Features.Playlist.Commands.CreatePlaylist;
 using TuneVault.Application.Features.Playlist.Commands.DeletePlaylist;
 using TuneVault.Application.Features.Playlist.Commands.RemoveTrackFromPlaylist;
+using TuneVault.Application.Features.Playlist.Commands.UpdatePlaylist;
 using TuneVault.Application.Features.Playlist.Commands.UpdateTrackOrder;
+using TuneVault.Application.Features.Playlist.DTOs;
+using TuneVault.Application.Features.Playlist.Queries.GetPlaylistById;
 using TuneVault.Application.Features.Playlist.Queries.GetPlaylists;
-using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.API.Controllers;
 
 /// <summary>
-/// CONTROLLER - PLAYLIST FEATURE (Web API Layer)
-/// =============================================
-/// Mục đích: Nhận HTTP request, tạo Command/Query và chuyển cho Handler xử lý.
-/// Controller không chứa bất kỳ logic nghiệp vụ nào.
-/// 
-/// Luồng xử lý:
-/// Controller → Command/Query → Handler → Entity (validate) → Repository → Database
-/// 
-/// Endpoints:
-/// - GET    /api/Playlist?userId=xxx                              → Lấy danh sách playlist của user
-/// - POST   /api/Playlist?userId=xxx                              → Tạo playlist mới
-/// - DELETE /api/Playlist/{playlistId}                            → Xóa playlist
-/// - POST   /api/Playlist/{playlistId}/tracks                     → Thêm track vào playlist
-/// - DELETE /api/Playlist/{playlistId}/tracks/{mediaItemId}       → Xóa track khỏi playlist
-/// - PATCH  /api/Playlist/{playlistId}/tracks/{mediaItemId}/order → Cập nhật thứ tự track
+/// Controller quản lý playlist của người dùng: CRUD playlist, public/private và track trong playlist.
 /// </summary>
-public sealed class PlaylistController : BaseApiController
+[ApiController]
+[Route("api/playlists")]
+[Authorize]
+public sealed class PlaylistController : ControllerBase
 {
-    private readonly GetPlaylistsQueryHandler _getPlaylistsHandler;
-    private readonly CreatePlaylistCommandHandler _createHandler;
-    private readonly DeletePlaylistCommandHandler _deleteHandler;
-    private readonly AddTrackToPlaylistCommandHandler _addTrackHandler;
-    private readonly RemoveTrackFromPlaylistCommandHandler _removeTrackHandler;
-    private readonly UpdateTrackOrderCommandHandler _updateTrackOrderHandler;
+    private readonly ISender _mediator;
 
     /// <summary>
-    /// Khởi tạo Controller với các Handlers được inject qua DI container.
+    /// Khởi tạo controller playlist với MediatR sender.
     /// </summary>
-    /// <param name="playlistRepository">Repository xử lý truy cập database cho Playlist.</param>
-    public PlaylistController(IPlaylistRepository playlistRepository)
-    {
-        _getPlaylistsHandler = new GetPlaylistsQueryHandler(playlistRepository);
-        _createHandler = new CreatePlaylistCommandHandler(playlistRepository);
-        _deleteHandler = new DeletePlaylistCommandHandler(playlistRepository);
-        _addTrackHandler = new AddTrackToPlaylistCommandHandler(playlistRepository);
-        _removeTrackHandler = new RemoveTrackFromPlaylistCommandHandler(playlistRepository);
-        _updateTrackOrderHandler = new UpdateTrackOrderCommandHandler(playlistRepository);
-    }
+    /// <param name="mediator">Sender dùng để gửi command/query sang Application layer.</param>
+    public PlaylistController(ISender mediator) => _mediator = mediator;
+
+    private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
+                                 ?? User.FindFirstValue("sub")
+                                 ?? throw new UnauthorizedAccessException();
 
     /// <summary>
-    /// Lấy danh sách playlist của user theo userId.
-    /// Tạo Query và chuyển cho GetPlaylistsQueryHandler xử lý.
+    /// Lấy danh sách playlist của người dùng hiện tại.
     /// </summary>
-    /// <param name="userId">Mã user sở hữu playlist.</param>
-    /// <returns>Danh sách PlaylistDto.</returns>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Danh sách playlist của user đang đăng nhập.</returns>
     [HttpGet]
-    public async Task<IActionResult> GetByUserId([FromQuery] string userId)
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<PlaylistDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyPlaylists(CancellationToken ct)
     {
-        var query = new GetPlaylistsQuery(userId);
-        var result = await _getPlaylistsHandler.HandleAsync(query);
-        return Ok(result);
+        var result = await _mediator.Send(new GetPlaylistsQuery(CurrentUserId), ct);
+        return Ok(ApiResponse<IEnumerable<PlaylistDto>>.Ok(result, "Lấy danh sách playlist thành công."));
     }
 
     /// <summary>
-    /// Tạo playlist mới cho user.
-    /// Tạo Command và chuyển cho CreatePlaylistCommandHandler xử lý.
+    /// Lấy danh sách playlist của người dùng hiện tại theo route rõ nghĩa.
     /// </summary>
-    /// <param name="request">Dữ liệu tạo playlist.</param>
-    /// <param name="userId">Mã user tạo playlist.</param>
-    /// <returns>PlaylistDto đã tạo.</returns>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Danh sách playlist của user đang đăng nhập.</returns>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<PlaylistDto>>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetMine(CancellationToken ct) => GetMyPlaylists(ct);
+
+    /// <summary>
+    /// Lấy chi tiết playlist theo id.
+    /// </summary>
+    /// <param name="id">Mã playlist cần lấy.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Thông tin playlist kèm danh sách track.</returns>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<PlaylistDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(string id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetPlaylistByIdQuery(id, CurrentUserId), ct);
+        return result is not null
+            ? Ok(ApiResponse<PlaylistDto>.Ok(result, "Lấy thông tin playlist thành công."))
+            : NotFound(ApiResponse<object?>.Fail($"Không tìm thấy playlist '{id}' hoặc playlist đã bị xóa."));
+    }
+
+    /// <summary>
+    /// Tạo playlist mới cho người dùng hiện tại.
+    /// </summary>
+    /// <param name="request">Thông tin playlist cần tạo.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Playlist vừa được tạo.</returns>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreatePlaylistRequestDto request, [FromQuery] string userId)
+    [ProducesResponseType(typeof(ApiResponse<PlaylistDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create([FromBody] CreatePlaylistRequestDto request, CancellationToken ct)
     {
-        var command = new CreatePlaylistCommand(userId, request);
-        var result = await _createHandler.HandleAsync(command);
-        return CreatedAtAction(nameof(GetByUserId), new { userId }, result);
+        var result = await _mediator.Send(new CreatePlaylistCommand(CurrentUserId, request), ct);
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = result.Id },
+            ApiResponse<PlaylistDto>.Ok(result, "Tạo playlist thành công."));
     }
 
     /// <summary>
-    /// Xóa toàn bộ playlist theo playlistId.
-    /// Tạo Command và chuyển cho DeletePlaylistCommandHandler xử lý.
+    /// Cập nhật thông tin và trạng thái public/private của playlist.
     /// </summary>
-    /// <param name="playlistId">Mã playlist cần xóa.</param>
-    /// <returns>Thông báo thành công hoặc NotFound.</returns>
-    [HttpDelete("{playlistId}")]
-    public async Task<IActionResult> Delete(string playlistId)
+    /// <param name="id">Mã playlist cần cập nhật.</param>
+    /// <param name="request">Payload cập nhật playlist.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Playlist sau khi cập nhật.</returns>
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<PlaylistDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdatePlaylistRequestDto request, CancellationToken ct)
     {
-        try
-        {
-            var command = new DeletePlaylistCommand(playlistId);
-            await _deleteHandler.HandleAsync(command);
-            return Ok(new { message = "Playlist deleted successfully" });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        var result = await _mediator.Send(new UpdatePlaylistCommand(id, CurrentUserId, request), ct);
+        return Ok(ApiResponse<PlaylistDto>.Ok(result, "Cập nhật playlist thành công."));
     }
 
     /// <summary>
-    /// Thêm track mới vào playlist hiện có.
-    /// Tạo Command và chuyển cho AddTrackToPlaylistCommandHandler xử lý.
+    /// Xóa mềm playlist của người dùng hiện tại.
     /// </summary>
-    /// <param name="playlistId">Mã playlist.</param>
-    /// <param name="request">Dữ liệu track cần thêm.</param>
-    /// <returns>Thông báo thành công hoặc NotFound.</returns>
-    [HttpPost("{playlistId}/tracks")]
-    public async Task<IActionResult> AddTrack(string playlistId, [FromBody] AddTrackToPlaylistRequestDto request)
+    /// <param name="id">Mã playlist cần xóa.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Kết quả xóa playlist.</returns>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Delete(string id, CancellationToken ct)
     {
-        try
-        {
-            var command = new AddTrackToPlaylistCommand(request);
-            await _addTrackHandler.HandleAsync(command);
-            return Ok(new { message = "Track added successfully" });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        await _mediator.Send(new DeletePlaylistCommand(id, CurrentUserId), ct);
+        return Ok(ApiResponse<bool>.Ok(true, "Xóa playlist thành công."));
     }
 
     /// <summary>
-    /// Xóa track khỏi playlist.
-    /// Tạo Command và chuyển cho RemoveTrackFromPlaylistCommandHandler xử lý.
+    /// Thêm một bài hát vào cuối playlist.
     /// </summary>
-    /// <param name="playlistId">Mã playlist.</param>
-    /// <param name="mediaItemId">Mã media item cần xóa.</param>
-    /// <returns>Thông báo thành công hoặc NotFound.</returns>
-    [HttpDelete("{playlistId}/tracks/{mediaItemId}")]
-    public async Task<IActionResult> RemoveTrack(string playlistId, string mediaItemId)
+    /// <param name="id">Mã playlist cần thêm bài hát.</param>
+    /// <param name="request">Payload chứa media item cần thêm.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Kết quả thêm bài hát vào playlist.</returns>
+    [HttpPost("{id}/tracks")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddTrack(string id, [FromBody] AddTrackToPlaylistRequestDto request, CancellationToken ct)
     {
-        try
-        {
-            var command = new RemoveTrackFromPlaylistCommand(playlistId, mediaItemId);
-            await _removeTrackHandler.HandleAsync(command);
-            return Ok(new { message = "Track removed successfully" });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        await _mediator.Send(new AddTrackToPlaylistCommand(id, CurrentUserId, request), ct);
+        return Ok(ApiResponse<bool>.Ok(true, "Thêm bài hát vào playlist thành công."));
     }
 
     /// <summary>
-    /// Cập nhật thứ tự (TrackOrder) của một track trong playlist.
-    /// Tạo Command và chuyển cho UpdateTrackOrderCommandHandler xử lý.
+    /// Xóa một bài hát khỏi playlist.
     /// </summary>
-    /// <param name="playlistId">Mã playlist.</param>
+    /// <param name="id">Mã playlist cần xóa bài hát.</param>
+    /// <param name="mediaId">Mã media item cần xóa khỏi playlist.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Kết quả xóa bài hát khỏi playlist.</returns>
+    [HttpDelete("{id}/tracks/{mediaId}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RemoveTrack(string id, string mediaId, CancellationToken ct)
+    {
+        await _mediator.Send(new RemoveTrackFromPlaylistCommand(id, CurrentUserId, mediaId), ct);
+        return Ok(ApiResponse<bool>.Ok(true, "Xóa bài hát khỏi playlist thành công."));
+    }
+
+    /// <summary>
+    /// Cập nhật thứ tự phát của một bài hát trong playlist.
+    /// </summary>
+    /// <param name="playlistId">Mã playlist chứa bài hát.</param>
     /// <param name="mediaItemId">Mã media item cần cập nhật thứ tự.</param>
-    /// <param name="newTrackOrder">Thứ tự mới của track (từ 1 đến 100).</param>
-    /// <returns>Thông báo thành công hoặc NotFound.</returns>
+    /// <param name="newOrder">Thứ tự mới trong playlist.</param>
+    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
+    /// <returns>Kết quả cập nhật thứ tự bài hát.</returns>
     [HttpPatch("{playlistId}/tracks/{mediaItemId}/order")]
-    public async Task<IActionResult> UpdateTrackOrder(string playlistId, string mediaItemId, [FromQuery] int newTrackOrder)
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateTrackOrder(string playlistId, string mediaItemId, [FromQuery] int newOrder, CancellationToken ct)
     {
-        try
-        {
-            var command = new UpdateTrackOrderCommand(playlistId, mediaItemId, newTrackOrder);
-            await _updateTrackOrderHandler.HandleAsync(command);
-            return Ok(new { message = "Track order updated successfully" });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        await _mediator.Send(new UpdateTrackOrderCommand(playlistId, CurrentUserId, mediaItemId, newOrder), ct);
+        return Ok(ApiResponse<bool>.Ok(true, "Cập nhật thứ tự bài hát thành công."));
     }
 }

@@ -1,6 +1,7 @@
 // API/Controllers/AuthController.cs
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using TuneVault.Application.Common;
 using TuneVault.Application.Features.Auth.Commands.Login;
 using TuneVault.Application.Features.Auth.Commands.Register;
 using TuneVault.Application.Features.Auth.Commands.SendOtp;
@@ -28,15 +29,15 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _mediator.Send(command);
-            return Ok(new { success = true, data = result, message = (string?)null });
+            return Ok(ApiResponse<AuthResponseDto>.Ok(result, "Đăng nhập thành công."));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { success = false, data = (object?)null, message = ex.Message });
+            return Unauthorized(ApiResponse<object?>.Fail(ex.Message));
         }
         catch (DomainException ex)
         {
-            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+            return BadRequest(ApiResponse<object?>.Fail(ex.Message));
         }
     }
 
@@ -49,11 +50,11 @@ public class AuthController : ControllerBase
         try
         {
             await _mediator.Send(command);
-            return Ok(new { success = true, data = (object?)null, message = "OTP đã được gửi thành công." });
+            return Ok(ApiResponse<object?>.Ok(null, "OTP đã được gửi thành công."));
         }
         catch (DomainException ex)
         {
-            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+            return BadRequest(ApiResponse<object?>.Fail(ex.Message));
         }
     }
 
@@ -66,11 +67,11 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _mediator.Send(command);
-            return Ok(new { success = true, data = result, message = (string?)null });
+            return Ok(ApiResponse<AuthResponseDto>.Ok(result, "Đăng ký tài khoản thành công."));
         }
         catch (DomainException ex)
         {
-            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+            return BadRequest(ApiResponse<object?>.Fail(ex.Message));
         }
     }
 
@@ -83,11 +84,11 @@ public class AuthController : ControllerBase
         try
         {
             await _mediator.Send(command);
-            return Ok(new { success = true, data = (object?)null, message = "Mật khẩu đã được đặt lại thành công." });
+            return Ok(ApiResponse<object?>.Ok(null, "Mật khẩu đã được đặt lại thành công."));
         }
         catch (DomainException ex)
         {
-            return BadRequest(new { success = false, data = (object?)null, message = ex.Message });
+            return BadRequest(ApiResponse<object?>.Fail(ex.Message));
         }
     }
 }

@@ -1,11 +1,9 @@
 using Dapper;
 using System.Data;
-// Corrected using directive for INotificationCommandRepository
 using TuneVault.Application.Features.Notification.Commands; 
-using TuneVault.Application.Features.Notification.Queries.GetNotifications;
+using TuneVault.Application.Features.Notification.Queries;
 using AppNotificationInsertModel = TuneVault.Application.Features.Notification.Commands.NotificationInsertModel;
-using TuneVault.Domain.Interfaces; // Added for IDbConnectionFactory
-using TuneVault.Infrastructure.Persistence; // Keep this for IDbConnectionFactory
+using TuneVault.Infrastructure.Persistence;
 
 namespace TuneVault.Infrastructure.Repositories
 {
@@ -36,9 +34,9 @@ namespace TuneVault.Infrastructure.Repositories
 
             await connection.ExecuteAsync(@"
                 INSERT INTO Notifications
-                    (Id, UserId, SenderId, NotifyType, Title, Message, IsRead, CreatedAt, IsActive)
+                    (Id, UserId, SenderId, NotifyType, Title, Message, TargetType, TargetId, IsRead, CreatedAt, IsActive)
                 VALUES
-                    (@Id, @UserId, @SenderId, @NotifyType, @Title, @Message, 0, GETDATE(), 1);",
+                    (@Id, @UserId, @SenderId, @NotifyType, @Title, @Message, @TargetType, @TargetId, 0, GETDATE(), 1);",
                 new
                 {
                     Id = notificationId,
@@ -46,7 +44,9 @@ namespace TuneVault.Infrastructure.Repositories
                     notification.SenderId,
                     notification.NotifyType,
                     notification.Title,
-                    notification.Message
+                    notification.Message,
+                    notification.TargetType,
+                    notification.TargetId
                 });
 
             return notificationId;
@@ -133,6 +133,24 @@ namespace TuneVault.Infrastructure.Repositories
                 });
 
             return affectedRows > 0;
+        }
+
+        /// <summary>
+        /// Đánh dấu toàn bộ notification còn hoạt động của user là đã đọc.
+        /// </summary>
+        public async Task<int> MarkAllAsReadAsync(string userId)
+        {
+            using var connection = _dbConnectionFactory.CreateConnection();
+
+            var affectedRows = await connection.ExecuteAsync(@"
+                UPDATE Notifications
+                SET IsRead = 1
+                WHERE UserId = @UserId
+                  AND IsActive = 1
+                  AND IsRead = 0;",
+                new { UserId = userId });
+
+            return affectedRows;
         }
 
         /// <summary>
@@ -256,6 +274,8 @@ namespace TuneVault.Infrastructure.Repositories
                     END AS Type,
                     n.Title,
                     n.Message,
+                    n.TargetType,
+                    n.TargetId,
                     n.IsRead,
                     CASE WHEN n.IsRead = 1 THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS HasRead,
                     CASE WHEN n.IsRead = 1 THEN N'Đã đọc' ELSE N'Chưa đọc' END AS ReadStatus,
@@ -297,3 +317,5 @@ namespace TuneVault.Infrastructure.Repositories
         }
     }
 }
+
+public sealed record UserBrief(string DisplayName, string IdDisplay, string AvatarUrl);

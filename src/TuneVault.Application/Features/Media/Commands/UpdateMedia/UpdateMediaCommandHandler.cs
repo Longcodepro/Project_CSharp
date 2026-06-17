@@ -58,6 +58,7 @@ public sealed class UpdateMediaCommandHandler : IRequestHandler<UpdateMediaComma
 
         // Step 6: Cập nhật chính sách truy cập (giữ nguyên trailer nếu đã có)
         mediaItem.UpdateAccessPolicy((AccessLevel)dto.AccessLevel, 0, 0);
+        mediaItem.SetVisibility(dto.IsPublic);
 
         // Step 7: Persist Entity vào database
         await _mediaRepository.UpdateAsync(mediaItem, ct);
@@ -73,14 +74,15 @@ public sealed class UpdateMediaCommandHandler : IRequestHandler<UpdateMediaComma
             Description:    mediaItem.Description,
             Genre:          mediaItem.Genre,
             Type:           mediaItem.Type.ToString(),
-            AudioUrl:       mediaItem.Type != Domain.Enums.MediaType.Video ? mediaItem.Url.Value : null,
-            VideoUrl:       mediaItem.Type == Domain.Enums.MediaType.Video ? mediaItem.Url.Value : null,
-            CoverImageUrl:  mediaItem.CoverImageUrl,
+            AudioUrl:       mediaItem.Type != Domain.Enums.MediaType.Video ? MediaEndpointBuilder.AudioStream(mediaItem.Id) : null,
+            VideoUrl:       mediaItem.Type == Domain.Enums.MediaType.Video ? MediaEndpointBuilder.VideoStream(mediaItem.Id) : null,
+            CoverImageUrl:  string.IsNullOrWhiteSpace(mediaItem.CoverImageUrl) ? null : MediaEndpointBuilder.Poster(mediaItem.Id),
             CanvasUrl:      mediaItem.CanvasUrl,
             DurationSeconds: mediaItem.Duration.TotalSeconds,
             AccessLevel:    mediaItem.AccessLevel.ToString(),
             IsPublic:       mediaItem.IsPublic,
             IsActive:       mediaItem.IsActive,
+            IsValid:        mediaItem.IsValid,
             FavoriteCount:  mediaItem.FavoriteCount,
             ViewCount:      mediaItem.ViewCount,
             UploadedAt:     mediaItem.UploadedAt,

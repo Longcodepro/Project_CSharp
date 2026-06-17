@@ -9,7 +9,6 @@ namespace TuneVault.Domain.Interfaces;
 /// - Tìm kiếm nghệ sĩ.
 /// - Tìm kiếm album.
 /// - Tìm kiếm playlist.
-/// - Lọc theo thể loại / genre.
 /// - Lấy danh sách trending, tức bài nghe nhiều nhất.
 /// 
 /// Lưu ý:
@@ -37,11 +36,6 @@ public interface ISearchRepository
     /// Tìm kiếm playlist theo keyword.
     /// </summary>
     Task<IEnumerable<dynamic>> SearchPlaylistsAsync(string keyword, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Lọc bài hát / podcast theo genre.
-    /// </summary>
-    Task<IEnumerable<dynamic>> SearchByGenreAsync(string genre, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lấy danh sách bài nghe nhiều nhất.

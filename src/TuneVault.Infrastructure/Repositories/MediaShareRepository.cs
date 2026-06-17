@@ -1,14 +1,14 @@
 using Dapper;
 using System.Data;
 using TuneVault.Application.Features.Share.Commands.ShareMedia;
-using TuneVault.Application.Features.Share.Queries.GetSharedWithMe;
+using TuneVault.Domain.Interfaces;
 using TuneVault.Infrastructure.Persistence;
 
-// namespace TuneVault.Infrastructure.Repositories;
+namespace TuneVault.Infrastructure.Repositories;
 
 public sealed class MediaShareRepository :
     IMediaShareCommandRepository,
-    IMediaShareQueryRepository
+    IMediaShareRepository
 {
     private readonly IDbConnectionFactory _dbConnectionFactory;
 
@@ -21,7 +21,8 @@ public sealed class MediaShareRepository :
         string senderId,
         string receiverId,
         string shareType,
-        string sharedItemId)
+        string sharedItemId,
+        string? message)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
 
@@ -40,77 +41,117 @@ public sealed class MediaShareRepository :
                 ReceiverId = receiverId,
                 SharedItemId = sharedItemId,
                 ShareType = shareTypeValue,
-                Message = (string?)null
+                Message = message
             });
 
         return shareId;
     }
 
-        public async Task<bool> TrackExistsAsync(string mediaItemId)
+    public async Task<bool> UserExistsAsync(string userId)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+
+        var count = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(1)
+            FROM Users
+            WHERE Id = @UserId
+              AND IsActive = 1;",
+            new { UserId = userId });
+
+        return count > 0;
+    }
+
+    public async Task<bool> TrackExistsAsync(string mediaItemId, string senderId)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
             var count = await connection.ExecuteScalarAsync<int>(@"
                 SELECT COUNT(1)
                 FROM MediaItems
-                WHERE Id = @MediaItemId;",
+                WHERE Id = @MediaItemId
+                  AND OwnerId = @SenderId
+                  AND IsActive = 1
+                  AND IsPublic = 1
+                  AND IsValid = 0;",
                 new
                 {
-                    MediaItemId = mediaItemId
+                    MediaItemId = mediaItemId,
+                    SenderId = senderId
                 });
 
             return count > 0;
-        }
+    }
 
-        public async Task<bool> AlbumExistsAsync(string albumId)
+        public async Task<bool> AlbumExistsAsync(string albumId, string senderId)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
             var count = await connection.ExecuteScalarAsync<int>(@"
                 SELECT COUNT(1)
                 FROM Albums
-                WHERE Id = @AlbumId;",
+                WHERE Id = @AlbumId
+                  AND ArtistId = @SenderId
+                  AND IsActive = 1
+                  AND IsPublic = 1;",
                 new
                 {
-                    AlbumId = albumId
+                    AlbumId = albumId,
+                    SenderId = senderId
                 });
 
             return count > 0;
-        }
+    }
 
-        public async Task<bool> PlaylistExistsAsync(string playlistId)
+        public async Task<bool> PlaylistExistsAsync(string playlistId, string senderId)
         {
             using var connection = _dbConnectionFactory.CreateConnection();
 
             var count = await connection.ExecuteScalarAsync<int>(@"
                 SELECT COUNT(1)
                 FROM Playlists
-                WHERE Id = @PlaylistId;",
+                WHERE Id = @PlaylistId
+                  AND UserId = @SenderId
+                  AND IsActive = 1;",
                 new
                 {
-                    PlaylistId = playlistId
+                    PlaylistId = playlistId,
+                    SenderId = senderId
                 });
 
             return count > 0;
-        }
+    }
 
-        public async Task<IEnumerable<dynamic>> GetInboxSharesAsync(string receiverId)
+    public async Task<IEnumerable<dynamic>> GetSharedByMeAsync(string senderId, CancellationToken cancellationToken = default)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+
+        var sql = BaseShareSelectSql(@"
+                WHERE ms.SenderId = @SenderId
+                ORDER BY ms.SharedAt DESC;");
+
+        return await connection.QueryAsync(sql, new
         {
-            using var connection = _dbConnectionFactory.CreateConnection();
+            SenderId = senderId
+        });
+    }
 
-            var sql = BaseShareSelectSql(@"
+    public async Task<IEnumerable<dynamic>> GetSharedWithMeAsync(string receiverId, CancellationToken cancellationToken = default)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+
+        var sql = BaseShareSelectSql(@"
                 WHERE ms.ReceiverId = @ReceiverId
                 ORDER BY ms.SharedAt DESC;");
 
-            return await connection.QueryAsync(sql, new
-            {
-                ReceiverId = receiverId
-            });
-        }
-
-        public async Task<bool> MarkShareAsReadAsync(string shareId, string receiverId)
+        return await connection.QueryAsync(sql, new
         {
-            using var connection = _dbConnectionFactory.CreateConnection();
+            ReceiverId = receiverId
+        });
+    }
+
+    public async Task<bool> MarkShareAsReadAsync(string shareId, string receiverId)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
 
             var count = await connection.ExecuteScalarAsync<int>(@"
                 SELECT COUNT(1)
@@ -124,7 +165,7 @@ public sealed class MediaShareRepository :
                 });
 
             return count > 0;
-        }
+    }
 
     public Task<int> CountUnreadSharesAsync(string receiverId)
     {

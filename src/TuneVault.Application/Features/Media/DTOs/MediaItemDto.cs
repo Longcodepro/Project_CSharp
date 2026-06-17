@@ -18,6 +18,7 @@ namespace TuneVault.Application.Features.Media.DTOs;
 /// <param name="AccessLevel">Cấp độ truy cập: Normal hoặc Premium.</param>
 /// <param name="IsPublic">Trạng thái hiển thị công khai.</param>
 /// <param name="IsActive">Trạng thái hoạt động (false = đã xóa).</param>
+/// <param name="IsValid">Cờ vi phạm do admin bật. False = hoạt động bình thường, true = đang bị khóa.</param>
 /// <param name="FavoriteCount">Số lượt yêu thích.</param>
 /// <param name="ViewCount">Số lượt xem/nghe.</param>
 /// <param name="UploadedAt">Thời điểm tải lên (UTC).</param>
@@ -38,6 +39,7 @@ public sealed record MediaItemDto(
     string AccessLevel,
     bool IsPublic,
     bool IsActive,
+    bool IsValid,
     int FavoriteCount,
     int ViewCount,
     DateTime UploadedAt,
@@ -54,3 +56,24 @@ public sealed record MediaArtistDto(
     string ArtistId,
     string Role
 );
+
+/// <summary>
+/// Tạo các endpoint public để frontend phát media mà không cần biết path vật lý trên server.
+/// </summary>
+public static class MediaEndpointBuilder
+{
+    /// <summary>
+    /// Trả endpoint stream audio cho một media item.
+    /// </summary>
+    public static string AudioStream(string mediaId) => $"/api/media/{mediaId}/audio/stream";
+
+    /// <summary>
+    /// Trả endpoint stream video cho một media item.
+    /// </summary>
+    public static string VideoStream(string mediaId) => $"/api/media/{mediaId}/video/stream";
+
+    /// <summary>
+    /// Trả endpoint poster/thumbnail cho một media item.
+    /// </summary>
+    public static string Poster(string mediaId) => $"/api/media/{mediaId}/poster";
+}

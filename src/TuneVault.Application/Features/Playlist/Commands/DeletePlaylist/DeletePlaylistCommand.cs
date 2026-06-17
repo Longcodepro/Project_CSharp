@@ -1,3 +1,5 @@
+using MediatR;
+
 namespace TuneVault.Application.Features.Playlist.Commands.DeletePlaylist;
 
 /// <summary>
@@ -9,4 +11,4 @@ namespace TuneVault.Application.Features.Playlist.Commands.DeletePlaylist;
 /// - PlaylistController.Delete() tạo Command này và gửi cho DeletePlaylistCommandHandler
 /// </summary>
 /// <param name="PlaylistId">Mã định danh của Playlist cần xóa.</param>
-public sealed record DeletePlaylistCommand(string PlaylistId);
+public sealed record DeletePlaylistCommand(string PlaylistId, string UserId) : IRequest<Unit>;

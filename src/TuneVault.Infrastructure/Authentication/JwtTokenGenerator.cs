@@ -12,7 +12,7 @@ namespace TuneVault.Infrastructure.Authentication;
 /// Chịu trách nhiệm đọc các tham số bảo mật từ file cấu hình hệ thống (appsettings.json),
 /// mã hóa thông tin tài khoản thành chuỗi mã bảo mật phục vụ quá trình xác thực và phân quyền.
 /// </summary>
-public class JwtTokenGenerator : IJwtTokenGenerator
+public sealed class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly IConfiguration _configuration;
 
@@ -32,13 +32,15 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     /// <param name="username">Tên tài khoản hoặc Email định danh dùng để hiển thị trên hệ thống.</param>
     /// <param name="roles">Danh sách các vai trò/quyền hạn được cấp phép của tài khoản này.</param>
     /// <returns>Một chuỗi ký tự (string) đại diện cho mã thông báo JWT hợp lệ.</returns>
-    public string GenerateToken(string userId, string username, IEnumerable<string> roles)
+    public string GenerateToken(string userId, string email, string role)
     {
         // 1. Đọc các thông số cấu hình an toàn từ phân đoạn "JwtSettings" trong file appsettings.json
         string secretKey = _configuration["JwtSettings:SecretKey"] 
-            ?? "TuneVault_Fallback_Default_Secret_Key_For_Emergency_Case_2026";
-        string issuer = _configuration["JwtSettings:Issuer"] ?? "TuneVault_Backend_API";
-        string audience = _configuration["JwtSettings:Audience"] ?? "TuneVault_Client_Application";
+            ?? throw new InvalidOperationException("Không tìm thấy JWT SecretKey trong cấu hình.");
+        string issuer = _configuration["JwtSettings:Issuer"]
+            ?? throw new InvalidOperationException("Không tìm thấy JWT Issuer trong cấu hình.");
+        string audience = _configuration["JwtSettings:Audience"]
+            ?? throw new InvalidOperationException("Không tìm thấy JWT Audience trong cấu hình.");
         
         if (!int.TryParse(_configuration["JwtSettings:ExpireDays"], out int expireDays))
         {
@@ -49,14 +51,15 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId),         // Lưu trữ Id người dùng
-            new Claim(JwtRegisteredClaimNames.UniqueName, username), // Lưu trữ tên tài khoản/email đăng nhập
+            new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(JwtRegisteredClaimNames.UniqueName, email), // Lưu trữ tên tài khoản/email đăng nhập
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()) // Mã định danh duy nhất cho chính cái Token này
         };
 
         // 3. Duyệt qua danh sách quyền hạn truyền vào và đóng gói chúng thành các Claim thuộc loại Role
-        foreach (var role in roles)
+        foreach (var roleValue in role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim(ClaimTypes.Role, roleValue));
         }
 
         // 4. Tạo chìa khóa bảo mật mã hóa từ chuỗi SecretKey đã lấy ra từ cấu hình

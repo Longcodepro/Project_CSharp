@@ -1,4 +1,5 @@
 using TuneVault.Domain.Exceptions;
+using TuneVault.Domain.Enums;
 
 namespace TuneVault.Domain.Entities;
 
@@ -39,6 +40,15 @@ public class Album
     /// </summary>
     public bool IsActive { get; private set; } = true;
 
+    /// <summary>Trạng thái công khai của Album.</summary>
+    public bool IsPublic { get; private set; } = true;
+
+    /// <summary>Kiểu media chung của các bài trong album.</summary>
+    public MediaType? ContentType { get; private set; }
+
+    /// <summary>Ngày phát hành chính thức của Album.</summary>
+    public DateTime? ReleaseDate { get; private set; }
+
     /// <summary>Thời điểm khởi tạo Album trong hệ thống (UTC).</summary>
     public DateTime CreatedAt { get; private set; }
 
@@ -58,8 +68,15 @@ public class Album
     /// <param name="title">Tiêu đề Album (tối đa 24 ký tự).</param>
     /// <param name="description">Mô tả Album (nullable).</param>
     /// <param name="coverImageUrl">Đường dẫn ảnh bìa (nullable).</param>
-    public Album(string id, string artistId, string title,
-        string? description = null, string? coverImageUrl = null)
+    public Album(
+        string id,
+        string artistId,
+        string title,
+        string? description = null,
+        string? coverImageUrl = null,
+        bool isPublic = true,
+        MediaType? contentType = null,
+        DateTime? releaseDate = null)
     {
         ValidateId(id);
         ValidateArtistId(artistId);
@@ -76,6 +93,9 @@ public class Album
         Description = description?.Trim();
         CoverImageUrl = coverImageUrl?.Trim();
         IsActive = true;
+        IsPublic = isPublic;
+        ContentType = contentType;
+        ReleaseDate = releaseDate;
         CreatedAt = now;
     }
 
@@ -106,6 +126,34 @@ public class Album
         EnsureActive();
         ValidateCoverImageUrl(coverImageUrl);
         CoverImageUrl = coverImageUrl?.Trim();
+    }
+
+    /// <summary>Cập nhật trạng thái công khai của album.</summary>
+    /// <param name="isPublic">True nếu album được hiển thị công khai.</param>
+    public void SetPublic(bool isPublic)
+    {
+        EnsureActive();
+        IsPublic = isPublic;
+    }
+
+    /// <summary>Thiết lập kiểu media chung của album.</summary>
+    /// <param name="contentType">Kiểu media được phép thêm vào album.</param>
+    public void SetContentType(MediaType? contentType)
+    {
+        EnsureActive();
+        ContentType = contentType;
+    }
+
+    /// <summary>Cập nhật ngày phát hành khi album chưa phát hành.</summary>
+    /// <param name="releaseDate">Ngày phát hành mới.</param>
+    public void SetReleaseDate(DateTime? releaseDate)
+    {
+        EnsureActive();
+
+        if (ReleaseDate.HasValue && ReleaseDate.Value <= DateTime.UtcNow && ReleaseDate != releaseDate)
+            throw new DomainException("Không thể đổi ngày phát hành sau khi album đã phát hành.");
+
+        ReleaseDate = releaseDate;
     }
 
     /// <summary>

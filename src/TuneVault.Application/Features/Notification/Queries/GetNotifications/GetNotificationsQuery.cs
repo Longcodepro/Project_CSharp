@@ -1,57 +1,39 @@
-using System;
+using MediatR;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using TuneVault.Application.Features.Notification.DTOs;
+using TuneVault.Application.Features.Notification.Queries;
 
-namespace TuneVault.Application.Features.Notification.Queries.GetNotifications
+namespace TuneVault.Application.Features.Notification.Queries;
+
+public sealed record GetNotificationsQuery(string UserId, int Limit) : IRequest<IEnumerable<NotificationDto>>;
+
+public sealed class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuery, IEnumerable<NotificationDto>>
 {
-    public interface INotificationQueryRepository
+    private readonly INotificationQueryRepository _notificationRepository;
+
+    public GetNotificationsQueryHandler(INotificationQueryRepository notificationRepository)
     {
-        Task<IEnumerable<dynamic>> GetNotificationsAsync(string userId, int limit = 50);
-
-        Task<IEnumerable<dynamic>> GetUnreadNotificationsAsync(string userId, int limit = 50);
-
-        Task<int> CountUnreadNotificationsAsync(string userId);
+        _notificationRepository = notificationRepository;
     }
 
-    public sealed class GetNotificationsQuery
+    public async Task<IEnumerable<NotificationDto>> Handle(GetNotificationsQuery request, CancellationToken ct)
     {
-        private readonly INotificationQueryRepository _notificationRepository;
+        var notifications = await _notificationRepository.GetNotificationsAsync(request.UserId, request.Limit);
+        return notifications.Select(MapNotification);
+    }
 
-        public GetNotificationsQuery(INotificationQueryRepository notificationRepository)
-        {
-            _notificationRepository = notificationRepository;
-        }
+    internal static NotificationDto MapNotification(dynamic n)
+    {
+        var row = (IDictionary<string, object?>)n;
 
-        public async Task<IEnumerable<dynamic>> GetAllAsync(string userId, int limit = 50)
-        {
-            ValidateRequired(userId, nameof(userId));
-
-            return await _notificationRepository.GetNotificationsAsync(
-                userId.Trim(),
-                limit);
-        }
-
-        public async Task<IEnumerable<dynamic>> GetUnreadAsync(string userId, int limit = 50)
-        {
-            ValidateRequired(userId, nameof(userId));
-
-            return await _notificationRepository.GetUnreadNotificationsAsync(
-                userId.Trim(),
-                limit);
-        }
-
-        public async Task<int> CountUnreadAsync(string userId)
-        {
-            ValidateRequired(userId, nameof(userId));
-
-            return await _notificationRepository.CountUnreadNotificationsAsync(
-                userId.Trim());
-        }
-
-        private static void ValidateRequired(string value, string parameterName)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException($"{parameterName} không được để trống.", parameterName);
-        }
+        return new NotificationDto(
+            Id: row["Id"]?.ToString() ?? string.Empty,
+            UserId: row["UserId"]?.ToString() ?? string.Empty,
+            Type: row.TryGetValue("Type", out var type) ? type?.ToString() ?? string.Empty : string.Empty,
+            TargetType: row.TryGetValue("TargetType", out var targetType) && targetType is not null ? Convert.ToInt32(targetType) : null,
+            TargetId: row.TryGetValue("TargetId", out var targetId) ? targetId?.ToString() : null,
+            PayloadJson: row.TryGetValue("PayloadJson", out var payloadJson) ? payloadJson?.ToString() : null,
+            IsRead: row.TryGetValue("IsRead", out var isRead) && Convert.ToBoolean(isRead),
+            CreatedAt: row.TryGetValue("CreatedAt", out var createdAt) && createdAt is not null ? Convert.ToDateTime(createdAt) : DateTime.UtcNow);
     }
 }

@@ -1,15 +1,17 @@
 using Dapper;
 using System.Data;
-using TuneVault.Application.Features.Favorite.Commands;
-using TuneVault.Infrastructure.Persistence; // Added for IDbConnectionFactory
+using TuneVault.Domain.Entities;
+using TuneVault.Domain.Enums;
+using TuneVault.Domain.Interfaces;
+using TuneVault.Infrastructure.Persistence;
 
-// namespace TuneVault.Infrastructure.Repositories;
+namespace TuneVault.Infrastructure.Repositories;
 
 /// <summary>
 /// Repository xử lý SQL cho Favorite.
 /// Chỉ chứa SQL và helper liên quan trực tiếp đến Favorite.
 /// </summary>
-public sealed class FavoriteRepository : IFavoriteSqlRepository
+public sealed class FavoriteRepository : IFavoriteRepository
 {
     private readonly IDbConnectionFactory _dbConnectionFactory;
 
@@ -18,124 +20,84 @@ public sealed class FavoriteRepository : IFavoriteSqlRepository
         _dbConnectionFactory = dbConnectionFactory ?? throw new ArgumentNullException(nameof(dbConnectionFactory));
     }
 
-    public async Task<bool> IsFavoriteAsync(string userId, string mediaItemId)
+    public async Task<Favorite?> GetByUserIdAndMediaItemIdAsync(string userId, string mediaItemId, CancellationToken ct = default)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
 
-        var count = await connection.ExecuteScalarAsync<int>(@"
-            SELECT COUNT(1)
+        const string sql = @"
+            SELECT
+                Id,
+                UserId,
+                MediaItemId,
+                Reaction,
+                LikedAt
             FROM Favorites
             WHERE UserId = @UserId
-              AND MediaItemId = @MediaItemId;",
-            new
+              AND MediaItemId = @MediaItemId;";
+
+        var favorite = await connection.QueryFirstOrDefaultAsync<FavoriteRow>(
+            new CommandDefinition(sql, new
             {
                 UserId = userId,
                 MediaItemId = mediaItemId
-            });
+            }, cancellationToken: ct));
+
+        return favorite is null ? null : ToEntity(favorite);
+    }
+
+    public async Task<IReadOnlyCollection<Favorite>> GetByUserIdAsync(string userId, CancellationToken ct = default)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+
+        const string sql = @"
+            SELECT
+                Id,
+                UserId,
+                MediaItemId,
+                Reaction,
+                LikedAt
+            FROM Favorites
+            WHERE UserId = @UserId
+            ORDER BY LikedAt DESC;";
+
+        var result = await connection.QueryAsync<FavoriteRow>(
+            new CommandDefinition(sql, new
+            {
+                UserId = userId
+            }, cancellationToken: ct));
+
+        return result.Select(ToEntity).ToList();
+    }
+
+    public async Task<bool> MediaItemExistsAsync(string mediaItemId, CancellationToken ct = default)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+
+        const string sql = """
+            SELECT COUNT(1)
+            FROM MediaItems
+            WHERE Id = @MediaItemId
+              AND IsActive = 1
+              AND IsPublic = 1
+              AND IsValid = 0;
+            """;
+
+        var count = await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql, new { MediaItemId = mediaItemId }, cancellationToken: ct));
 
         return count > 0;
     }
 
-    public async Task<IEnumerable<dynamic>> GetByUserIdAsync(string userId)
+    public async Task AddAsync(Favorite favorite, CancellationToken ct = default)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
 
-        var sql = @"
-            SELECT
-                m.Id,
-                m.OwnerId,
-                m.Title,
-                m.Description,
-                COALESCE(m.AudioUrl, m.VideoUrl) AS MediaUrl,
-                m.AudioUrl,
-                m.VideoUrl,
-                m.CoverImageUrl,
-                m.CoverImageUrl AS CoverImgUrl,
-                m.CanvasUrl,
-                m.DurationSeconds,
-                m.DurationSeconds AS Duration,
-                m.MediaType,
-                m.MediaType AS Type,
-                m.Genre,
-                m.IsPublic,
-                m.UploadedAt,
-                m.ReleaseDate,
-                m.ViewCount,
-                f.Id AS FavoriteId,
-                f.Reaction,
-                CASE f.Reaction
-                    WHEN 2 THEN 'Love'
-                    WHEN 3 THEN 'Chill'
-                    WHEN 4 THEN 'Energetic'
-                    ELSE 'Like'
-                END AS LikeStatus,
-                f.LikedAt
-            FROM Favorites f
-            INNER JOIN MediaItems m ON f.MediaItemId = m.Id
-            WHERE f.UserId = @UserId
-            ORDER BY f.LikedAt DESC;";
+        var id = await GenerateNextFavoriteIdAsync(connection, transaction, ct);
+        favorite.Id = id;
 
-        return await connection.QueryAsync(sql, new
-        {
-            UserId = userId
-        });
-    }
-
-    public async Task ToggleAsync(string userId, string mediaItemId)
-    {
-        var isFavorite = await IsFavoriteAsync(userId, mediaItemId);
-
-        if (isFavorite)
-        {
-            await RemoveAsync(userId, mediaItemId);
-            return;
-        }
-
-        await SetReactionAsync(userId, mediaItemId, "Like");
-    }
-
-    public async Task SetReactionAsync(string userId, string mediaItemId, string reaction)
-    {
-        if (string.Equals(reaction, "Dislike", StringComparison.OrdinalIgnoreCase))
-        {
-            await RemoveAsync(userId, mediaItemId);
-            return;
-        }
-
-        using var connection = _dbConnectionFactory.CreateConnection();
-
-        var reactionValue = ToFavoriteReaction(reaction);
-
-        var existingId = await connection.QueryFirstOrDefaultAsync<string?>(@"
-            SELECT Id
-            FROM Favorites
-            WHERE UserId = @UserId
-              AND MediaItemId = @MediaItemId;",
-            new
-            {
-                UserId = userId,
-                MediaItemId = mediaItemId
-            });
-
-        if (!string.IsNullOrWhiteSpace(existingId))
-        {
-            await connection.ExecuteAsync(@"
-                UPDATE Favorites
-                SET Reaction = @Reaction,
-                    LikedAt = GETDATE()
-                WHERE Id = @Id;",
-                new
-                {
-                    Id = existingId,
-                    Reaction = reactionValue
-                });
-
-            return;
-        }
-
-        var id = await GenerateNextFavoriteIdAsync(connection);
-
-        await connection.ExecuteAsync(@"
+        await connection.ExecuteAsync(new CommandDefinition(@"
             INSERT INTO Favorites
                 (Id, UserId, MediaItemId, Reaction, LikedAt)
             VALUES
@@ -146,46 +108,89 @@ public sealed class FavoriteRepository : IFavoriteSqlRepository
             WHERE Id = @MediaItemId;",
             new
             {
-                Id = id,
-                UserId = userId,
-                MediaItemId = mediaItemId,
-                Reaction = reactionValue
-            });
+                favorite.Id,
+                favorite.UserId,
+                favorite.MediaItemId,
+                Reaction = (byte)favorite.Reaction
+            },
+            transaction,
+            cancellationToken: ct));
+
+        transaction.Commit();
     }
 
-    public async Task RemoveAsync(string userId, string mediaItemId)
+    public async Task UpdateAsync(Favorite favorite, CancellationToken ct = default)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
 
-        await connection.ExecuteAsync(@"
-            DELETE FROM Favorites
-            WHERE UserId = @UserId
-              AND MediaItemId = @MediaItemId;
+        await connection.ExecuteAsync(new CommandDefinition(@"
+            UPDATE Favorites
+            SET Reaction = @Reaction,
+                LikedAt = GETDATE()
+            WHERE Id = @Id;",
+            new
+            {
+                Reaction = (byte)favorite.Reaction,
+                favorite.Id
+            },
+            cancellationToken: ct));
+    }
 
-            IF @@ROWCOUNT > 0
-            BEGIN
+    public async Task RemoveAsync(string id, CancellationToken ct = default)
+    {
+        using var connection = _dbConnectionFactory.CreateConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        // First, get the MediaItemId associated with the Favorite to update FavoriteCount
+        var mediaItemId = await connection.QueryFirstOrDefaultAsync<string?>(
+            new CommandDefinition(
+                "SELECT MediaItemId FROM Favorites WHERE Id = @Id",
+                new { Id = id },
+                transaction,
+                cancellationToken: ct));
+
+        await connection.ExecuteAsync(new CommandDefinition(@"
+            DELETE FROM Favorites
+            WHERE Id = @Id;",
+            new
+            {
+                Id = id
+            },
+            transaction,
+            cancellationToken: ct));
+
+        if (!string.IsNullOrEmpty(mediaItemId))
+        {
+            await connection.ExecuteAsync(new CommandDefinition(@"
                 UPDATE MediaItems
                 SET FavoriteCount = CASE
                     WHEN FavoriteCount > 0 THEN FavoriteCount - 1
                     ELSE 0
                 END
-                WHERE Id = @MediaItemId;
-            END",
-            new
-            {
-                UserId = userId,
-                MediaItemId = mediaItemId
-            });
+                WHERE Id = @MediaItemId;",
+                new
+                {
+                    MediaItemId = mediaItemId
+                },
+                transaction,
+                cancellationToken: ct));
+        }
+
+        transaction.Commit();
     }
 
     /// <summary>
     /// Tạo Id Favorite dạng FV001, FV002, FV003...
     /// </summary>
-    private static async Task<string> GenerateNextFavoriteIdAsync(IDbConnection connection)
+    private static async Task<string> GenerateNextFavoriteIdAsync(
+        IDbConnection connection,
+        IDbTransaction transaction,
+        CancellationToken ct)
     {
         const string prefix = "FV";
 
-        var nextNumber = await connection.ExecuteScalarAsync<int>(@"
+        var nextNumber = await connection.ExecuteScalarAsync<int>(new CommandDefinition(@"
             SELECT ISNULL(MAX(TRY_CONVERT(int, SUBSTRING(Id, LEN(@Prefix) + 1, 20))), 0) + 1
             FROM Favorites
             WHERE Id LIKE @PrefixLike;",
@@ -193,34 +198,29 @@ public sealed class FavoriteRepository : IFavoriteSqlRepository
             {
                 Prefix = prefix,
                 PrefixLike = prefix + "%"
-            });
+            },
+            transaction,
+            cancellationToken: ct));
 
         return $"{prefix}{nextNumber:000}";
     }
 
     /// <summary>
-    /// Chuyển reaction dạng string sang số lưu trong database.
-    /// 1 = Like, 2 = Love, 3 = Chill, 4 = Energetic.
+    /// Dòng dữ liệu Favorite đọc trực tiếp từ SQL, giữ Reaction đúng kiểu tinyint trước khi map sang enum.
     /// </summary>
-    private static int ToFavoriteReaction(string? reaction)
-    {
-        return Normalize(reaction) switch
-        {
-            "love" => 2,
-            "chill" => 3,
-            "energetic" => 4,
-            _ => 1
-        };
-    }
+    private sealed record FavoriteRow(
+        string Id,
+        string UserId,
+        string MediaItemId,
+        byte Reaction,
+        DateTime LikedAt);
 
-    private static string Normalize(string? value)
+    /// <summary>
+    /// Map dữ liệu SQL sang entity Favorite để tầng Application không phụ thuộc Dapper row.
+    /// </summary>
+    private static Favorite ToEntity(FavoriteRow row)
     {
-        return string.IsNullOrWhiteSpace(value)
-            ? string.Empty
-            : value.Trim()
-                   .Replace(" ", string.Empty)
-                   .Replace("_", string.Empty)
-                   .Replace("-", string.Empty)
-                   .ToLowerInvariant();
+        var reaction = (FavoriteReaction)row.Reaction;
+        return new Favorite(row.Id, row.UserId, row.MediaItemId, reaction);
     }
 }

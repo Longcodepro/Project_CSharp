@@ -1,4 +1,5 @@
-using TuneVault.Application.Features.Playlist.Commands.DeletePlaylist;
+using MediatR;
+using TuneVault.Domain.Exceptions;
 using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Playlist.Commands.DeletePlaylist;
@@ -18,7 +19,7 @@ namespace TuneVault.Application.Features.Playlist.Commands.DeletePlaylist;
 /// - Đảm bảo toàn vẹn Aggregate Root
 /// - Logic nghiệp vụ trước khi xóa tập trung trong Entity
 /// </summary>
-public sealed class DeletePlaylistCommandHandler
+public sealed class DeletePlaylistCommandHandler : IRequestHandler<DeletePlaylistCommand, Unit>
 {
     private readonly IPlaylistRepository _playlistRepository;
 
@@ -37,17 +38,19 @@ public sealed class DeletePlaylistCommandHandler
     /// </summary>
     /// <param name="command">Command chứa PlaylistId cần xóa.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>
-    /// <exception cref="InvalidOperationException">Ném ra khi Playlist không tồn tại.</exception>
-    public async Task HandleAsync(DeletePlaylistCommand command, CancellationToken cancellationToken = default)
+    /// <exception cref="DomainException">Ném ra khi Playlist không tồn tại.</exception>
+    /// <exception cref="ForbiddenAccessException">Ném ra khi user không phải chủ playlist.</exception>
+    public async Task<Unit> Handle(DeletePlaylistCommand command, CancellationToken cancellationToken)
     {
-        // Lấy Playlist từ Database — kiểm tra tồn tại
         var playlist = await _playlistRepository.GetByIdAsync(command.PlaylistId, cancellationToken)
-            ?? throw new InvalidOperationException($"Playlist '{command.PlaylistId}' không tồn tại.");
+            ?? throw new DomainException("Không tìm thấy playlist.");
 
-        // Gọi Entity.Delete() — Entity thực thi logic nghiệp vụ trước khi xóa
+        if (playlist.UserId != command.UserId)
+            throw new ForbiddenAccessException("Bạn không có quyền xóa playlist này.");
+
         playlist.Delete();
 
-        // Gọi Repository xóa Playlist khỏi Database
         await _playlistRepository.DeleteAsync(command.PlaylistId, cancellationToken);
+        return Unit.Value;
     }
 }

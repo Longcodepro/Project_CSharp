@@ -66,7 +66,7 @@ public sealed class UserRepository : IUserRepository
     /// <returns>User object hoặc null</returns>
     public async Task<User?> GetByIdDisplayAsync(string idDisplay, CancellationToken ct)
     {
-        const string sql = "SELECT * FROM Users WHERE IdDisplay = @IdDisplay";
+        const string sql = "SELECT * FROM Users WHERE IdDisplay = @IdDisplay AND IsActive = 1";
         using var conn = _db.CreateConnection();
         return await conn.QuerySingleOrDefaultAsync<User?>(
             new CommandDefinition(sql, new { IdDisplay = idDisplay }, cancellationToken: ct));
@@ -103,7 +103,7 @@ public sealed class UserRepository : IUserRepository
     /// <returns>IEnumerable&lt;User&gt; danh sách artists</returns>
     public async Task<IEnumerable<User>> GetAllArtistsAsync(CancellationToken ct)
     {
-        const string sql = "SELECT * FROM Users WHERE IsArtist = 1 ORDER BY DisplayName ASC";
+        const string sql = "SELECT * FROM Users WHERE IsArtist = 1 AND IsActive = 1 ORDER BY DisplayName ASC";
         using var conn = _db.CreateConnection();
         return await conn.QueryAsync<User>(
             new CommandDefinition(sql, cancellationToken: ct));
