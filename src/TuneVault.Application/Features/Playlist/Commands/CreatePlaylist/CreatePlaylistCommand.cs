@@ -1,5 +1,11 @@
-using TuneVault.Application.DTOs.Playlist;
+using MediatR;
+using TuneVault.Application.Features.Playlist.DTOs;
 
 namespace TuneVault.Application.Features.Playlist.Commands.CreatePlaylist;
 
-public sealed record CreatePlaylistCommand(string OwnerId, CreatePlaylistRequestDto Request);
+/// <summary>
+/// Command dành cho chức năng tạo playlist.
+/// </summary>
+/// <param name="OwnerId">Mã user tạo playlist.</param>
+/// <param name="Request">Payload chứa tiêu đề, ảnh bìa và quyền công khai.</param>
+public sealed record CreatePlaylistCommand(string OwnerId, CreatePlaylistRequestDto Request) : IRequest<PlaylistDto>;
