@@ -1,0 +1,92 @@
+.video-player-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85); /* Darker background for video */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1002; /* Above player bar and modals */
+  padding: 20px; /* Add padding for smaller screens */
+  box-sizing: border-box;
+}
+
+.video-player-content {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  max-width: 900px; /* Max width for video player */
+  max-height: 85vh; /* Max height for video player */
+  overflow: hidden; /* Hide overflow */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.video-player-content .close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+  z-index: 10; /* Ensure close button is above video */
+}
+
+.video-player-content .close-button:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.video-player {
+  width: 100%;
+  height: auto; /* Adjust height automatically */
+  max-height: 70vh; /* Limit video height within the modal */
+  border-radius: 8px;
+  outline: none; /* Remove outline on focus */
+  background-color: #000; /* Black background for video element */
+}
+
+.no-video-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px; /* Placeholder height */
+  color: #ccc;
+  text-align: center;
+}
+
+.no-video-message p {
+  margin: 8px 0;
+}
+
+.video-info-section {
+  margin-top: 20px;
+  width: 100%;
+  text-align: center;
+  color: #fff;
+}
+
+.video-info-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.3rem;
+}
+
+.video-info-section p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #aaa;
+}
