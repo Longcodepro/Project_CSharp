@@ -5,8 +5,7 @@ import PlayerBar from './Components/PlayerBar';
 import FriendActivity from './Components/FriendActivity';
 import NotificationActivity from './Components/NotificationActivity';
 import AuthLoginModal from './Components/AuthLoginModal';
-import PlaylistModal from './Components/PlaylistModal'; // Import PlaylistModal
-import VideoPlayerView from './Components/VideoPlayerView';
+import PlaylistModal from './Components/PlaylistModal';
 import MediaInfoPanel from './Components/MediaInfoPanel';
 import ListeningHistoryActivity from './Components/ListeningHistoryActivity';
 import {
@@ -37,7 +36,6 @@ const TypedFriendActivity = FriendActivity as ComponentType<any>;
 const TypedNotificationActivity = NotificationActivity as ComponentType<any>;
 const TypedAuthLoginModal = AuthLoginModal as ComponentType<any>;
 const TypedPlaylistModal = PlaylistModal as ComponentType<any>;
-const TypedVideoPlayerView = VideoPlayerView as ComponentType<any>;
 const TypedMediaInfoPanel = MediaInfoPanel as ComponentType<any>;
 const TypedListeningHistoryActivity = ListeningHistoryActivity as ComponentType<any>;
 
@@ -244,7 +242,6 @@ export default function App() {
   const [isManageDirty, setIsManageDirty] = useState<boolean>(false);
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState<boolean>(false); // State for playlist modal
   const [userPlaylists, setUserPlaylists] = useState<Record<string, unknown>[]>([]); // State for user's playlists
-  const [isVideoViewOpen, setIsVideoViewOpen] = useState<boolean>(false); // State for video view
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState<boolean>(false); // State for info panel
   const [availableReactions, setAvailableReactions] = useState<FavoriteReactionOption[]>([]); // State for available favorite reactions
   const [currentFavoriteReaction, setCurrentFavoriteReaction] = useState<string | null>(null); // State for current favorite reaction of the playing track
@@ -333,7 +330,6 @@ export default function App() {
     setVolume(1); // Reset volume on logout
     setIsMuted(false); // Reset mute on logout
     setUserPlaylists([]); // Clear user playlists on logout
-    setIsVideoViewOpen(false); // Close video view on logout
     setIsInfoPanelOpen(false); // Close info panel on logout
     setAuthVersion((version) => version + 1);
   };
@@ -998,12 +994,7 @@ export default function App() {
     revokeCurrentAudioObjectUrl();
   }, []);
 
-  useEffect(() => {
-    if (isVideoViewOpen) {
-      audioRef.current?.pause();
-      setIsPlaying(false);
-    }
-  }, [isVideoViewOpen]);
+
 
   // Effect to fetch available reactions and current favorite status
   useEffect(() => {
@@ -1061,10 +1052,6 @@ export default function App() {
   }, [authVersion, isAuthenticated, playerTrack.id]); // Re-run when auth status or playing track changes
 
   const closeBodyOverlay = () => {
-    if (isVideoViewOpen) {
-      setIsVideoViewOpen(false);
-      return;
-    }
     if (isInfoPanelOpen) {
       setIsInfoPanelOpen(false);
       return;
@@ -1117,26 +1104,11 @@ export default function App() {
     }
   };
 
-  // Handler for opening the video view
-  const handleOpenVideoView = (): void => {
-    if (!playerTrack?.id) return; // Need a track to view video for
-    if (!playerTrack.mediaType || playerTrack.mediaType !== 'video') {
-      // Optionally show a message that this track is not a video
-      console.log('This track is not a video.');
-      return;
-    }
-    requireAuth('Đăng nhập để xem video.', () => {
-      setIsVideoViewOpen(true);
-      setIsInfoPanelOpen(false); // Close info panel if open
-    });
-  };
-
   // Handler for opening the media info panel
   const handleOpenInfoPanel = (): void => {
     if (!playerTrack?.id) return; // Need a track to view info for
     requireAuth('Đăng nhập để xem thông tin media.', () => {
       setIsInfoPanelOpen(true);
-      setIsVideoViewOpen(false); // Close info panel if open
     });
   };
   // Handlers for favorite reactions
@@ -1308,7 +1280,6 @@ export default function App() {
           onToggleMute={handleToggleMute}
           isMuted={isMuted}
           onAddPlaylist={handleOpenPlaylistModal} // Pass handler for add to playlist
-          onOpenVideo={handleOpenVideoView} // Pass handler for video view
           onOpenInfo={handleOpenInfoPanel} // Pass handler for info panel
           onToggleFavorite={handleToggleFavorite} // Pass handler for direct favorite click
           currentFavoriteReaction={currentFavoriteReaction} // Pass current favorite reaction
@@ -1319,13 +1290,7 @@ export default function App() {
         />
       ) : null}
 
-      <TypedVideoPlayerView
-        isOpen={isVideoViewOpen}
-        onClose={() => setIsVideoViewOpen(false)}
-        track={playerTrack}
-        audioRef={audioRef}
-        isPlaying={isPlaying}
-      />
+
 
       <TypedMediaInfoPanel
         isOpen={isInfoPanelOpen}
