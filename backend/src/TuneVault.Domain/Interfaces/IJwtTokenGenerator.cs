@@ -1,0 +1,1 @@
+// This file is intentionally empty. IJwtTokenGenerator is defined in TuneVault.Application.Interfaces.
