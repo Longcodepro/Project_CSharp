@@ -112,7 +112,11 @@ public sealed class MediaRepository : IMediaRepository
     /// <returns>IEnumerable&lt;MediaArtist&gt; danh sách artists</returns>
     public async Task<IEnumerable<MediaArtist>> GetArtistsByMediaIdAsync(string mediaItemId, CancellationToken ct = default)
     {
-        const string sql = "SELECT * FROM [MediaArtists] WHERE MediaItemId = @MediaItemId";
+        const string sql = @"
+            SELECT ma.MediaItemId, ma.ArtistId, ma.Role, u.DisplayName AS ArtistName
+            FROM [MediaArtists] ma
+            LEFT JOIN [Users] u ON ma.ArtistId = u.Id
+            WHERE ma.MediaItemId = @MediaItemId";
         using var conn = _db.CreateConnection();
         return await conn.QueryAsync<MediaArtist>(
             new CommandDefinition(sql, new { MediaItemId = mediaItemId }, cancellationToken: ct));

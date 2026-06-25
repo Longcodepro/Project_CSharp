@@ -53,7 +53,7 @@ public sealed class SearchRepository : ISearchRepository
             WHERE m.IsPublic = 1
               AND m.IsActive = 1
               AND m.IsValid = 0
-              AND m.Title LIKE @Keyword
+              AND (m.Title LIKE @Keyword OR u.DisplayName LIKE @Keyword)
             ORDER BY m.Title ASC;";
 
         using var conn = _db.CreateConnection();

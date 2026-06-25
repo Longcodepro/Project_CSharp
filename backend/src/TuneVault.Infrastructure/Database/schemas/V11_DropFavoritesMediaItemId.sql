@@ -7,13 +7,13 @@ BEGIN
     SELECT TOP (1)
         @favoriteMediaFk = fk.name
     FROM sys.foreign_keys fk
-    INNER JOIN sys.foreign_key_columns fkc
+        INNER JOIN sys.foreign_key_columns fkc
         ON fk.object_id = fkc.constraint_object_id
-    INNER JOIN sys.columns c
+        INNER JOIN sys.columns c
         ON c.object_id = fkc.parent_object_id
-       AND c.column_id = fkc.parent_column_id
+            AND c.column_id = fkc.parent_column_id
     WHERE fk.parent_object_id = OBJECT_ID(N'dbo.Favorites')
-      AND c.name = N'MediaItemId';
+        AND c.name = N'MediaItemId';
 
     IF @favoriteMediaFk IS NOT NULL
     BEGIN

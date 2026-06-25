@@ -98,6 +98,17 @@ export default function PlayerBar({
     setIsPickerVisible(false);
   };
 
+  const handleProgressClick = (e) => {
+    if (!playerTrack.durationSeconds || !onSeek) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    if (width <= 0) return;
+    const percentage = Math.max(0, Math.min(1, clickX / width));
+    const targetTime = percentage * playerTrack.durationSeconds;
+    onSeek(targetTime);
+  };
+
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
     onVolumeChange?.(newVolume);
@@ -108,6 +119,11 @@ export default function PlayerBar({
     : volume < 0.5
       ? 'volume_down'
       : 'volume_up';
+
+  const volumePercent = (isMuted ? 0 : volume) * 100;
+  const volumeSliderStyle = {
+    background: `linear-gradient(to right, var(--primary) ${volumePercent}%, var(--surface-container-highest) ${volumePercent}%)`
+  };
 
   return (
     <footer className="player-bar">
@@ -122,7 +138,7 @@ export default function PlayerBar({
         <button type="button" aria-label="Thêm vào playlist" onClick={onAddPlaylist || requirePlayerAuth}>
           <span className="material-symbols-outlined">playlist_add</span>
         </button>
-        <div className="player-favorite-container">
+        <div className="player-favorite-container" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
             type="button"
             aria-label="Yêu thích"
@@ -133,6 +149,11 @@ export default function PlayerBar({
           >
             <span className="material-symbols-outlined fill-icon">favorite</span>
           </button>
+          {playerTrack?.favoriteCount > 0 && (
+            <span className="favorite-count-badge" style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', fontWeight: '600' }}>
+              {playerTrack.favoriteCount}
+            </span>
+          )}
 
           {/* Reaction picker */}
           {isPickerVisible && (
@@ -180,35 +201,44 @@ export default function PlayerBar({
             <span className="material-symbols-outlined">skip_next</span>
           </button>
         </div>
+        <div className="player-progress-row">
+          <span>{playerTrack.currentTime}</span>
+          <div className="player-progress" onClick={handleProgressClick} style={{ cursor: 'pointer' }}>
+            <div style={progressStyle}></div>
+            <i style={knobStyle}></i>
+          </div>
+          <span>{playerTrack.duration}</span>
+        </div>
+      </div>
 
-        <div className="player-secondary">
-          <button type="button" aria-label="Xem video" onClick={onOpenVideo || requirePlayerAuth}>
-            <span className="material-symbols-outlined">slideshow</span>
+      <div className="player-secondary">
+        <button type="button" aria-label="Xem video" onClick={onOpenVideo || requirePlayerAuth}>
+          <span className="material-symbols-outlined">slideshow</span>
+        </button>
+        <button type="button" aria-label="Thông tin media" onClick={onOpenInfo || requirePlayerAuth}>
+          <span className="material-symbols-outlined">info</span>
+        </button>
+        <button type="button" aria-label="Micro" onClick={requirePlayerAuth}>
+          <span className="material-symbols-outlined">mic</span>
+        </button>
+        <button type="button" aria-label="Thiết bị" onClick={requirePlayerAuth}>
+          <span className="material-symbols-outlined">devices</span>
+        </button>
+        <div className="player-volume">
+          <button type="button" aria-label={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'} onClick={onToggleMute || requirePlayerAuth}>
+            <span className="material-symbols-outlined">{volumeIcon}</span>
           </button>
-          <button type="button" aria-label="Thông tin media" onClick={onOpenInfo || requirePlayerAuth}>
-            <span className="material-symbols-outlined">info</span>
-          </button>
-          <button type="button" aria-label="Micro" onClick={requirePlayerAuth}>
-            <span className="material-symbols-outlined">mic</span>
-          </button>
-          <button type="button" aria-label="Thiết bị" onClick={requirePlayerAuth}>
-            <span className="material-symbols-outlined">devices</span>
-          </button>
-          <div className="player-volume">
-            <button type="button" aria-label={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'} onClick={onToggleMute || requirePlayerAuth}>
-              <span className="material-symbols-outlined">{volumeIcon}</span>
-            </button>
-            <div className="player-volume-slider">
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={handleVolumeChange}
-                aria-label="Âm lượng"
-              />
-            </div>
+          <div className="player-volume-slider">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={isMuted ? 0 : volume}
+              onChange={handleVolumeChange}
+              style={volumeSliderStyle}
+              aria-label="Âm lượng"
+            />
           </div>
         </div>
         <button

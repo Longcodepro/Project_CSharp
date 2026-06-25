@@ -8,6 +8,11 @@ namespace TuneVault.Application.Features.User.DTOs;
 public record UserDto
 {
     /// <summary>
+    /// Mã định danh hệ thống của người dùng (ví dụ: U001).
+    /// </summary>
+    public string Id { get; init; } = string.Empty;
+
+    /// <summary>
     /// Handle hiển thị công khai của người dùng giữa các thành viên trong hệ thống (ví dụ: john_doe).
     /// Được dùng thay thế cho Id hệ thống khi hiển thị ra ngoài.
     /// </summary>

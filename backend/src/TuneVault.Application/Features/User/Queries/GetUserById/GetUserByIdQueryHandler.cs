@@ -44,6 +44,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserPub
 
         return new UserPublicDetailDto
         {
+            Id             = user.Id,
             IdDisplay      = user.IdDisplay,
             DisplayName    = user.DisplayName,
             AvatarUrl      = user.AvatarUrl,

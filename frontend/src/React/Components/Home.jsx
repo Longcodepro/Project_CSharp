@@ -10,6 +10,7 @@ import {
   getTrendingTracks,
   mediaPosterUrl,
   normalizeAssetUrl,
+  searchAll,
 } from '../../../Services/MediaService.tsx';
 import ManageStudio from './ManageStudio';
 import '../../CSS/Home.css';
@@ -269,6 +270,7 @@ function ArtistStrip({ artists, onOpenArtistProfile }) {
 }
 
 export default function Home({
+  audioRef = null,
   activePanel = null,
   onTogglePanel,
   isNowPlayingExpanded = false,
@@ -292,6 +294,20 @@ export default function Home({
   onProfileDirtyChange,
   onProfileSaved,
   onManageDirtyChange,
+  onNavBack,
+  onNavForward,
+  canNavBack = false,
+  canNavForward = false,
+  isPlaying = false,
+  onTogglePlay,
+  onPlayNext,
+  onPlayPrevious,
+  isNextDisabled = false,
+  isPreviousDisabled = false,
+  onSeek,
+  manageInitialTab = null,
+  manageInitialEntityId = null,
+  onClearManageInit = null,
 }) {
   const [activeContentTab, setActiveContentTab] = useState('all');
   const [contentSections, setContentSections] = useState({
@@ -305,6 +321,30 @@ export default function Home({
   const [artists, setArtists] = useState([]);
   const [contentLoading, setContentLoading] = useState(true);
   const [contentError, setContentError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  const handleSearchChange = async (event) => {
+    const value = event.target.value;
+    setSearchQuery(value);
+
+    if (!value.trim()) {
+      setSearchResults(null);
+      return;
+    }
+
+    try {
+      setSearchLoading(true);
+      const res = await searchAll(value, 1, 50);
+      setSearchResults(res);
+    } catch (err) {
+      console.error('[TuneVault] Search error:', err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const defaultAvatarUrl = normalizeAssetUrl(currentUserAvatarUrl)
     || normalizeAssetUrl('/uploads/avatars/Default.png')
     || fallbackAvatarSvg;
@@ -383,6 +423,17 @@ export default function Home({
 
   const detailItems = contentSections[activeContentTab] || [];
 
+  const searchData = searchResults?.data || searchResults;
+  const searchArtistsMapped = searchData?.artists
+    ? searchData.artists.map((artist, idx) => buildArtistItem(artist, idx))
+    : [];
+  const searchMediaMapped = searchData?.media
+    ? searchData.media.map((item) => buildMediaItem(item))
+    : [];
+  const searchPlaylistsMapped = searchData?.playlists
+    ? searchData.playlists.map((item) => buildCollectionItem(item, 'playlist'))
+    : [];
+
   return (
     <main className="home-panel">
       <div className="background-glow">
@@ -392,10 +443,22 @@ export default function Home({
       <header className={`home-header${isRightPanelOpen ? ' panel-open' : ''}`}>
         <div className="header-left">
           <div className="nav-controls">
-            <button type="button" aria-label="Quay lại">
+            <button
+              type="button"
+              aria-label="Quay lại"
+              onClick={onNavBack}
+              className={!canNavBack ? 'muted' : ''}
+              disabled={!canNavBack}
+            >
               <span className="material-symbols-outlined">chevron_left</span>
             </button>
-            <button className="muted" type="button" aria-label="Đi tới">
+            <button
+              type="button"
+              aria-label="Đi tới"
+              onClick={onNavForward}
+              className={!canNavForward ? 'muted' : ''}
+              disabled={!canNavForward}
+            >
               <span className="material-symbols-outlined">chevron_right</span>
             </button>
           </div>
@@ -407,7 +470,12 @@ export default function Home({
 
             <label className="main-search">
               <span className="material-symbols-outlined">search</span>
-              <input type="text" placeholder="Bạn muốn phát gì?" />
+              <input
+                type="text"
+                placeholder="Bạn muốn phát gì?"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
             </label>
           </div>
         </div>
@@ -422,6 +490,15 @@ export default function Home({
               onClick={() => onTogglePanel?.('notifications')}
             >
               <span className="material-symbols-outlined">notifications</span>
+            </button>
+            <button
+              className={activePanel === 'history' ? 'active' : ''}
+              type="button"
+              aria-label="Lịch sử nghe"
+              aria-pressed={activePanel === 'history'}
+              onClick={() => onTogglePanel?.('history')}
+            >
+              <span className="material-symbols-outlined">history</span>
             </button>
             <button
               className={activePanel === 'friends' ? 'active' : ''}
@@ -508,59 +585,122 @@ export default function Home({
           isAuthenticated={isAuthenticated}
           onRequireAuth={onRequireAuth}
           onDirtyChange={onManageDirtyChange}
+          initialTab={manageInitialTab}
+          initialEntityId={manageInitialEntityId}
+          onClearInit={onClearManageInit}
         />
       ) : isNowPlayingExpanded ? (
-        <NowPlayingView track={track} />
+        <NowPlayingView
+          track={track}
+          isPlaying={isPlaying}
+          onTogglePlay={onTogglePlay}
+          onPlayNext={onPlayNext}
+          onPlayPrevious={onPlayPrevious}
+          isNextDisabled={isNextDisabled}
+          isPreviousDisabled={isPreviousDisabled}
+          onSeek={onSeek}
+          audioRef={audioRef}
+        />
       ) : (
         <>
           <div className="home-content">
-            <section className="content-hero">
-              <h1>Nội dung nổi bật</h1>
-              <span>Xếp theo lượt thích.</span>
-            </section>
-
-            <div className="filter-chips content-tabs" role="tablist" aria-label="Lọc nội dung">
-              {contentTabs.map((tab) => (
-                <button
-                  className={activeContentTab === tab.key ? 'active' : ''}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeContentTab === tab.key}
-                  key={tab.key}
-                  onClick={() => setActiveContentTab(tab.key)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {contentLoading ? (
-              <div className="content-state">Đang tải nội dung...</div>
-            ) : contentError ? (
-              <div className="content-state content-state-error">{contentError}</div>
-            ) : activeContentTab === 'all' ? (
+            {searchQuery.trim() ? (
               <>
-                {['album', 'playlist', 'audio', 'song', 'video', 'podcast'].map((sectionKey) => (
-                  <ContentSection
-                    key={sectionKey}
-                    title={sectionLabels[sectionKey]}
-                    items={(contentSections[sectionKey] || []).slice(0, 10)}
-                    onPlayMedia={onPlayMedia}
-                    onOpenCollection={onOpenCollection}
-                  />
-                ))}
-                <ArtistStrip artists={artists} onOpenArtistProfile={onOpenArtistProfile} />
+                <section className="content-hero">
+                  <h1>Kết quả tìm kiếm cho "{searchQuery}"</h1>
+                  {searchLoading ? (
+                    <span>Đang tìm kiếm...</span>
+                  ) : (
+                    <span>Tìm thấy {searchData?.totalCount || 0} kết quả.</span>
+                  )}
+                </section>
+
+                {searchLoading ? (
+                  <div className="content-state">Đang tải kết quả tìm kiếm...</div>
+                ) : !searchResults || (searchData?.totalCount ?? 0) === 0 ? (
+                  <div className="section-empty-state">Không tìm thấy kết quả phù hợp cho từ khóa này.</div>
+                ) : (
+                  <>
+                    {searchArtistsMapped.length > 0 && (
+                      <ArtistStrip
+                        artists={searchArtistsMapped}
+                        onOpenArtistProfile={onOpenArtistProfile}
+                      />
+                    )}
+
+                    {searchMediaMapped.length > 0 && (
+                      <ContentSection
+                        title="Bài hát & Video"
+                        items={searchMediaMapped}
+                        variant="grid"
+                        onPlayMedia={onPlayMedia}
+                        onOpenCollection={onOpenCollection}
+                      />
+                    )}
+
+                    {searchPlaylistsMapped.length > 0 && (
+                      <ContentSection
+                        title="Playlist & Album"
+                        items={searchPlaylistsMapped}
+                        variant="grid"
+                        onPlayMedia={onPlayMedia}
+                        onOpenCollection={onOpenCollection}
+                      />
+                    )}
+                  </>
+                )}
               </>
             ) : (
               <>
-                <ContentSection
-                  title={sectionLabels[activeContentTab] || 'Nội dung'}
-                  items={detailItems.slice(0, 15)}
-                  variant="grid"
-                  onPlayMedia={onPlayMedia}
-                  onOpenCollection={onOpenCollection}
-                />
-                <ArtistStrip artists={artists} onOpenArtistProfile={onOpenArtistProfile} />
+                <section className="content-hero">
+                  <h1>Nội dung nổi bật</h1>
+                  <span>Xếp theo lượt thích.</span>
+                </section>
+
+                <div className="filter-chips content-tabs" role="tablist" aria-label="Lọc nội dung">
+                  {contentTabs.map((tab) => (
+                    <button
+                      className={activeContentTab === tab.key ? 'active' : ''}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeContentTab === tab.key}
+                      key={tab.key}
+                      onClick={() => setActiveContentTab(tab.key)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {contentLoading ? (
+                  <div className="content-state">Đang tải nội dung...</div>
+                ) : contentError ? (
+                  <div className="content-state content-state-error">{contentError}</div>
+                ) : activeContentTab === 'all' ? (
+                  <>
+                    {['album', 'playlist', 'audio', 'song', 'video', 'podcast'].map((sectionKey) => (
+                      <ContentSection
+                        key={sectionKey}
+                        title={sectionLabels[sectionKey]}
+                        items={(contentSections[sectionKey] || []).slice(0, 10)}
+                        onPlayMedia={onPlayMedia}
+                        onOpenCollection={onOpenCollection}
+                      />
+                    ))}
+                    <ArtistStrip artists={artists} onOpenArtistProfile={onOpenArtistProfile} />
+                  </>
+                ) : (
+                  <>
+                    <ContentSection
+                      title={sectionLabels[activeContentTab] || 'Nội dung'}
+                      items={detailItems.slice(0, 15)}
+                      variant="grid"
+                      onPlayMedia={onPlayMedia}
+                      onOpenCollection={onOpenCollection}
+                    />
+                    <ArtistStrip artists={artists} onOpenArtistProfile={onOpenArtistProfile} />
+                  </>
+                )}
               </>
             )}
           </div>

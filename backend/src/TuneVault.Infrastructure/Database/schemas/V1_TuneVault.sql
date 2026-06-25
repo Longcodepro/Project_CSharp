@@ -4,7 +4,8 @@
 
 -- DROP TABLE TuneVault.dbo.AccountTiers;
 
-CREATE TABLE TuneVault.dbo.AccountTiers (
+CREATE TABLE TuneVault.dbo.AccountTiers
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Code varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Name nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -30,7 +31,8 @@ CREATE TABLE TuneVault.dbo.AccountTiers (
 
 -- DROP TABLE TuneVault.dbo.Admins;
 
-CREATE TABLE TuneVault.dbo.Admins (
+CREATE TABLE TuneVault.dbo.Admins
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Email varchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -49,7 +51,8 @@ CREATE TABLE TuneVault.dbo.Admins (
 
 -- DROP TABLE TuneVault.dbo.Ads;
 
-CREATE TABLE TuneVault.dbo.Ads (
+CREATE TABLE TuneVault.dbo.Ads
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Title nvarchar(200) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Advertiser nvarchar(200) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -69,7 +72,8 @@ CREATE TABLE TuneVault.dbo.Ads (
 
 -- DROP TABLE TuneVault.dbo.Users;
 
-CREATE TABLE TuneVault.dbo.Users (
+CREATE TABLE TuneVault.dbo.Users
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	IdDisplay varchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	DisplayName nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -93,7 +97,8 @@ CREATE TABLE TuneVault.dbo.Users (
 
 -- DROP TABLE TuneVault.dbo.Albums;
 
-CREATE TABLE TuneVault.dbo.Albums (
+CREATE TABLE TuneVault.dbo.Albums
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	ArtistId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Title nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -115,7 +120,8 @@ CREATE TABLE TuneVault.dbo.Albums (
 
 -- DROP TABLE TuneVault.dbo.Follows;
 
-CREATE TABLE TuneVault.dbo.Follows (
+CREATE TABLE TuneVault.dbo.Follows
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	FollowerId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	FolloweeId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -125,9 +131,10 @@ CREATE TABLE TuneVault.dbo.Follows (
 	CONSTRAINT FK__Follows__Followe__01142BA1 FOREIGN KEY (FollowerId) REFERENCES TuneVault.dbo.Users(Id),
 	CONSTRAINT FK__Follows__Followe__02084FDA FOREIGN KEY (FolloweeId) REFERENCES TuneVault.dbo.Users(Id)
 );
- CREATE NONCLUSTERED INDEX IX_Follows_FolloweeId ON TuneVault.dbo.Follows (  FolloweeId ASC  )  
+CREATE NONCLUSTERED INDEX IX_Follows_FolloweeId ON TuneVault.dbo.Follows (  FolloweeId ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
+	 ON [PRIMARY ]
+;
 
 
 -- TuneVault.dbo.Friends definition
@@ -136,7 +143,8 @@ CREATE TABLE TuneVault.dbo.Follows (
 
 -- DROP TABLE TuneVault.dbo.Friends;
 
-CREATE TABLE TuneVault.dbo.Friends (
+CREATE TABLE TuneVault.dbo.Friends
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	RequestedById varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	RequestedToId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -155,7 +163,8 @@ CREATE TABLE TuneVault.dbo.Friends (
 
 -- DROP TABLE TuneVault.dbo.MediaItems;
 
-CREATE TABLE TuneVault.dbo.MediaItems (
+CREATE TABLE TuneVault.dbo.MediaItems
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	OwnerId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Title nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -177,12 +186,14 @@ CREATE TABLE TuneVault.dbo.MediaItems (
 	CONSTRAINT PK__MediaIte__3214EC0789C51905 PRIMARY KEY (Id),
 	CONSTRAINT FK__MediaItem__Owner__60A75C0F FOREIGN KEY (OwnerId) REFERENCES TuneVault.dbo.Users(Id)
 );
- CREATE NONCLUSTERED INDEX IX_MediaItems_Genre ON TuneVault.dbo.MediaItems (  Genre ASC  )  
+CREATE NONCLUSTERED INDEX IX_MediaItems_Genre ON TuneVault.dbo.MediaItems (  Genre ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
- CREATE NONCLUSTERED INDEX IX_MediaItems_OwnerId ON TuneVault.dbo.MediaItems (  OwnerId ASC  )  
+	 ON [PRIMARY ]
+;
+CREATE NONCLUSTERED INDEX IX_MediaItems_OwnerId ON TuneVault.dbo.MediaItems (  OwnerId ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
+	 ON [PRIMARY ]
+;
 
 
 -- TuneVault.dbo.MediaShares definition
@@ -191,7 +202,8 @@ CREATE TABLE TuneVault.dbo.MediaItems (
 
 -- DROP TABLE TuneVault.dbo.MediaShares;
 
-CREATE TABLE TuneVault.dbo.MediaShares (
+CREATE TABLE TuneVault.dbo.MediaShares
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	SenderId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	ReceiverId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -211,7 +223,8 @@ CREATE TABLE TuneVault.dbo.MediaShares (
 
 -- DROP TABLE TuneVault.dbo.Notifications;
 
-CREATE TABLE TuneVault.dbo.Notifications (
+CREATE TABLE TuneVault.dbo.Notifications
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	UserId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	NotifyType tinyint NOT NULL,
@@ -230,7 +243,8 @@ CREATE TABLE TuneVault.dbo.Notifications (
 
 -- DROP TABLE TuneVault.dbo.PlayHistory;
 
-CREATE TABLE TuneVault.dbo.PlayHistory (
+CREATE TABLE TuneVault.dbo.PlayHistory
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	UserId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	MediaItemId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -240,9 +254,10 @@ CREATE TABLE TuneVault.dbo.PlayHistory (
 	CONSTRAINT FK__PlayHisto__Media__1332DBDC FOREIGN KEY (MediaItemId) REFERENCES TuneVault.dbo.MediaItems(Id),
 	CONSTRAINT FK__PlayHisto__UserI__123EB7A3 FOREIGN KEY (UserId) REFERENCES TuneVault.dbo.Users(Id)
 );
- CREATE NONCLUSTERED INDEX IX_PlayHistory_UserId ON TuneVault.dbo.PlayHistory (  UserId ASC  )  
+CREATE NONCLUSTERED INDEX IX_PlayHistory_UserId ON TuneVault.dbo.PlayHistory (  UserId ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
+	 ON [PRIMARY ]
+;
 
 
 -- TuneVault.dbo.Playlists definition
@@ -251,7 +266,8 @@ CREATE TABLE TuneVault.dbo.PlayHistory (
 
 -- DROP TABLE TuneVault.dbo.Playlists;
 
-CREATE TABLE TuneVault.dbo.Playlists (
+CREATE TABLE TuneVault.dbo.Playlists
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	UserId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Title nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -270,7 +286,8 @@ CREATE TABLE TuneVault.dbo.Playlists (
 
 -- DROP TABLE TuneVault.dbo.UserAccountTiers;
 
-CREATE TABLE TuneVault.dbo.UserAccountTiers (
+CREATE TABLE TuneVault.dbo.UserAccountTiers
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	UserId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	TierId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -292,7 +309,8 @@ CREATE TABLE TuneVault.dbo.UserAccountTiers (
 
 -- DROP TABLE TuneVault.dbo.AlbumTracks;
 
-CREATE TABLE TuneVault.dbo.AlbumTracks (
+CREATE TABLE TuneVault.dbo.AlbumTracks
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	AlbumId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	MediaItemId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -310,7 +328,8 @@ CREATE TABLE TuneVault.dbo.AlbumTracks (
 
 -- DROP TABLE TuneVault.dbo.Favorites;
 
-CREATE TABLE TuneVault.dbo.Favorites (
+CREATE TABLE TuneVault.dbo.Favorites
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	UserId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	MediaItemId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -320,9 +339,10 @@ CREATE TABLE TuneVault.dbo.Favorites (
 	CONSTRAINT FK__Favorites__Media__7D439ABD FOREIGN KEY (MediaItemId) REFERENCES TuneVault.dbo.MediaItems(Id),
 	CONSTRAINT FK__Favorites__UserI__7C4F7684 FOREIGN KEY (UserId) REFERENCES TuneVault.dbo.Users(Id)
 );
- CREATE NONCLUSTERED INDEX IX_Favorites_UserId ON TuneVault.dbo.Favorites (  UserId ASC  )  
+CREATE NONCLUSTERED INDEX IX_Favorites_UserId ON TuneVault.dbo.Favorites (  UserId ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
+	 ON [PRIMARY ]
+;
 
 
 -- TuneVault.dbo.MediaArtists definition
@@ -331,7 +351,8 @@ CREATE TABLE TuneVault.dbo.Favorites (
 
 -- DROP TABLE TuneVault.dbo.MediaArtists;
 
-CREATE TABLE TuneVault.dbo.MediaArtists (
+CREATE TABLE TuneVault.dbo.MediaArtists
+(
 	MediaItemId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	ArtistId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[Role] nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS DEFAULT 'MainArtist' NOT NULL,
@@ -347,7 +368,8 @@ CREATE TABLE TuneVault.dbo.MediaArtists (
 
 -- DROP TABLE TuneVault.dbo.PlaylistTracks;
 
-CREATE TABLE TuneVault.dbo.PlaylistTracks (
+CREATE TABLE TuneVault.dbo.PlaylistTracks
+(
 	Id varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	PlaylistId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	MediaItemId varchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,

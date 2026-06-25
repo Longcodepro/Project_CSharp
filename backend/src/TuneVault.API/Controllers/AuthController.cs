@@ -160,6 +160,11 @@ public class AuthController : ControllerBase
         var refreshToken = Request.Cookies[RefreshTokenCookieName];
 
         if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            refreshToken = Request.Headers["X-Refresh-Token"].ToString();
+        }
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
             return Unauthorized(ApiResponse<object?>.Fail("Thiếu refresh token."));
 
         try

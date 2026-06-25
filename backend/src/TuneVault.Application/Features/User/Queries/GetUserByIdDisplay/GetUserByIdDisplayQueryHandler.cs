@@ -47,6 +47,7 @@ public class GetUserByIdDisplayQueryHandler : IRequestHandler<GetUserByIdDisplay
         // Step 4: Map Entity sang UserDto — ẩn Id hệ thống, Email, PasswordHash
         return new UserDto
         {
+            Id          = user.Id,
             IdDisplay   = user.IdDisplay,
             DisplayName = user.DisplayName,
             AvatarUrl   = user.AvatarUrl,

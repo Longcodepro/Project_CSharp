@@ -239,6 +239,9 @@ export default function ManageStudio({
   isAuthenticated,
   onRequireAuth,
   onDirtyChange,
+  initialTab,
+  initialEntityId,
+  onClearInit,
 }) {
   const [activeTab, setActiveTab] = useState('song');
   const [viewMode, setViewMode] = useState('list');
@@ -256,7 +259,27 @@ export default function ManageStudio({
   const [dirty, setDirty] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [dontAskAgain, setDontAskAgain] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const activeTabConfig = manageTabs.find((tab) => tab.key === activeTab) || manageTabs[0];
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) return items;
+    const query = searchQuery.toLowerCase();
+    return items.filter((item) => {
+      return (
+        (item.title || item.Title || '').toLowerCase().includes(query) ||
+        (item.genre || item.Genre || '').toLowerCase().includes(query) ||
+        (item.description || item.Description || '').toLowerCase().includes(query)
+      );
+    });
+  }, [items, searchQuery]);
+
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -337,14 +360,49 @@ export default function ManageStudio({
       setMediaPool(media || []);
 
       const nextKind = (manageTabs.find((tab) => tab.key === nextTab) || {}).scope;
+      let loadedItems = [];
       if (nextKind === 'media') {
-        setItems((media || []).filter((entry) => isMediaTabItem(nextTab, entry)));
+        loadedItems = (media || []).filter((entry) => isMediaTabItem(nextTab, entry));
       } else if (nextTab === 'playlist') {
-        setItems(playlists || []);
+        loadedItems = playlists || [];
       } else if (nextTab === 'album') {
-        setItems(albums || []);
+        loadedItems = albums || [];
       } else {
-        setItems([]);
+        loadedItems = [];
+      }
+      setItems(loadedItems);
+
+      if (initialEntityId) {
+        const matched = loadedItems.find((item) => String(item.id || item.Id) === String(initialEntityId));
+        if (matched) {
+          setSelectedEntity(matched);
+          setViewMode('editor');
+          setDirty(false);
+          if (nextKind === 'media') {
+            setDraft(buildMediaDraft(matched, nextTab, localStorage.getItem('user_name')));
+            setTrackRows([]);
+          } else {
+            const collectionDraft = buildCollectionDraft(matched, nextTab);
+            setDraft(collectionDraft);
+            const trackList = Array.isArray(matched.tracks) ? matched.tracks : [];
+            if (trackList.length > 0) {
+              const rows = await Promise.all(trackList.map(async (track) => {
+                const mediaId = track.mediaItemId || track.MediaItemId;
+                const trackMedia = await getTrackById(mediaId).catch(() => null);
+                return {
+                  ...track,
+                  mediaItemId: mediaId,
+                  trackOrder: Number(track.trackOrder || track.TrackOrder || 0),
+                  media: trackMedia,
+                };
+              }));
+              setTrackRows(rows.sort((a, b) => a.trackOrder - b.trackOrder));
+            } else {
+              setTrackRows([]);
+            }
+          }
+        }
+        onClearInit?.();
       }
     } catch (err) {
       setError(err?.message || 'Không tải được dữ liệu quản lý.');
@@ -377,6 +435,7 @@ export default function ManageStudio({
     setTrackRows([]);
     setDirty(false);
     setError('');
+    setSearchQuery('');
   };
 
   const updateDraft = (patch) => {
@@ -697,6 +756,61 @@ export default function ManageStudio({
                 <h2>{activeTabConfig.label}</h2>
                 <p>Chạm vào một mục để chỉnh sửa hoặc tạo mới từ tab này.</p>
               </div>
+
+              <div className="manage-search-container" style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                padding: '8px 14px',
+                gap: '8px',
+                flexGrow: 1,
+                maxWidth: '400px',
+                marginLeft: '20px',
+                marginRight: 'auto',
+                transition: 'border-color 0.25s, background-color 0.25s'
+              }}>
+                <span className="material-symbols-outlined" style={{
+                  fontSize: '20px',
+                  color: 'var(--on-surface-variant)',
+                  userSelect: 'none'
+                }}>search</span>
+                <input
+                  type="text"
+                  placeholder={`Tìm kiếm trong ${activeTabConfig.label.toLowerCase()}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--on-surface)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    width: '100%',
+                    padding: '0'
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: '0',
+                      color: 'var(--on-surface-variant)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+                  </button>
+                )}
+              </div>
+
               <button className="create-primary" type="button" onClick={() => openEditor(null)}>
                 + Thêm {activeTabConfig.label.toLowerCase()} mới
               </button>
@@ -706,11 +820,15 @@ export default function ManageStudio({
               <div className="content-state">Đang tải dữ liệu quản lý...</div>
             ) : error ? (
               <div className="content-state content-state-error">{error}</div>
-            ) : items.length === 0 ? (
-              <div className="section-empty-state">Chưa có dữ liệu để hiển thị. Hãy tạo mục mới.</div>
+            ) : filteredItems.length === 0 ? (
+              <div className="section-empty-state">
+                {searchQuery
+                  ? `Không tìm thấy kết quả nào phù hợp với "${searchQuery}"`
+                  : `Chưa có dữ liệu để hiển thị. Hãy tạo mục mới.`}
+              </div>
             ) : (
               <div className="manage-list-grid">
-                {items.map((item) => {
+                {filteredItems.map((item) => {
                   const mediaType = normalizeType(item.mediaType || item.type || item.contentType || activeTabConfig.kind);
                   const isMedia = activeTabConfig.scope === 'media';
                   return (
@@ -856,19 +974,19 @@ export default function ManageStudio({
                           />
                         </label>
                       </div>
-                    {activeTabConfig.scope === 'media' && draft.tabKey !== 'video' && (
-                      <div className="create-field">
-                        <label>Canvas</label>
-                        <label className="manage-file-input">
-                          <span>Chọn file video canvas</span>
-                          <input
-                            type="file"
-                            accept="video/*"
-                            onChange={(event) => setPreviewFile('canvasFile', event.target.files?.[0], 'video')}
-                          />
-                        </label>
-                      </div>
-                    )}
+                      {activeTabConfig.scope === 'media' && draft.tabKey !== 'video' && (
+                        <div className="create-field">
+                          <label>Canvas</label>
+                          <label className="manage-file-input">
+                            <span>Chọn file video canvas</span>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={(event) => setPreviewFile('canvasFile', event.target.files?.[0], 'video')}
+                            />
+                          </label>
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (

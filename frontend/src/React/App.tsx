@@ -8,6 +8,7 @@ import AuthLoginModal from './Components/AuthLoginModal';
 import PlaylistModal from './Components/PlaylistModal'; // Import PlaylistModal
 import VideoPlayerView from './Components/VideoPlayerView';
 import MediaInfoPanel from './Components/MediaInfoPanel';
+import ListeningHistoryActivity from './Components/ListeningHistoryActivity';
 import {
   MediaService,
   clearAuthSession,
@@ -16,6 +17,7 @@ import {
   getResumeInfo,
   getMyProfile,
   mediaAudioStreamUrl,
+  mediaVideoStreamUrl,
   normalizeAssetUrl,
   recordPlayHistory,
   recordPlaybackStop,
@@ -37,11 +39,13 @@ const TypedAuthLoginModal = AuthLoginModal as ComponentType<any>;
 const TypedPlaylistModal = PlaylistModal as ComponentType<any>;
 const TypedVideoPlayerView = VideoPlayerView as ComponentType<any>;
 const TypedMediaInfoPanel = MediaInfoPanel as ComponentType<any>;
+const TypedListeningHistoryActivity = ListeningHistoryActivity as ComponentType<any>;
+
 
 type BodyMode = 'home' | 'profile' | 'manage';
 type AuthPromptMode = 'login' | 'register' | 'change-password';
 type ActivePanel = 'friends' | 'notifications' | string | null;
-type SelectableItem = { id: string; [key: string]: unknown };
+type SelectableItem = { id: string;[key: string]: unknown };
 type FavoriteReactionOption = { name: string; value: number };
 type PlaybackOptions = {
   autoplay?: boolean;
@@ -90,6 +94,7 @@ type PlayerTrack = {
   duration: string;
   durationSeconds: number;
   progress: number;
+  canvasUrl?: string | null;
 };
 type AuthPromptState = {
   isOpen: boolean;
@@ -140,7 +145,7 @@ function resolveAudioSource(media: PlayableMedia | null | undefined): string | n
   if (explicitAudioUrl) return explicitAudioUrl;
 
   const mediaType = normalizeMediaTypeName(media.mediaType ?? media.type);
-  if (mediaType === 'video') return null;
+  if (mediaType === 'video') return mediaVideoStreamUrl(media.id);
 
   return mediaAudioStreamUrl(media.id);
 }
@@ -151,6 +156,77 @@ export default function App() {
   const [selectedLibraryItem, setSelectedLibraryItem] = useState<SelectableItem | null>(null);
   const [bodyMode, setBodyMode] = useState<BodyMode>('home');
   const [profileTarget, setProfileTarget] = useState<UserProfile | null>(null);
+
+  // Navigation History Stack
+  type NavState = {
+    bodyMode: BodyMode;
+    selectedLibraryItem: SelectableItem | null;
+    isNowPlayingExpanded: boolean;
+    profileTarget: UserProfile | null;
+  };
+
+  const [navHistory, setNavHistory] = useState<NavState[]>([
+    { bodyMode: 'home', selectedLibraryItem: null, isNowPlayingExpanded: false, profileTarget: null }
+  ]);
+  const [navIndex, setNavIndex] = useState<number>(0);
+  const isNavigatingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (isNavigatingRef.current) {
+      isNavigatingRef.current = false;
+      return;
+    }
+
+    const currentState: NavState = {
+      bodyMode,
+      selectedLibraryItem,
+      isNowPlayingExpanded,
+      profileTarget
+    };
+
+    const previousState = navHistory[navIndex];
+    if (previousState &&
+      previousState.bodyMode === currentState.bodyMode &&
+      previousState.selectedLibraryItem?.id === currentState.selectedLibraryItem?.id &&
+      previousState.isNowPlayingExpanded === currentState.isNowPlayingExpanded &&
+      previousState.profileTarget?.id === currentState.profileTarget?.id) {
+      return;
+    }
+
+    const newHistory = navHistory.slice(0, navIndex + 1);
+    newHistory.push(currentState);
+    setNavHistory(newHistory);
+    setNavIndex(newHistory.length - 1);
+  }, [bodyMode, selectedLibraryItem, isNowPlayingExpanded, profileTarget]);
+
+  const handleNavBack = () => {
+    if (navIndex > 0) {
+      const prevIndex = navIndex - 1;
+      const prevState = navHistory[prevIndex];
+      isNavigatingRef.current = true;
+      setNavIndex(prevIndex);
+      setBodyMode(prevState.bodyMode);
+      setSelectedLibraryItem(prevState.selectedLibraryItem);
+      setIsNowPlayingExpanded(prevState.isNowPlayingExpanded);
+      setProfileTarget(prevState.profileTarget);
+    }
+  };
+
+  const handleNavForward = () => {
+    if (navIndex < navHistory.length - 1) {
+      const nextIndex = navIndex + 1;
+      const nextState = navHistory[nextIndex];
+      isNavigatingRef.current = true;
+      setNavIndex(nextIndex);
+      setBodyMode(nextState.bodyMode);
+      setSelectedLibraryItem(nextState.selectedLibraryItem);
+      setIsNowPlayingExpanded(nextState.isNowPlayingExpanded);
+      setProfileTarget(nextState.profileTarget);
+    }
+  };
+
+  const canNavBack = navIndex > 0;
+  const canNavForward = navIndex < navHistory.length - 1;
   const [authPrompt, setAuthPrompt] = useState<AuthPromptState>({ isOpen: false, reason: '', initialMode: 'login' });
   const [authVersion, setAuthVersion] = useState(0);
   const [playerTrack, setPlayerTrack] = useState<PlayerTrack>(fallbackTrack);
@@ -173,6 +249,9 @@ export default function App() {
   const [availableReactions, setAvailableReactions] = useState<FavoriteReactionOption[]>([]); // State for available favorite reactions
   const [currentFavoriteReaction, setCurrentFavoriteReaction] = useState<string | null>(null); // State for current favorite reaction of the playing track
   const [isFavoritePickerOpen, setIsFavoritePickerOpen] = useState<boolean>(false); // State to control the visibility of the favorite reaction picker
+  const [manageInitialTab, setManageInitialTab] = useState<string | null>(null);
+  const [manageInitialEntityId, setManageInitialEntityId] = useState<string | null>(null);
+  const [libraryVersion, setLibraryVersion] = useState<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pendingSeekRef = useRef<number | null>(null);
   const pendingAutoPlayRef = useRef<boolean>(false);
@@ -269,19 +348,19 @@ export default function App() {
         const profile = (await getMyProfile().catch(() => null)) as UserProfile | null;
         if (cancelled) return;
 
-          const avatarUrl = normalizeAssetUrl(
-            profile?.avatarUrl
-            || profile?.AvatarUrl
-            || profile?.avatar
-            || profile?.Avatar
-            || profile?.avatarPath
-            || profile?.AvatarPath
-            || null,
-          );
-          const email = String(profile?.email || profile?.Email || '').trim();
-          // Ensure avatarUrl is a string or null before setting state
-          setCurrentUserAvatarUrl(typeof avatarUrl === 'string' ? avatarUrl : null);
-          setCurrentUserEmail(email);
+        const avatarUrl = normalizeAssetUrl(
+          profile?.avatarUrl
+          || profile?.AvatarUrl
+          || profile?.avatar
+          || profile?.Avatar
+          || profile?.avatarPath
+          || profile?.AvatarPath
+          || null,
+        );
+        const email = String(profile?.email || profile?.Email || '').trim();
+        // Ensure avatarUrl is a string or null before setting state
+        setCurrentUserAvatarUrl(typeof avatarUrl === 'string' ? avatarUrl : null);
+        setCurrentUserEmail(email);
 
         if (avatarUrl) {
           localStorage.setItem('user_avatar', avatarUrl);
@@ -322,6 +401,30 @@ export default function App() {
   };
 
   const toggleLibraryItem = (item: SelectableItem): void => {
+    if (item?.type === 'media') {
+      if (!setBodyModeSafely('manage')) return;
+      setManageInitialTab(item.mediaKind as string || 'song');
+      setManageInitialEntityId(item.id);
+      setSelectedLibraryItem(null);
+      setProfileTarget(null);
+      setIsNowPlayingExpanded(false);
+      return;
+    }
+
+    if (item && ['song', 'video', 'audio', 'podcast'].includes(String(item.type).toLowerCase())) {
+      MediaService.getMediaById(item.id)
+        .then((fullMedia) => {
+          if (fullMedia) {
+            playMediaItem(fullMedia as any);
+          }
+        })
+        .catch((err) => {
+          console.error('[TuneVault] Error fetching media item details:', err);
+          playMediaItem(item as any);
+        });
+      return;
+    }
+
     setSelectedLibraryItem((currentItem) => (currentItem?.id === item.id ? null : item));
   };
 
@@ -331,7 +434,6 @@ export default function App() {
     setBodyMode('home');
     setIsNowPlayingExpanded(false);
   };
- 
   const openUserProfileFromPanel = (user: UserProfile | null | undefined) => {
     if (!user?.id && !user?.handle && !user?.idDisplay) return;
     if (!setBodyModeSafely('profile')) return;
@@ -471,7 +573,36 @@ export default function App() {
         queue = [media];
       }
     } else {
-      queue = [media];
+      try {
+        const allMedia = (await getMedia(1, 50).catch(() => [])) as PlayableMedia[];
+        if (allMedia && allMedia.length > 0) {
+          const normalizedMedia = allMedia.map((item) => {
+            const mediaId = String(item.id || item.Id);
+            return {
+              ...item,
+              id: mediaId,
+              title: item.title || item.Title || fallbackTrack.title,
+              artist: item.artist || item.artistName || item.ownerId || item.OwnerId || 'TuneVault',
+              image: item.image || normalizeAssetUrl(item.coverImageUrl || item.CoverImageUrl) || fallbackTrack.image,
+              audioUrl: resolveAudioSource(item),
+              videoUrl: normalizeAssetUrl(item.videoUrl || item.VideoUrl) || '',
+              mediaType: normalizeMediaTypeName(item.mediaType ?? item.type),
+              durationSeconds: Number(item.durationSeconds || item.DurationSeconds || 0),
+            } as PlayableMedia;
+          });
+
+          queue = shuffle ? [...normalizedMedia].sort(() => Math.random() - 0.5) : normalizedMedia;
+          initialIndex = queue.findIndex((item: PlayableMedia) => item.id === media.id);
+          if (initialIndex < 0) {
+            queue = [media, ...queue];
+            initialIndex = 0;
+          }
+        } else {
+          queue = [media];
+        }
+      } catch {
+        queue = [media];
+      }
     }
 
     const currentTrack = queue[initialIndex] as PlayableMedia;
@@ -500,6 +631,10 @@ export default function App() {
         audio.muted = false;
         setIsPlaying(false);
       });
+
+    if (mediaType === 'video') {
+      setIsNowPlayingExpanded(true);
+    }
   };
 
   const syncTrackFromMedia = (media: PlayableMedia | null | undefined, resumeAt = 0): void => {
@@ -515,8 +650,8 @@ export default function App() {
       : 0;
 
     const artistLabel = Array.isArray(media.artists) && media.artists.length > 0
-      ? media.artists.map((artist) => artist.artistId).filter(Boolean).join(', ')
-      : media.ownerId || media.OwnerId || 'TuneVault';
+      ? media.artists.map((artist: any) => artist.artistName || artist.ArtistName || artist.artistId || artist.ArtistId).filter(Boolean).join(', ')
+      : media.artistName || media.ArtistName || media.artist || media.Artist || media.ownerId || media.OwnerId || 'TuneVault';
     const audioSource = resolveAudioSource(media);
 
     setPlayerTrack({
@@ -526,6 +661,7 @@ export default function App() {
       image: media.image || normalizeAssetUrl(media.coverImageUrl || media.CoverImageUrl) || fallbackTrack.image,
       audioUrl: audioSource,
       videoUrl: normalizeAssetUrl(media.videoUrl || media.VideoUrl) || '',
+      canvasUrl: normalizeAssetUrl((media.canvasUrl as string | null) || (media.CanvasUrl as string | null)) || null,
       mediaType: normalizeMediaTypeName(media.mediaType ?? media.type),
       collectionId: media.collectionId || media.CollectionId || null,
       collectionType: media.collectionType || media.CollectionType || null,
@@ -626,6 +762,13 @@ export default function App() {
     }
   };
 
+  const handleSeek = (timeInSeconds: number): void => {
+    const audio = audioRef.current;
+    if (audio && Number.isFinite(timeInSeconds)) {
+      audio.currentTime = timeInSeconds;
+    }
+  };
+
   const handleTogglePlay = async (): Promise<void> => {
     if (!isAuthenticated) {
       promptLogin('Đăng nhập để nghe nhạc và sử dụng trình phát.');
@@ -709,42 +852,42 @@ export default function App() {
       });
     };
 
-  const onLoadedMetadata = () => {
-    if (pendingSeekRef.current != null) {
-      const target = Math.min(pendingSeekRef.current, audio.duration || pendingSeekRef.current);
-      audio.currentTime = Number.isFinite(target) ? target : 0;
-      pendingSeekRef.current = null;
-    }
+    const onLoadedMetadata = () => {
+      if (pendingSeekRef.current != null) {
+        const target = Math.min(pendingSeekRef.current, audio.duration || pendingSeekRef.current);
+        audio.currentTime = Number.isFinite(target) ? target : 0;
+        pendingSeekRef.current = null;
+      }
 
-    syncFromAudio();
+      syncFromAudio();
 
-    if (pendingAutoPlayRef.current) {
-      pendingAutoPlayRef.current = false;
-      audio.muted = true;
-      audio.play()
-        .then(() => {
-          setIsPlaying(true);
-          window.setTimeout(() => {
-            if (audioRef.current) {
-              audioRef.current.muted = false;
-            }
-          }, 0);
-        })
-        .catch(() => {
-          audio.muted = false;
-          setIsPlaying(false);
-        });
-    }
-  };
+      if (pendingAutoPlayRef.current) {
+        pendingAutoPlayRef.current = false;
+        audio.muted = true;
+        audio.play()
+          .then(() => {
+            setIsPlaying(true);
+            window.setTimeout(() => {
+              if (audioRef.current) {
+                audioRef.current.muted = false;
+              }
+            }, 0);
+          })
+          .catch(() => {
+            audio.muted = false;
+            setIsPlaying(false);
+          });
+      }
+    };
 
     const onTimeUpdate = syncFromAudio;
-  const onPlay = () => setIsPlaying(true);
-  const onPause = () => setIsPlaying(false);
-  const onEnded = () => {
-    setIsPlaying(false);
-    // Automatically play next track when current one ends
-    playNextTrack();
-  };
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      // Automatically play next track when current one ends
+      playNextTrack();
+    };
 
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
     audio.addEventListener('timeupdate', onTimeUpdate);
@@ -752,10 +895,10 @@ export default function App() {
     audio.addEventListener('pause', onPause);
     audio.addEventListener('ended', onEnded);
 
-  const persistProgress = () => {
-    if (!isAuthenticated || !playerTrack.id || audio.paused) return;
-    recordPlaybackStop(playerTrack.id, audio.currentTime || 0).catch(() => null);
-  };
+    const persistProgress = () => {
+      if (!isAuthenticated || !playerTrack.id || audio.paused) return;
+      recordPlaybackStop(playerTrack.id, audio.currentTime || 0).catch(() => null);
+    };
 
     window.addEventListener('beforeunload', persistProgress);
     document.addEventListener('visibilitychange', persistProgress);
@@ -772,82 +915,106 @@ export default function App() {
   }, [isAuthenticated, playerTrack.id, playerQueue, currentQueueIndex]); // Added dependencies for queue and index
 
   useEffect(() => {
-    if (!isAuthenticated) return undefined;
+    if (playerTrack?.id && playerTrack.id !== fallbackTrack.id && isPlaying) {
+      const trackId = playerTrack.id;
+      const now = Date.now();
+      try {
+        let history = JSON.parse(localStorage.getItem('listening_history') || '[]');
+        if (!Array.isArray(history)) history = [];
+        history = history.filter((item: any) => item.id !== trackId);
+        history.unshift({ id: trackId, timestamp: now });
+        const cutoff = now - 259200000; // 72 hours
+        history = history.filter((item: any) => item.timestamp >= cutoff);
+        localStorage.setItem('listening_history', JSON.stringify(history));
+      } catch (e) {
+        console.error('Error saving history:', e);
+      }
+    }
+  }, [playerTrack?.id, isPlaying]);
 
-    let cancelled = false;
-
-    const timeoutId = window.setTimeout(() => {
-      void (async () => {
-        if (cancelled || !localStorage.getItem('auth_session')) return;
-
-        try {
-          const recentHistory = await getRecentHistory().catch(() => []);
-          console.log('[App.jsx] Recent History:', recentHistory);
-          const recentTrack = recentHistory?.[0] as PlayableMedia | undefined;
-          console.log('[App.jsx] Recent Track:', recentTrack);
-          if (!recentTrack) {
-            const fallbackMedia = await getMedia(1, 1).catch(() => []);
-            const firstFallbackMedia = fallbackMedia[0] as PlayableMedia | undefined;
-            if (firstFallbackMedia && !cancelled) {
-              syncTrackFromMedia(firstFallbackMedia, 0);
-              await ensureAudioSource(firstFallbackMedia);
-              // Initialize queue with fallback media if no history
-              setPlayerQueue([firstFallbackMedia]);
-              setCurrentQueueIndex(0);
-            }
-            return;
-          }
-
-          const resumeInfo = await getResumeInfo(recentTrack.id).catch(() => null);
-          console.log('[App.jsx] Resume Info:', resumeInfo);
-          const resumeAt = Number(resumeInfo?.stoppedAt ?? 0);
-          console.log('[App.jsx] Resume At:', resumeAt);
-          if (cancelled) return;
-          syncTrackFromMedia(recentTrack, resumeAt);
-          await ensureAudioSource(recentTrack);
-
-          // When loading from history, we might want to fetch the entire collection
-          // to build a queue. This is a simplification for now.
-          // A more robust solution would fetch the collection based on recentTrack's type.
-          // For now, we'll just set the current track and assume queue will be built later.
-          // If recentTrack has collection info, we could use it here.
-          // Example: if (recentTrack.collectionId) { ... fetch collection ... }
-          // For now, we'll just set the current track and let playMediaItem handle queueing if needed.
-          // If we want to resume a queue, we'd need to store queue info in history/resume.
-          // For now, let's assume the queue is built when a new item is explicitly played.
-          // If we want to resume a queue, we'd need to store queue and index in backend.
-
-        } catch {
-          if (!cancelled) {
-            setPlayerTrack(fallbackTrack);
-            setPlayerQueue([]);
-            setCurrentQueueIndex(-1);
-          }
-        }
-      })();
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [authVersion, isAuthenticated]);
+  // useEffect(() => {
+  //   if (!isAuthenticated) return undefined;
+  // 
+  //   let cancelled = false;
+  // 
+  //   const timeoutId = window.setTimeout(() => {
+  //     void (async () => {
+  //       if (cancelled || !localStorage.getItem('auth_session')) return;
+  // 
+  //       try {
+  //         const recentHistory = await getRecentHistory().catch(() => []);
+  //         console.log('[App.jsx] Recent History:', recentHistory);
+  //         const recentTrack = recentHistory?.[0] as PlayableMedia | undefined;
+  //         console.log('[App.jsx] Recent Track:', recentTrack);
+  //         if (!recentTrack) {
+  //           const fallbackMedia = await getMedia(1, 1).catch(() => []);
+  //           const firstFallbackMedia = fallbackMedia[0] as PlayableMedia | undefined;
+  //           if (firstFallbackMedia && !cancelled) {
+  //             syncTrackFromMedia(firstFallbackMedia, 0);
+  //             await ensureAudioSource(firstFallbackMedia);
+  //             // Initialize queue with fallback media if no history
+  //             setPlayerQueue([firstFallbackMedia]);
+  //             setCurrentQueueIndex(0);
+  //           }
+  //           return;
+  //         }
+  // 
+  //         const resumeInfo = await getResumeInfo(recentTrack.id).catch(() => null);
+  //         console.log('[App.jsx] Resume Info:', resumeInfo);
+  //         const resumeAt = Number(resumeInfo?.stoppedAt ?? 0);
+  //         console.log('[App.jsx] Resume At:', resumeAt);
+  //         if (cancelled) return;
+  //         syncTrackFromMedia(recentTrack, resumeAt);
+  //         await ensureAudioSource(recentTrack);
+  // 
+  //         // When loading from history, we might want to fetch the entire collection
+  //         // to build a queue. This is a simplification for now.
+  //         // A more robust solution would fetch the collection based on recentTrack's type.
+  //         // For now, we'll just set the current track and assume queue will be built later.
+  //         // If recentTrack has collection info, we could use it here.
+  //         // Example: if (recentTrack.collectionId) { ... fetch collection ... }
+  //         // For now, we'll just set the current track and let playMediaItem handle queueing if needed.
+  //         // If we want to resume a queue, we'd need to store queue info in history/resume.
+  //         // For now, let's assume the queue is built when a new item is explicitly played.
+  //         // If we want to resume a queue, we'd need to store queue and index in backend.
+  // 
+  //       } catch {
+  //         if (!cancelled) {
+  //           setPlayerTrack(fallbackTrack);
+  //           setPlayerQueue([]);
+  //           setCurrentQueueIndex(-1);
+  //         }
+  //       }
+  //     })();
+  //   }, 0);
+  // 
+  //   return () => {
+  //     cancelled = true;
+  //     window.clearTimeout(timeoutId);
+  //   };
+  // }, [authVersion, isAuthenticated]);
 
   useEffect(() => () => {
     revokeCurrentAudioObjectUrl();
   }, []);
- 
+
+  useEffect(() => {
+    if (isVideoViewOpen) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+    }
+  }, [isVideoViewOpen]);
+
   // Effect to fetch available reactions and current favorite status
   useEffect(() => {
     let cancelled = false;
- 
+
     const fetchReactionsAndStatus = async () => {
       if (!isAuthenticated) {
         setAvailableReactions([]);
         setCurrentFavoriteReaction(null);
         return;
       }
- 
       try {
         const reactions = await MediaService.getFavoriteReactions();
         if (!cancelled) {
@@ -859,15 +1026,22 @@ export default function App() {
           setAvailableReactions([]);
         }
       }
- 
+
       if (playerTrack?.id && playerTrack.id !== fallbackTrack.id) {
         try {
-          const status = await MediaService.getFavoriteStatus(playerTrack.id);
+          const [status, countResult] = await Promise.all([
+            MediaService.getFavoriteStatus(playerTrack.id),
+            MediaService.getMediaReactionCount(playerTrack.id).catch(() => null),
+          ]);
           if (!cancelled) {
             setCurrentFavoriteReaction((status as { reaction?: string | null }).reaction ?? null);
+            setPlayerTrack((curr) => ({
+              ...curr,
+              favoriteCount: Number(countResult?.totalCount ?? 0),
+            }));
           }
         } catch (error) {
-          console.error(`Error fetching favorite status for ${playerTrack.id}:`, error);
+          console.error(`Error fetching favorite status/count for ${playerTrack.id}:`, error);
           if (!cancelled) {
             setCurrentFavoriteReaction(null);
           }
@@ -878,13 +1052,13 @@ export default function App() {
         }
       }
     };
- 
+
     void fetchReactionsAndStatus();
- 
+
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, playerTrack.id]); // Re-run when auth status or playing track changes
+  }, [authVersion, isAuthenticated, playerTrack.id]); // Re-run when auth status or playing track changes
 
   const closeBodyOverlay = () => {
     if (isVideoViewOpen) {
@@ -965,7 +1139,6 @@ export default function App() {
       setIsVideoViewOpen(false); // Close info panel if open
     });
   };
- 
   // Handlers for favorite reactions
   const handleToggleFavorite = async (reaction: string | null = 'Love'): Promise<void> => {
     if (!playerTrack?.id) return;
@@ -977,6 +1150,13 @@ export default function App() {
       await MediaService.toggleFavorite(playerTrack.id, reaction);
       setCurrentFavoriteReaction(reaction);
       setIsFavoritePickerOpen(false); // Close picker after action
+      setLibraryVersion((v) => v + 1);
+
+      const countResult = await MediaService.getMediaReactionCount(playerTrack.id).catch(() => null);
+      setPlayerTrack((curr) => ({
+        ...curr,
+        favoriteCount: Number(countResult?.totalCount ?? 0),
+      }));
     } catch (error) {
       console.error('Error toggling favorite:', error);
       // Optionally show an error message to the user
@@ -990,12 +1170,11 @@ export default function App() {
   const toggleFavoritePicker = (): void => {
     setIsFavoritePickerOpen((prev) => !prev);
   };
- 
   return (
     <div className="app-container">
       <div className="main-layout">
         <TypedSidebar
-          key={authVersion}
+          key={`${authVersion}-${libraryVersion}`}
           activeItemId={selectedLibraryItem?.id}
           onSelectItem={toggleLibraryItem}
           onAddCreate={() => {
@@ -1007,6 +1186,7 @@ export default function App() {
           }}
         />
         <TypedHome
+          audioRef={audioRef}
           activePanel={activePanel}
           onTogglePanel={togglePanel}
           isNowPlayingExpanded={isNowPlayingExpanded}
@@ -1014,10 +1194,27 @@ export default function App() {
           onHomeClick={closeBodyOverlay}
           track={playerTrack} // Pass current track for display
           bodyMode={bodyMode}
+          manageInitialTab={manageInitialTab}
+          manageInitialEntityId={manageInitialEntityId}
+          onClearManageInit={() => {
+            setManageInitialTab(null);
+            setManageInitialEntityId(null);
+          }}
           onBackToHome={() => {
             if (!setBodyModeSafely('home')) return;
             setProfileTarget(null);
           }}
+          onNavBack={handleNavBack}
+          onNavForward={handleNavForward}
+          canNavBack={canNavBack}
+          canNavForward={canNavForward}
+          isPlaying={isPlaying}
+          onTogglePlay={handleTogglePlay}
+          onPlayNext={playNextTrack}
+          onPlayPrevious={playPreviousTrack}
+          isNextDisabled={currentQueueIndex >= playerQueue.length - 1}
+          isPreviousDisabled={currentQueueIndex <= 0}
+          onSeek={handleSeek}
           onOpenProfile={() => {
             requireAuth('Đăng nhập để xem và chỉnh sửa hồ sơ.', () => {
               if (!setBodyModeSafely('profile')) return;
@@ -1080,45 +1277,54 @@ export default function App() {
           />
         )}
         {activePanel === 'notifications' && <TypedNotificationActivity onClose={() => setActivePanel(null)} />}
+        {activePanel === 'history' && (
+          <TypedListeningHistoryActivity
+            onClose={() => setActivePanel(null)}
+            onPlayMedia={(media: PlayableMedia) => playMediaItem(media)}
+          />
+        )}
       </div>
 
       {/* PlayerBar is now always rendered if authenticated and a track is available */}
       {isAuthenticated && playerTrack?.id && playerTrack.id !== fallbackTrack.id ? (
         <TypedPlayerBar
-        isExpanded={isNowPlayingExpanded}
-        isPlaying={isPlaying}
-        onTogglePlay={handleTogglePlay}
-        onToggleExpanded={() => {
-          requireAuth('Đăng nhập để mở trình phát và nghe nội dung.', () => {
-            setIsNowPlayingExpanded((isExpanded) => !isExpanded);
-          });
-        }}
-        onRequireAuth={() => requireAuth('Đăng nhập để nghe nhạc và sử dụng trình phát.')}
-        playerTrack={playerTrack}
-        onPlayNext={playNextTrack}
-        onPlayPrevious={playPreviousTrack}
-        isNextDisabled={currentQueueIndex >= playerQueue.length - 1}
-        isPreviousDisabled={currentQueueIndex <= 0}
-        onVolumeChange={handleVolumeChange}
-        volume={volume}
-        onToggleMute={handleToggleMute}
-        isMuted={isMuted}
-        onAddPlaylist={handleOpenPlaylistModal} // Pass handler for add to playlist
-        onOpenVideo={handleOpenVideoView} // Pass handler for video view
-        onOpenInfo={handleOpenInfoPanel} // Pass handler for info panel
-        onToggleFavorite={handleToggleFavorite} // Pass handler for direct favorite click
-        currentFavoriteReaction={currentFavoriteReaction} // Pass current favorite reaction
-        onSelectFavoriteReaction={handleSelectFavoriteReaction} // Pass handler for selecting other reactions
-        availableReactions={availableReactions} // Pass available reactions for the picker
-        isFavoritePickerOpen={isFavoritePickerOpen} // Pass state for picker visibility
-        onToggleFavoritePicker={toggleFavoritePicker} // Pass handler to toggle picker visibility
-      />
+          isExpanded={isNowPlayingExpanded}
+          isPlaying={isPlaying}
+          onTogglePlay={handleTogglePlay}
+          onToggleExpanded={() => {
+            requireAuth('Đăng nhập để mở trình phát và nghe nội dung.', () => {
+              setIsNowPlayingExpanded((isExpanded) => !isExpanded);
+            });
+          }}
+          onRequireAuth={() => requireAuth('Đăng nhập để nghe nhạc và sử dụng trình phát.')}
+          onSeek={handleSeek}
+          playerTrack={playerTrack}
+          onPlayNext={playNextTrack}
+          onPlayPrevious={playPreviousTrack}
+          isNextDisabled={currentQueueIndex >= playerQueue.length - 1}
+          isPreviousDisabled={currentQueueIndex <= 0}
+          onVolumeChange={handleVolumeChange}
+          volume={volume}
+          onToggleMute={handleToggleMute}
+          isMuted={isMuted}
+          onAddPlaylist={handleOpenPlaylistModal} // Pass handler for add to playlist
+          onOpenVideo={handleOpenVideoView} // Pass handler for video view
+          onOpenInfo={handleOpenInfoPanel} // Pass handler for info panel
+          onToggleFavorite={handleToggleFavorite} // Pass handler for direct favorite click
+          currentFavoriteReaction={currentFavoriteReaction} // Pass current favorite reaction
+          onSelectFavoriteReaction={handleSelectFavoriteReaction} // Pass handler for selecting other reactions
+          availableReactions={availableReactions} // Pass available reactions for the picker
+          isFavoritePickerOpen={isFavoritePickerOpen} // Pass state for picker visibility
+          onToggleFavoritePicker={toggleFavoritePicker} // Pass handler to toggle picker visibility
+        />
       ) : null}
 
       <TypedVideoPlayerView
         isOpen={isVideoViewOpen}
         onClose={() => setIsVideoViewOpen(false)}
         track={playerTrack}
+        audioRef={audioRef}
+        isPlaying={isPlaying}
       />
 
       <TypedMediaInfoPanel

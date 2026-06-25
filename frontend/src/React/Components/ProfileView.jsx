@@ -96,6 +96,7 @@ function buildMediaCard(item, fallbackTitle) {
     image: normalizeAssetUrl(item?.posterUrl || item?.thumbnailUrl || item?.coverImageUrl || item?.CoverImageUrl || item?.image) || defaultAvatarUrl,
     kind: 'media',
     mediaType: isVideo ? 'video' : 'audio',
+    reactionCount: Number(item?.favoriteCount ?? item?.FavoriteCount ?? item?.reactionCount ?? 0),
     raw: item,
   };
 }
@@ -214,10 +215,16 @@ export default function ProfileView({
           return;
         }
 
+        let resolvedId = profileTarget?.id || profileTarget?.userId || profileTarget?.artistId || '';
+        let matchedArtist = null;
         const keyword = String(profileTarget?.idDisplay || profileTarget?.handle || profileTarget?.displayName || profileTarget?.name || '').trim();
-        const searchResults = keyword ? await searchUsers(keyword, 1, 10).catch(() => []) : [];
-        const matchedArtist = pickArtistMatch(searchResults, profileTarget);
-        const resolvedId = profileTarget?.id || profileTarget?.userId || profileTarget?.artistId || matchedArtist?.id || '';
+
+        if (!resolvedId && keyword) {
+          const searchResults = await searchUsers(keyword, 1, 10).catch(() => []);
+          matchedArtist = pickArtistMatch(searchResults, profileTarget);
+          resolvedId = matchedArtist?.id || '';
+        }
+
         const publicDetail = resolvedId ? await getUserById(resolvedId).catch(() => null) : null;
         const [createdMedia, allAlbums, allPlaylists] = await Promise.all([
           resolvedId ? getArtistMedia(resolvedId).catch(() => []) : Promise.resolve([]),
@@ -487,7 +494,11 @@ export default function ProfileView({
               <div className="content-copy">
                 <h3 title={item.title}>{item.title}</h3>
                 <p title={item.subtitle}>{item.subtitle}</p>
-                <span>{item.mediaType === 'video' ? 'Video' : item.subtitle}</span>
+                {item.kind === 'media' ? (
+                  <span>{item.reactionCount || 0} cảm xúc</span>
+                ) : (
+                  <span>{item.mediaType === 'video' ? 'Video' : item.subtitle}</span>
+                )}
               </div>
             </button>
           ))}
@@ -522,151 +533,160 @@ export default function ProfileView({
         </div>
 
         {isOwnProfile ? (
-          <section className="profile-editor-shell">
-            <div className="profile-editor-card profile-owner-card">
-              <div className="profile-owner-avatar-block">
-                <div className="profile-section-title profile-section-title-center">
-                  <span className="profile-section-kicker">Ảnh đại diện</span>
+          <>
+            <section className="profile-editor-shell">
+              <div className="profile-editor-card profile-owner-card">
+                <div className="profile-owner-avatar-block">
+                  <div className="profile-section-title profile-section-title-center">
+                    <span className="profile-section-kicker">Ảnh đại diện</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="profile-avatar-editor profile-avatar-large"
+                    onClick={triggerAvatarPicker}
+                    aria-label="Đổi avatar"
+                  >
+                    <img
+                      src={avatarPreview || defaultAvatarUrl}
+                      alt="Avatar"
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = defaultAvatarUrl;
+                      }}
+                    />
+                    <span className="profile-avatar-badge">
+                      <span className="material-symbols-outlined fill-icon">photo_camera</span>
+                    </span>
+                  </button>
+
+                  <input
+                    ref={avatarInputRef}
+                    id="profile-avatar-input"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(event) => handleAvatarChange(event.target.files?.[0] || null)}
+                  />
+
+                  <button
+                    type="button"
+                    className="profile-avatar-action"
+                    onClick={triggerAvatarPicker}
+                  >
+                    Thay ảnh
+                  </button>
+
+                  {avatarFile ? <p className="profile-file-chip">Đã chọn file: {avatarFile.name}</p> : null}
                 </div>
 
-                <button
-                  type="button"
-                  className="profile-avatar-editor profile-avatar-large"
-                  onClick={triggerAvatarPicker}
-                  aria-label="Đổi avatar"
-                >
-                  <img
-                    src={avatarPreview || defaultAvatarUrl}
-                    alt="Avatar"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = defaultAvatarUrl;
-                    }}
-                  />
-                  <span className="profile-avatar-badge">
-                    <span className="material-symbols-outlined fill-icon">photo_camera</span>
-                  </span>
-                </button>
+                <div className="profile-owner-form-block">
+                  <div className="profile-section-title">
+                    <span className="profile-section-kicker">Thông tin cơ bản</span>
+                    <h2>Chỉnh sửa hồ sơ</h2>
+                  </div>
 
-                <input
-                  ref={avatarInputRef}
-                  id="profile-avatar-input"
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(event) => handleAvatarChange(event.target.files?.[0] || null)}
+                  <label className="profile-form-field">
+                    <span className="profile-field-label">Tên hiển thị</span>
+                    <input
+                      ref={displayNameInputRef}
+                      type="text"
+                      value={displayNameDraft}
+                      placeholder="Tên hiển thị"
+                      onChange={(event) => setDisplayNameDraft(event.target.value)}
+                    />
+                  </label>
+
+                  <label className="profile-form-field">
+                    <span className="profile-field-label">ID name / username</span>
+                    <input
+                      ref={idDisplayInputRef}
+                      type="text"
+                      value={idDisplayDraft}
+                      placeholder="idname"
+                      onChange={(event) => setIdDisplayDraft(event.target.value.replace(/\s+/g, '').toLowerCase())}
+                    />
+                  </label>
+
+                  <label className="profile-form-field">
+                    <span className="profile-field-label">Email</span>
+                    <input
+                      type="text"
+                      value={email}
+                      placeholder="Chưa có email"
+                      readOnly
+                      aria-readonly="true"
+                    />
+                  </label>
+                </div>
+
+                <div className="profile-owner-stats-block">
+                  <div className="profile-section-title">
+                    <span className="profile-section-kicker">Tổng quan</span>
+                    <h2>Thống kê tài khoản</h2>
+                  </div>
+
+                  <div className="profile-owner-stats-row">
+                    <article className="profile-stat-card">
+                      <span>Followers</span>
+                      <strong>{Number(profile?.totalFollowers || 0)}</strong>
+                    </article>
+                    <article className="profile-stat-card">
+                      <span>Following</span>
+                      <strong>{Number(profile?.followingCount || 0)}</strong>
+                    </article>
+                    <article className="profile-stat-card">
+                      <span>Join Date</span>
+                      <strong>{toDateLabel(profile?.createdAt)}</strong>
+                    </article>
+                  </div>
+                </div>
+              </div>
+
+              <div className="profile-editor-card profile-bio-card">
+                <div className="profile-section-title">
+                  <span className="profile-section-kicker">Tiểu sử</span>
+                  <h2>Giới thiệu bản thân</h2>
+                </div>
+                <p className="profile-section-caption">
+                  Hãy viết 300-500 ký tự để mọi người hiểu hơn về bạn, phong cách âm nhạc và câu chuyện phía sau profile.
+                </p>
+                <div className="profile-bio-meta">
+                  <span>Tối đa 500 ký tự</span>
+                  <strong>{bioDraft.length}/500</strong>
+                </div>
+                <textarea
+                  rows="8"
+                  maxLength={500}
+                  value={bioDraft}
+                  placeholder="Viết vài dòng giới thiệu về bạn..."
+                  onChange={(event) => setBioDraft(event.target.value)}
                 />
-
-                <button
-                  type="button"
-                  className="profile-avatar-action"
-                  onClick={triggerAvatarPicker}
-                >
-                  Thay ảnh
-                </button>
-
-                {avatarFile ? <p className="profile-file-chip">Đã chọn file: {avatarFile.name}</p> : null}
-              </div>
-
-              <div className="profile-owner-form-block">
-                <div className="profile-section-title">
-                  <span className="profile-section-kicker">Thông tin cơ bản</span>
-                  <h2>Chỉnh sửa hồ sơ</h2>
+                <div className="profile-actions-row">
+                  <div className="profile-inline-copy">
+                    <span className="profile-inline-copy-title">Lưu thay đổi</span>
+                    <p>Mọi chỉnh sửa sẽ được cập nhật cùng lúc.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="create-primary profile-save-button"
+                    onClick={handleOpenConfirm}
+                    disabled={saving || !dirty}
+                  >
+                    {saving ? 'Đang lưu...' : 'Cập nhập'}
+                  </button>
                 </div>
-
-                <label className="profile-form-field">
-                  <span className="profile-field-label">Tên hiển thị</span>
-                  <input
-                    ref={displayNameInputRef}
-                    type="text"
-                    value={displayNameDraft}
-                    placeholder="Tên hiển thị"
-                    onChange={(event) => setDisplayNameDraft(event.target.value)}
-                  />
-                </label>
-
-                <label className="profile-form-field">
-                  <span className="profile-field-label">ID name / username</span>
-                  <input
-                    ref={idDisplayInputRef}
-                    type="text"
-                    value={idDisplayDraft}
-                    placeholder="idname"
-                    onChange={(event) => setIdDisplayDraft(event.target.value.replace(/\s+/g, '').toLowerCase())}
-                  />
-                </label>
-
-                <label className="profile-form-field">
-                  <span className="profile-field-label">Email</span>
-                  <input
-                    type="text"
-                    value={email}
-                    placeholder="Chưa có email"
-                    readOnly
-                    aria-readonly="true"
-                  />
-                </label>
+                {message ? <div className="profile-inline-message profile-success">{message}</div> : null}
               </div>
+            </section>
 
-              <div className="profile-owner-stats-block">
-                <div className="profile-section-title">
-                  <span className="profile-section-kicker">Tổng quan</span>
-                  <h2>Thống kê tài khoản</h2>
-                </div>
-
-                <div className="profile-owner-stats-row">
-                  <article className="profile-stat-card">
-                    <span>Followers</span>
-                    <strong>{Number(profile?.totalFollowers || 0)}</strong>
-                  </article>
-                  <article className="profile-stat-card">
-                    <span>Following</span>
-                    <strong>{Number(profile?.followingCount || 0)}</strong>
-                  </article>
-                  <article className="profile-stat-card">
-                    <span>Join Date</span>
-                    <strong>{toDateLabel(profile?.createdAt)}</strong>
-                  </article>
-                </div>
-              </div>
+            <div className="profile-public-shelves" style={{ marginTop: '2rem' }}>
+              {renderShelf('Bài hát của tôi', profileShelves.songs, 'Bạn chưa tải lên bài hát nào.')}
+              {renderShelf('Video của tôi', profileShelves.videos, 'Bạn chưa tải lên video nào.')}
+              {renderShelf('Album của tôi', profileShelves.albums, 'Bạn chưa tạo album nào.')}
+              {renderShelf('Playlist của tôi', profileShelves.playlists, 'Bạn chưa tạo playlist nào.')}
             </div>
-
-            <div className="profile-editor-card profile-bio-card">
-              <div className="profile-section-title">
-                <span className="profile-section-kicker">Tiểu sử</span>
-                <h2>Giới thiệu bản thân</h2>
-              </div>
-              <p className="profile-section-caption">
-                Hãy viết 300-500 ký tự để mọi người hiểu hơn về bạn, phong cách âm nhạc và câu chuyện phía sau profile.
-              </p>
-              <div className="profile-bio-meta">
-                <span>Tối đa 500 ký tự</span>
-                <strong>{bioDraft.length}/500</strong>
-              </div>
-              <textarea
-                rows="8"
-                maxLength={500}
-                value={bioDraft}
-                placeholder="Viết vài dòng giới thiệu về bạn..."
-                onChange={(event) => setBioDraft(event.target.value)}
-              />
-              <div className="profile-actions-row">
-                <div className="profile-inline-copy">
-                  <span className="profile-inline-copy-title">Lưu thay đổi</span>
-                  <p>Mọi chỉnh sửa sẽ được cập nhật cùng lúc.</p>
-                </div>
-                <button
-                  type="button"
-                  className="create-primary profile-save-button"
-                  onClick={handleOpenConfirm}
-                  disabled={saving || !dirty}
-                >
-                  {saving ? 'Đang lưu...' : 'Cập nhập'}
-                </button>
-              </div>
-              {message ? <div className="profile-inline-message profile-success">{message}</div> : null}
-            </div>
-          </section>
+          </>
         ) : (
           <section className="profile-public-shell">
             <div className="profile-public-card">

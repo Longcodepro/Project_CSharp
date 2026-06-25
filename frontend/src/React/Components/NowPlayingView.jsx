@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import '../../CSS/NowPlayingView.css';
 
 const lyrics = [
@@ -11,9 +12,69 @@ const lyrics = [
   { text: "In a world that's only shades of green", active: false, muted: true },
 ];
 
-export default function NowPlayingView({ track }) {
+export default function NowPlayingView({
+  track,
+  isPlaying = false,
+  onTogglePlay,
+  onPlayNext,
+  onPlayPrevious,
+  isNextDisabled = false,
+  isPreviousDisabled = false,
+  onSeek,
+  audioRef = null,
+}) {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const audio = audioRef?.current;
+    if (!video || !audio) return;
+
+    // Sync initial state
+    video.currentTime = audio.currentTime;
+    if (isPlaying) {
+      video.play().catch(() => { });
+    } else {
+      video.pause();
+    }
+
+    const syncPlay = () => {
+      video.play().catch(() => { });
+    };
+    const syncPause = () => {
+      video.pause();
+    };
+    const syncTime = () => {
+      const diff = Math.abs(video.currentTime - audio.currentTime);
+      if (diff > 0.3) {
+        video.currentTime = audio.currentTime;
+      }
+    };
+
+    audio.addEventListener('play', syncPlay);
+    audio.addEventListener('pause', syncPause);
+    audio.addEventListener('timeupdate', syncTime);
+
+    return () => {
+      audio.removeEventListener('play', syncPlay);
+      audio.removeEventListener('pause', syncPause);
+      audio.removeEventListener('timeupdate', syncTime);
+    };
+  }, [isPlaying, audioRef]);
+
   const progressStyle = { width: `${track.progress}%` };
   const knobStyle = { left: `${track.progress}%` };
+
+  const handleProgressClick = (e) => {
+    if (!track.durationSeconds || !onSeek) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    if (width <= 0) return;
+    const percentage = Math.max(0, Math.min(1, clickX / width));
+    const targetTime = percentage * track.durationSeconds;
+    onSeek(targetTime);
+  };
 
   return (
     <div className="now-playing-view">
@@ -21,7 +82,24 @@ export default function NowPlayingView({ track }) {
 
       <section className="now-playing-left">
         <div className="now-playing-cover">
-          <img src={track.image} alt={track.title} />
+          {((track.mediaType === 'video' && track.audioUrl) || track.canvasUrl) ? (
+            <video
+              ref={videoRef}
+              src={track.canvasUrl || track.audioUrl}
+              autoPlay={isPlaying}
+              loop
+              muted
+              playsInline
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: '8px',
+              }}
+            />
+          ) : (
+            <img src={track.image} alt={track.title} />
+          )}
           <div>
             <span className="material-symbols-outlined">expand_more</span>
           </div>
@@ -40,7 +118,7 @@ export default function NowPlayingView({ track }) {
 
           <div className="now-playing-controls">
             <div className="now-playing-progress-wrap">
-              <div className="now-playing-progress">
+              <div className="now-playing-progress" onClick={handleProgressClick} style={{ cursor: 'pointer' }}>
                 <div style={progressStyle}></div>
                 <i style={knobStyle}></i>
               </div>
@@ -51,13 +129,31 @@ export default function NowPlayingView({ track }) {
             </div>
 
             <div className="now-playing-control-row">
-              <button type="button" aria-label="Bài trước">
+              <button
+                type="button"
+                aria-label="Bài trước"
+                onClick={onPlayPrevious}
+                disabled={isPreviousDisabled}
+                style={{ opacity: isPreviousDisabled ? 0.5 : 1, cursor: isPreviousDisabled ? 'not-allowed' : 'pointer' }}
+              >
                 <span className="material-symbols-outlined large">skip_previous</span>
               </button>
-              <button className="now-playing-pause" type="button" aria-label="Tạm dừng">
-                <span className="material-symbols-outlined fill-icon">pause</span>
+              <button
+                className="now-playing-pause"
+                type="button"
+                aria-label={isPlaying ? 'Tạm dừng' : 'Phát'}
+                onClick={onTogglePlay}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="material-symbols-outlined fill-icon">{isPlaying ? 'pause' : 'play_arrow'}</span>
               </button>
-              <button type="button" aria-label="Bài sau">
+              <button
+                type="button"
+                aria-label="Bài sau"
+                onClick={onPlayNext}
+                disabled={isNextDisabled}
+                style={{ opacity: isNextDisabled ? 0.5 : 1, cursor: isNextDisabled ? 'not-allowed' : 'pointer' }}
+              >
                 <span className="material-symbols-outlined large">skip_next</span>
               </button>
             </div>

@@ -54,7 +54,8 @@ public sealed record MediaItemDto(
 /// <param name="Role">Vai trò: MainArtist hoặc FeaturedArtist.</param>
 public sealed record MediaArtistDto(
     string ArtistId,
-    string Role
+    string Role,
+    string? ArtistName = null
 );
 
 /// <summary>

@@ -40,6 +40,7 @@ public class GetAllArtistsQueryHandler : IRequestHandler<GetAllArtistsQuery, IEn
         // Map sang DTO public, không lộ Email hoặc PasswordHash.
         return artists.Select(u => new UserDto
         {
+            Id          = u.Id,
             IdDisplay   = u.IdDisplay,
             DisplayName = u.DisplayName,
             AvatarUrl   = u.AvatarUrl,

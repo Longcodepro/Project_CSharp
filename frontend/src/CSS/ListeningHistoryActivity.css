@@ -1,0 +1,221 @@
+.listening-history-activity {
+  width: 280px;
+  height: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  overflow: hidden;
+  background: var(--surface-container-lowest);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.history-activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+}
+
+.history-activity-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-activity-header h2 {
+  color: var(--on-surface);
+  font-size: var(--text-xl);
+  line-height: var(--leading-title);
+  font-weight: var(--weight-bold);
+  margin: 0;
+}
+
+.history-count-badge {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(76, 244, 121, 0.18);
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.history-activity-header button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.history-activity-header button:hover {
+  background: rgba(52, 53, 53, 0.3);
+  color: var(--on-surface);
+}
+
+.history-tools {
+  display: flex;
+  padding: 0 8px;
+}
+
+.clear-history-button {
+  width: 100%;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 85, 85, 0.12);
+  color: #ff5555;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.clear-history-button:hover {
+  background: rgba(255, 85, 85, 0.24);
+}
+
+.history-list {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.history-empty {
+  margin: 0 8px;
+  padding: 14px 12px;
+  border-radius: 10px;
+  background: rgba(52, 53, 53, 0.18);
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.history-empty.error {
+  color: #ffb4ab;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 10px;
+  background: transparent;
+  transition: background 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.history-item img {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.history-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-item-title {
+  color: var(--on-surface);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-transform: capitalize;
+  text-overflow: ellipsis;
+}
+
+.history-item-artist {
+  color: var(--on-surface-variant);
+  font-size: var(--text-xs);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.history-item-time {
+  white-space: nowrap;
+}
+
+.history-item-duration {
+  white-space: nowrap;
+}
+
+.history-play-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: scale(0.8);
+  position: absolute;
+  right: 12px;
+}
+
+.history-item:hover .history-play-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.history-item:hover .history-item-info {
+  padding-right: 36px;
+}
+
+@media (max-width: 1024px) {
+  .listening-history-activity {
+    display: none;
+  }
+}

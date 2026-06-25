@@ -8,11 +8,11 @@ BEGIN
     ELSE IF EXISTS
     (
         SELECT 1
-        FROM sys.columns c
+    FROM sys.columns c
         INNER JOIN sys.types t ON t.user_type_id = c.user_type_id
-        WHERE c.object_id = OBJECT_ID(N'dbo.PlayHistory')
-          AND c.name = N'StoppedAt'
-          AND t.name <> N'int'
+    WHERE c.object_id = OBJECT_ID(N'dbo.PlayHistory')
+        AND c.name = N'StoppedAt'
+        AND t.name <> N'int'
     )
     BEGIN
         ALTER TABLE dbo.PlayHistory

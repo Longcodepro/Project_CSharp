@@ -61,7 +61,7 @@ public sealed class GetMediaByIdQueryHandler : IRequestHandler<GetMediaByIdQuery
             ViewCount:      mediaItem.ViewCount,
             UploadedAt:     mediaItem.UploadedAt,
             ReleaseDate:    mediaItem.ReleaseDate,
-            Artists:        artists.Select(a => new MediaArtistDto(a.ArtistId, a.Role))
+            Artists:        artists.Select(a => new MediaArtistDto(a.ArtistId, a.Role, a.ArtistName))
         );
     }
 }

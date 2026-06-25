@@ -590,10 +590,10 @@ export default function AuthLoginModal({
     if (e.key === 'Backspace') {
       if (!otpDigits[index] && index > 0) {
         // If current field is empty, move to previous and clear it
-      otpInputRefs.current[index - 1]?.focus();
-      const newOtpDigits = [...otpDigits];
-      newOtpDigits[index - 1] = '';
-      setOtpDigits(newOtpDigits);
+        otpInputRefs.current[index - 1]?.focus();
+        const newOtpDigits = [...otpDigits];
+        newOtpDigits[index - 1] = '';
+        setOtpDigits(newOtpDigits);
         if (isChangePasswordMode) {
           updateChangePasswordField('otpCode', newOtpDigits.join(''));
         } else {

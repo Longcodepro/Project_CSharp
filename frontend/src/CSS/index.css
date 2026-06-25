@@ -16,7 +16,7 @@
   --on-surface: #e3e2e2;
   --on-surface-variant: #bbcbb8;
   --outline: #859583;
-  --font-family-base: 'Inter', 'Poppins', 'Segoe UI', sans-serif;
+  --font-family-base: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-family-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
   --text-2xs: 0.6875rem;
   --text-xs: 0.75rem;
@@ -90,4 +90,62 @@ select:focus-visible {
   width: 0;
   height: 0;
   display: none;
+}
+
+/* Premium soft styles for all studio & management buttons */
+.create-primary,
+.create-secondary,
+.manage-file-button,
+.manage-file-input,
+.create-actions button {
+  border: none !important;
+  border-radius: 999px !important;
+  /* Pill shape */
+  padding: 12px 28px !important;
+  font-size: var(--text-sm) !important;
+  font-weight: var(--weight-semibold) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.create-primary {
+  background: var(--primary) !important;
+  color: #00140a !important;
+}
+
+.create-primary:hover {
+  background: var(--primary-container) !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(76, 244, 121, 0.25) !important;
+}
+
+.create-primary:active {
+  transform: translateY(0) scale(1) !important;
+}
+
+.create-secondary,
+.manage-file-button,
+.manage-file-input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--on-surface) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.create-secondary:hover,
+.manage-file-button:hover,
+.manage-file-input:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-2px) scale(1.02) !important;
+}
+
+.create-secondary:active,
+.manage-file-button:active,
+.manage-file-input:active {
+  transform: translateY(0) scale(1) !important;
 }
