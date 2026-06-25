@@ -6,32 +6,33 @@ services:
       - "1433:1433"
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Long@12345!"
+      MSSQL_SA_PASSWORD: "${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file}"
     volumes:
       - sql-data:/var/opt/mssql
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Long@12345!' -Q 'SELECT 1' -No"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q 'SELECT 1' -No"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   backend:
     build:
-      context: ./src
+      context: ./backend/src
       dockerfile: TuneVault.API/Dockerfile
     container_name: tunevault_backend
     ports:
       - "5000:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=TuneVaultDb;User Id=sa;Password=Long@12345!;TrustServerCertificate=True;"
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=TuneVaultDb;User Id=sa;Password=${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file};TrustServerCertificate=True;"
+      DatabaseOptions__ConnectionString: "Server=db,1433;Database=TuneVaultDb;User Id=sa;Password=${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file};TrustServerCertificate=True;"
       Anthropic__ApiKey: "${ANTHROPIC_API_KEY}"
-      Jwt__Secret: "${JWT_SECRET}"
-      Jwt__Issuer: "TuneVault"
-      Jwt__Audience: "TuneVaultUsers"
+      JwtSettings__SecretKey: "${JWT_SECRET:?Set JWT_SECRET in your shell or .env file}"
+      JwtSettings__Issuer: "TuneVault_Backend_API"
+      JwtSettings__Audience: "TuneVault_Client_Application"
     volumes:
-      - media-files:/app/wwwroot/media
+      - ./backend/src/TuneVault.API/wwwroot/uploads:/app/wwwroot/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -39,7 +40,7 @@ services:
 
   frontend:
     build:
-      context: ./client
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: tunevault_frontend
     ports:
@@ -50,4 +51,3 @@ services:
 
 volumes:
   sql-data:
-  media-files:

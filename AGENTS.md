@@ -1,1139 +1,680 @@
-# AGENTS.md — TuneVault Coding Agent Guide
+# AGENTS.md — TuneVault AI Coding Rules
 
-> **Mục đích:** File này là hướng dẫn bắt buộc cho mọi AI coding agent (Codex, Cline, Cursor, ChatGPT, Claude, Copilot Agent, v.v.) khi làm việc trên project **TuneVault**.
->
-> Agent phải đọc toàn bộ file này **trước khi phân tích, sửa, refactor hoặc tạo code**.
->
-> Project hiện tại ưu tiên **Backend ASP.NET Core trước**. Frontend chỉ sửa khi thật sự cần để khớp contract API hoặc để kiểm chứng luồng backend.
+> File này là luật bắt buộc cho mọi AI agent khi làm việc trên project TuneVault.
+> Trước khi sửa code, agent phải đọc file này và các file markdown liên quan được liệt kê bên dưới.
+> Không được code ngay khi chưa phân tích yêu cầu, chưa kiểm tra file liên quan, hoặc chưa lập kế hoạch.
 
 ---
 
-## Mục lục
+## 1. Mục tiêu của file này
 
-1. [Agent Mindset](#1-agent-mindset)
-2. [Bối cảnh dự án hiện tại](#2-bối-cảnh-dự-án-hiện-tại)
-3. [Môi trường phát triển](#3-môi-trường-phát-triển)
-4. [Yêu cầu dự án từ đề bài môn học](#4-yêu-cầu-dự-án-từ-đề-bài-môn-học)
-5. [Công nghệ sử dụng](#5-công-nghệ-sử-dụng)
-6. [Kiến trúc bắt buộc](#6-kiến-trúc-bắt-buộc)
-7. [Quy trình làm việc bắt buộc](#7-quy-trình-làm-việc-bắt-buộc)
-8. [Quy trình hỏi lại khi thiếu thông tin](#8-quy-trình-hỏi-lại-khi-thiếu-thông-tin)
-9. [Build, kiểm tra cú pháp và xác minh](#9-build-kiểm-tra-cú-pháp-và-xác-minh)
-10. [Chuẩn response API](#10-chuẩn-response-api)
-11. [Chuẩn error handling](#11-chuẩn-error-handling)
-12. [Luật code bắt buộc](#12-luật-code-bắt-buộc)
-13. [Phong cách comment và XML documentation](#13-phong-cách-comment-và-xml-documentation)
-14. [Luật về Dapper và Database](#14-luật-về-dapper-và-database)
-15. [Luật bảo mật](#15-luật-bảo-mật)
-16. [Media streaming roadmap](#16-media-streaming-roadmap)
-17. [Frontend policy](#17-frontend-policy)
-18. [Refactoring policy](#18-refactoring-policy)
-19. [Definition of Done](#19-definition-of-done)
-20. [Build failed protocol](#20-build-failed-protocol)
-21. [Checklist trước khi kết thúc task](#21-checklist-trước-khi-kết-thúc-task)
+File này giúp AI:
+
+* Hiểu project TuneVault đang ở giai đoạn hoàn thiện cuối.
+* Biết phải đọc file markdown nào trước khi code.
+* Không sửa lung tung những file không liên quan.
+* Tuân thủ đúng quy trình khi sửa frontend, nối endpoint, hoặc thêm endpoint backend.
+* Ghi lại thay đổi sau khi làm xong để developer dễ kiểm soát.
 
 ---
 
-## 1. Agent Mindset
+## 2. File markdown bắt buộc cần biết
 
-Agent phải làm việc như một **software engineer hỗ trợ người sửa code cuối cùng**, không phải như một công cụ generate code nhanh.
+Project có nhiều file hướng dẫn. Agent phải đọc đúng file theo ngữ cảnh, không đọc lan man và không bỏ qua file quan trọng.
 
-Ưu tiên theo thứ tự:
+### 2.1 File ở root project
 
-1. Đúng yêu cầu.
-2. Không phá code đang chạy.
-3. Giữ kiến trúc Clean Architecture.
-4. Chuẩn hóa response và error message.
-5. Code dễ đọc, dễ sửa, dễ bảo trì.
-6. Không tự bịa dữ liệu còn thiếu.
-7. Không refactor lan rộng nếu task không yêu cầu.
+| File                | Khi nào phải đọc?                                    | Mục đích                                                             |
+| ------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| `README.md`         | Khi cần hiểu tổng quan project hoặc chuẩn bị nộp bài | Mô tả project, công nghệ, cách chạy tổng quan, tài khoản seed nếu có |
+| `AGENTS.md`         | Luôn đọc đầu tiên                                    | Luật làm việc bắt buộc cho AI                                        |
+| `RUN_LOCAL.md`      | Khi cần chạy backend/frontend local                  | Hướng dẫn chạy project local, biến môi trường, lệnh backend/frontend |
+| `API_CONTRACT.md`   | Khi nối frontend với backend hoặc sửa endpoint       | Danh sách endpoint, request/response, DTO, route frontend đang dùng  |
+| `CURRENT_STATUS.md` | Luôn đọc trước khi làm task mới                      | Trạng thái hiện tại: đã xong gì, đang lỗi gì, ưu tiên tiếp theo      |
+| `AI_CHANGELOG.md`   | Sau khi sửa thành công                               | Ghi lại AI đã sửa gì, sửa file nào, test ra sao                      |
 
-Agent **không được tối ưu cho việc viết nhiều code**. Agent phải tối ưu cho việc giúp project ổn định hơn.
+### 2.2 File trong `docs/archive/`
 
-Khi không chắc:
+| File                                                | Khi nào đọc?                                        | Mục đích                                                               |
+| --------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
+| `docs/archive/TuneVault_BaiTapLon.pdf`              | Khi cần đối chiếu yêu cầu gốc của đồ án             | Yêu cầu chính thức: 10 chức năng, frontend, backend, pipeline, nộp bài |
+| `docs/archive/DATABASE_SCHEMA.md`                   | Khi sửa database, repository, SQL, DTO liên quan DB | Cấu trúc bảng, field, quan hệ dữ liệu                                  |
+| `docs/archive/ENDPOINT_PERMISSION_AUDIT.md`         | Khi sửa phân quyền hoặc endpoint cần `[Authorize]`  | Kiểm tra endpoint nào cần đăng nhập, quyền owner, quyền user           |
+| `docs/archive/DESIGN-spotify.md`                    | Khi sửa UI/layout frontend                          | Quy chuẩn giao diện Spotify-like                                       |
+| `docs/archive/AI_WORKFLOW_TUNEVault_FINAL_STAGE.md` | Khi chưa rõ quy trình làm task                      | Quy trình chi tiết cho frontend, nối endpoint, thêm backend endpoint   |
 
-```text
-Dừng lại → giải thích phần chưa rõ → hỏi lại người dùng.
+### 2.3 Folder `PLANS/`
+
+Folder `PLANS/` dùng để lưu kế hoạch theo từng task.
+
+Agent nên tạo file plan mới khi task có nhiều bước hoặc có rủi ro ảnh hưởng nhiều file.
+
+Ví dụ:
+
+```txt
+PLANS/
+  001-fix-login-frontend.md
+  002-connect-playlist-api.md
+  003-add-notification-endpoint.md
 ```
 
-Không đoán.
-Không tự sáng tác business rule.
-Không tự thêm database schema.
-Không tự thay đổi kiến trúc lớn.
+---
+
+## 3. Thứ tự đọc file trước khi code
+
+### 3.1 Mọi task đều phải đọc
+
+Trước khi làm bất kỳ task nào, đọc theo thứ tự:
+
+```txt
+1. AGENTS.md
+2. CURRENT_STATUS.md
+3. RUN_LOCAL.md
+```
+
+### 3.2 Nếu task là sửa frontend
+
+Đọc thêm:
+
+```txt
+4. API_CONTRACT.md
+5. docs/archive/DESIGN-spotify.md
+6. docs/archive/AI_WORKFLOW_TUNEVault_FINAL_STAGE.md
+```
+
+### 3.3 Nếu task là nối endpoint vào frontend
+
+Đọc thêm:
+
+```txt
+4. API_CONTRACT.md
+5. docs/archive/ENDPOINT_PERMISSION_AUDIT.md
+6. docs/archive/AI_WORKFLOW_TUNEVault_FINAL_STAGE.md
+```
+
+Sau đó phải kiểm tra code backend xem endpoint đó đã tồn tại thật chưa.
+
+### 3.4 Nếu task là thêm/sửa endpoint backend
+
+Đọc thêm:
+
+```txt
+4. API_CONTRACT.md
+5. docs/archive/DATABASE_SCHEMA.md
+6. docs/archive/ENDPOINT_PERMISSION_AUDIT.md
+7. docs/archive/AI_WORKFLOW_TUNEVault_FINAL_STAGE.md
+```
+
+### 3.5 Nếu task liên quan yêu cầu đồ án
+
+Đọc thêm:
+
+```txt
+docs/archive/TuneVault_BaiTapLon.pdf
+```
 
 ---
 
-## 2. Bối cảnh dự án hiện tại
+## 4. Quy trình bắt buộc trước khi code
 
-### 2.1 Tổng quan
+Không được code ngay.
 
-**TuneVault** là nền tảng phát nhạc và video trực tuyến, tham khảo Spotify, được xây dựng với:
+Mọi task phải đi qua 4 bước:
 
-- Backend: ASP.NET Core Web API.
-- Architecture: Clean Architecture.
-- Data access: Dapper.
-- Database: SQL Server.
-- Frontend: React/Vite, hiện đã có nhưng chưa ổn định.
-
-### 2.2 Trạng thái thực tế cần lưu ý
-
-Project hiện tại có một số vấn đề cần agent luôn ghi nhớ:
-
-- Nhiều người cùng code nên style chưa thống nhất.
-- Response của các endpoint chưa hoàn toàn thống nhất.
-- Một số endpoint đang trả anonymous object thay vì `ApiResponse<T>`.
-- Một số lỗi có nguy cơ trả message hệ thống trực tiếp ra API.
-- Frontend đã có nhưng chưa ổn định.
-- Media upload đã có một phần nhưng streaming audio/video/poster xuống frontend chưa hoàn chỉnh.
-- Người dùng hiện là người sửa code cuối cùng, nên agent phải ưu tiên cách sửa an toàn, dễ review.
-
-### 2.3 Ưu tiên hiện tại
-
-Project ưu tiên:
-
-```text
-Backend ASP.NET Core trước.
-Frontend chỉ sửa khi cần.
+```txt
+Bước 1: Hiểu yêu cầu
+Bước 2: Kiểm tra file liên quan
+Bước 3: Lập kế hoạch sửa
+Bước 4: Chỉ code sau khi đã có kế hoạch
 ```
 
-Thứ tự ưu tiên backend nên theo hướng:
+Kế hoạch phải ghi rõ:
 
-1. Chuẩn hóa response API.
-2. Chuẩn hóa error handling.
-3. Hoàn thiện Auth/JWT/Authorization nếu còn thiếu.
-4. Hoàn thiện Media upload metadata.
-5. Hoàn thiện audio streaming.
-6. Hoàn thiện video streaming.
-7. Hoàn thiện poster/thumbnail.
-8. Hoàn thiện Playlist/Favorite/History.
-9. Hoàn thiện Share/Notification/SignalR.
-10. Sau cùng mới tính AI feature, deploy, Docker pipeline.
+* Mục tiêu task.
+* Những file dự kiến sửa.
+* Những file chỉ đọc, không sửa.
+* Cách kiểm tra sau khi sửa.
+* Rủi ro có thể gặp.
+* Có cần hỏi lại developer không.
+
+Nếu thiếu dữ liệu, thiếu endpoint, thiếu DTO, hoặc không chắc business rule, phải hỏi lại. Không được tự đoán dữ liệu.
 
 ---
 
-## 3. Môi trường phát triển
+## 5. Quy trình sửa lỗi frontend
 
-### 3.1 Hệ điều hành chính
+Dùng khi developer yêu cầu sửa giao diện, layout, state, service, route, component hoặc bug frontend.
 
-Người dùng phát triển trên:
+### 5.1 Quy trình
 
-```text
-Linux Mint
+```txt
+1. Đọc AGENTS.md
+2. Đọc CURRENT_STATUS.md
+3. Đọc RUN_LOCAL.md
+4. Đọc API_CONTRACT.md nếu frontend có gọi API
+5. Đọc DESIGN-spotify.md nếu liên quan UI
+6. Phân tích lỗi/yêu cầu
+7. Lập kế hoạch sửa
+8. Sửa đúng file frontend liên quan
+9. Chạy kiểm tra
+10. Ghi AI_CHANGELOG.md
+11. Báo cáo kết quả
 ```
 
-Agent phải dùng lệnh phù hợp với Linux/bash.
+### 5.2 Lệnh kiểm tra frontend bắt buộc
 
-### 3.2 Quy tắc shell command
-
-Được dùng:
+Chạy trong thư mục frontend hoặc đúng thư mục được `RUN_LOCAL.md` hướng dẫn:
 
 ```bash
-dotnet restore
-dotnet build
-dotnet test
 npm install
 npm run dev
-npm run build
 ```
 
-Không được dùng trừ khi người dùng yêu cầu:
+Nếu có lệnh build/test riêng trong project thì có thể chạy thêm, nhưng không thay thế 2 lệnh trên nếu developer yêu cầu.
 
-```powershell
-PowerShell commands
-```
+### 5.3 Luật khi sửa frontend
 
-Không tạo:
-
-```text
-.bat files
-Windows-only scripts
-PowerShell-only scripts
-```
-
-Dùng đường dẫn Linux:
-
-```text
-src/TuneVault.API/Program.cs
-```
-
-Không dùng đường dẫn Windows:
-
-```text
-src\TuneVault.API\Program.cs
-```
-
-### 3.3 Database local
-
-Database chính là:
-
-```text
-SQL Server chạy bằng Docker
-```
-
-Agent không được mặc định người dùng đang dùng SQL Server LocalDB của Windows.
-
-Nếu cần hướng dẫn chạy DB, dùng hướng Docker/Linux. Ví dụ:
-
-```bash
-docker ps
-docker compose ps
-docker compose up -d sqlserver
-```
-
-Tuy nhiên, agent **không tự sửa Docker config** nếu task không liên quan deploy hoặc database environment.
+* Không sửa backend nếu task chỉ là frontend.
+* Không đổi toàn bộ layout nếu chỉ sửa một lỗi nhỏ.
+* Không hardcode dữ liệu nếu API đã có.
+* Không tự tạo endpoint giả nếu chưa được yêu cầu.
+* Component mới phải rõ tên, dễ hiểu.
+* Service API phải dùng endpoint trong `API_CONTRACT.md` hoặc endpoint thực tế trong backend.
+* Nếu endpoint thiếu, chuyển sang quy trình nối endpoint hoặc thêm endpoint backend.
 
 ---
 
-## 4. Yêu cầu dự án từ đề bài môn học
+## 6. Quy trình nối endpoint vào frontend
 
-### 4.1 Thông tin chung
+Dùng khi developer yêu cầu một chức năng frontend gọi backend thật.
 
-| Mục | Chi tiết |
-|---|---|
-| Môn học | C# and .NET Development |
-| Tên bài | Media Streaming Web Application — TuneVault |
-| Tổng điểm | 10 điểm |
-| Backend | 8 điểm |
-| Frontend | 2 điểm |
-| Deadline | 23:59, ngày 20/06/2026 |
+### 6.1 Quy trình
 
-### 4.2 Mười chức năng bắt buộc
+```txt
+1. Đọc AGENTS.md
+2. Đọc CURRENT_STATUS.md
+3. Đọc RUN_LOCAL.md
+4. Đọc API_CONTRACT.md
+5. Kiểm tra code backend xem endpoint có tồn tại thật không
+6. Kiểm tra DTO request/response thật
+7. Nếu endpoint đã có: dùng endpoint đó
+8. Nếu endpoint chưa có: chuyển sang quy trình thêm endpoint backend
+9. Sửa service/frontend state/component liên quan
+10. Run thử
+11. Ghi AI_CHANGELOG.md
+12. Báo cáo kết quả
+```
 
-| # | Chức năng | Mô tả |
-|---|---|---|
-| 1 | Xác thực | Đăng ký, đăng nhập, đăng xuất, JWT |
-| 2 | Hồ sơ người dùng | Xem/sửa profile, avatar, bio |
-| 3 | Thư viện Media | Upload audio/video, metadata, phân loại |
-| 4 | Audio Player | Stream audio, pause, seek, queue, history |
-| 5 | Video Player | Stream video, poster thumbnail, Range request |
-| 6 | Playlist | CRUD playlist, thêm/xóa track, public/private |
-| 7 | Tìm kiếm & Khám phá | Search theo tên/nghệ sĩ/playlist, trending |
-| 8 | Chia sẻ Media | Gửi bài/playlist cho user khác |
-| 9 | Thông báo | SignalR real-time + lưu DB + mark as read |
-| 10 | Tương tác & Lịch sử | Favorite, play history 10 bài gần nhất |
+### 6.2 Luật kiểm tra endpoint
 
-> Share và Notification/SignalR là phần được chấm kỹ. Không được làm sơ sài hoặc fake implementation.
+Trước khi dùng endpoint, phải xác nhận:
 
-### 4.3 Backend rubric
+* HTTP method đúng.
+* Route đúng.
+* Có cần JWT không.
+* Request body đúng DTO.
+* Response trả về shape nào.
+* Frontend có xử lý loading/error không.
+* Trường hợp 401/403/404/500 được xử lý hợp lý.
 
-| Mã | Tiêu chí | Điểm |
-|---|---|---|
-| B1 | Clean Architecture đúng 4 layer | 1.0 |
-| B2 | Dapper, repository interface, parameterized query, transaction | 1.5 |
-| B3 | ≥20 endpoint có ý nghĩa, DTO, Swagger/Postman | 1.0 |
-| B4 | JWT Auth, `[Authorize]`, ownership check | 1.0 |
-| B5 | Upload multipart, stream audio/video, Range header | 1.0 |
-| B6 | Share media API, shared with/by me | 1.0 |
-| B7 | SignalR Hub + Notification entity + mark as read | 0.5 |
-| B8 | Pipeline đủ cho các chức năng | Điều kiện chất lượng |
+### 6.3 Không được làm
+
+* Không tự đoán route.
+* Không tự đổi route backend chỉ vì frontend đang gọi sai.
+* Không tạo service gọi API chưa tồn tại.
+* Không bỏ qua auth token nếu endpoint yêu cầu đăng nhập.
+* Không parse response bừa nếu chưa kiểm tra DTO thật.
 
 ---
 
-## 5. Công nghệ sử dụng
+## 7. Quy trình thêm endpoint backend
 
-### 5.1 Backend
+Dùng khi chức năng cần endpoint nhưng backend chưa có.
 
-| Công nghệ | Ghi chú |
-|---|---|
-| .NET / ASP.NET Core | Web API, minimal hosting model |
-| Dapper | Data access chính, không dùng EF Core |
-| SQL Server | Chạy bằng Docker trên Linux Mint |
-| MediatR | CQRS, handler, pipeline behavior |
-| FluentValidation | Validate command/query/request |
-| JWT Bearer | Authentication/Authorization |
-| BCrypt.Net-Next | Hash password |
-| SignalR | Real-time notifications |
-| Swagger/Swashbuckle | API documentation |
+### 7.1 Thứ tự làm backend bắt buộc
 
-### 5.2 Frontend
+Backend phải đi theo hướng Clean Architecture.
 
-| Công nghệ | Ghi chú |
-|---|---|
-| React/Vite | Frontend hiện có nhưng chưa ổn định |
-| TypeScript hoặc JavaScript | Tuân theo codebase hiện tại, không tự migrate lớn |
-| Axios | Service layer khi cần gọi API |
-| SignalR client | Dùng khi làm notifications |
+Thứ tự ưu tiên:
 
-### 5.3 Không được tự ý thay đổi
-
-Không tự chuyển:
-
-- Dapper sang EF Core.
-- SQL Server sang MySQL/PostgreSQL.
-- Clean Architecture sang kiến trúc khác.
-- React/Vite sang framework khác.
-- Response format sang format khác.
-
----
-
-## 6. Kiến trúc bắt buộc
-
-### 6.1 Solution structure
-
-```text
-TuneVault/
-├── src/
-│   ├── TuneVault.Domain
-│   ├── TuneVault.Application
-│   ├── TuneVault.Infrastructure
-│   ├── TuneVault.API
-│   └── TuneVault.sln
-└── client
+```txt
+1. Domain / Interface nếu cần
+2. Application Feature
+3. DTO / Command / Query / Handler
+4. Repository interface nếu chưa có
+5. Infrastructure repository implementation
+6. DI registration
+7. API Controller
+8. Cập nhật API_CONTRACT.md
+9. Run kiểm tra
+10. Ghi AI_CHANGELOG.md
 ```
 
-### 6.2 Dependency rule
+Nếu task đơn giản và project hiện tại đã có pattern khác, được giữ style hiện tại của feature đó, nhưng không được phá dependency rule.
 
-Được phép:
+### 7.2 Repository
 
-```text
-API            → Application, Domain
-Application    → Domain
-Infrastructure → Application, Domain
-```
+Repository chỉ xử lý truy vấn dữ liệu.
 
-Không được:
+Không đặt business logic trong repository.
 
-```text
-Domain         → Application / Infrastructure / API
-Application    → Infrastructure
-Controller     → Repository trực tiếp
-Controller     → DbConnection trực tiếp
-Controller     → SQL trực tiếp
-```
-
-### 6.3 Pipeline chuẩn cho feature backend
-
-Mỗi feature nên đi theo flow:
-
-```text
-Controller
-  → MediatR Command/Query
-  → Validator
-  → Handler
-  → Repository interface
-  → Repository implementation bằng Dapper
-  → DTO response
-  → ApiResponse<T>
-```
-
-Controller không xử lý business logic nặng. Controller chỉ:
-
-- Nhận request.
-- Lấy user id từ claims nếu cần.
-- Gọi MediatR.
-- Trả response chuẩn.
-
----
-
-## 7. Quy trình làm việc bắt buộc
-
-Khi nhận task, agent phải làm theo thứ tự:
-
-### Bước 1 — Đọc ngữ cảnh
-
-Đọc:
-
-```text
-AGENTS.md
-```
-
-Nếu sau này có file plan, đọc thêm:
-
-```text
-PLANS/MASTER_PLAN.md
-PLANS/BACKEND_PLAN.md
-PLANS/FRONTEND_PLAN.md
-```
-
-Nếu file plan chưa tồn tại thì không tự tạo, trừ khi người dùng yêu cầu.
-
-### Bước 2 — Xác định phạm vi sửa
-
-Trước khi code, xác định:
-
-- Module nào đang được sửa.
-- Layer nào bị ảnh hưởng.
-- Có cần database schema không.
-- Có cần frontend không.
-- Có ảnh hưởng response format không.
-- Có ảnh hưởng authentication/authorization không.
-
-### Bước 3 — Lập kế hoạch ngắn
-
-Với task vừa hoặc lớn, agent nên nêu kế hoạch trước:
-
-```text
-1. Kiểm tra controller hiện tại.
-2. Kiểm tra command/query/handler.
-3. Sửa response về ApiResponse<T>.
-4. Chạy dotnet build.
-```
-
-Không viết code ngay nếu task còn mơ hồ.
-
-### Bước 4 — Sửa tối thiểu cần thiết
-
-Chỉ sửa đúng module/task đang làm.
-
-Không rewrite toàn bộ project.
-Không format lại hàng loạt file không liên quan.
-Không đổi naming toàn project nếu không được yêu cầu.
-
-### Bước 5 — Build và báo cáo
-
-Sau khi sửa:
-
-```bash
-cd src
-dotnet restore TuneVault.sln
-dotnet build TuneVault.sln
-```
-
-Nếu có test:
-
-```bash
-dotnet test TuneVault.sln
-```
-
-Báo cáo:
-
-- Đã sửa file nào.
-- Sửa để làm gì.
-- Build/test kết quả ra sao.
-- Còn việc gì cần người dùng quyết định.
-
----
-
-## 8. Quy trình hỏi lại khi thiếu thông tin
-
-Agent tuyệt đối không được bịa khi thiếu dữ liệu.
-
-### 8.1 Không được tự bịa
-
-Không tự bịa:
-
-- Tên bảng database.
-- Tên cột database.
-- Kiểu dữ liệu cột.
-- Business rule.
-- Endpoint contract.
-- DTO field.
-- Quyền user.
-- Role mới.
-- Error message nghiệp vụ chưa được thống nhất.
-- File path lưu media.
-- Cách sinh ID.
-- Cách tính trending/recommendation.
-
-### 8.2 Phải hỏi lại
-
-Nếu thiếu thông tin, agent phải hỏi như một người tư vấn:
-
-```text
-Mình đang thiếu thông tin về bảng MediaItem: hiện database đã có cột AudioUrl, VideoUrl, CoverUrl chưa?
-Bạn muốn mình chỉ sửa code C# trước hay cần bạn tạo SQL schema rồi mình mới nối repository?
-```
-
-Câu hỏi phải rõ, ngắn, có lựa chọn nếu được.
-
-### 8.3 Được giả định khi nào?
-
-Chỉ được giả định các chi tiết nhỏ, ít rủi ro, và phải ghi rõ:
-
-```text
-Mình giả định frontend đang gọi API qua Axios service hiện có. Nếu khác, cần chỉnh lại sau.
-```
-
-Không được giả định những thứ ảnh hưởng database, security, response contract hoặc điểm chấm.
-
----
-
-## 9. Build, kiểm tra cú pháp và xác minh
-
-### 9.1 Backend build
-
-Luôn dùng lệnh Linux/bash:
-
-```bash
-cd src
-dotnet restore TuneVault.sln
-dotnet build TuneVault.sln
-```
-
-Nếu đang ở root project:
-
-```bash
-dotnet restore src/TuneVault.sln
-dotnet build src/TuneVault.sln
-```
-
-### 9.2 Backend test
-
-Nếu có test project:
-
-```bash
-dotnet test src/TuneVault.sln
-```
-
-Nếu chưa có test project, không được báo là test pass. Chỉ báo:
-
-```text
-Project hiện chưa có test project nên chỉ xác minh bằng dotnet build.
-```
-
-### 9.3 Kiểm tra cú pháp C#
-
-`dotnet build` là bước kiểm tra cú pháp chính.
-
-Nếu task chỉ sửa một project:
-
-```bash
-dotnet build src/TuneVault.API/TuneVault.API.csproj
-dotnet build src/TuneVault.Application/TuneVault.Application.csproj
-dotnet build src/TuneVault.Infrastructure/TuneVault.Infrastructure.csproj
-dotnet build src/TuneVault.Domain/TuneVault.Domain.csproj
-```
-
-Tuy nhiên trước khi kết thúc task vẫn ưu tiên build solution:
-
-```bash
-dotnet build src/TuneVault.sln
-```
-
-### 9.4 Frontend build
-
-Chỉ chạy khi có sửa frontend hoặc cần kiểm chứng contract:
-
-```bash
-cd client
-npm install
-npm run build
-```
-
-Nếu frontend chưa ổn định sẵn, không được tự nhận lỗi frontend là do thay đổi hiện tại nếu chưa kiểm tra kỹ.
-
-### 9.5 Docker SQL Server check
-
-Khi cần kiểm tra database container:
-
-```bash
-docker ps
-docker compose ps
-```
-
-Không tự chạy destructive command như:
-
-```bash
-docker compose down -v
-```
-
-trừ khi người dùng cho phép rõ ràng.
-
----
-
-## 10. Chuẩn response API
-
-### 10.1 Response format bắt buộc
-
-Mọi endpoint JSON phải trả theo format:
-
-```json
-{
-  "success": true,
-  "message": "Lấy dữ liệu thành công.",
-  "data": {}
-}
-```
-
-Khi lỗi:
-
-```json
-{
-  "success": false,
-  "message": "Không thể lấy dữ liệu.",
-  "data": null
-}
-```
-
-Nếu cần detail kỹ thuật trong môi trường Development:
-
-```json
-{
-  "success": false,
-  "message": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại sau.",
-  "data": null,
-  "detail": "Chi tiết lỗi chỉ dùng cho Development."
-}
-```
-
-### 10.2 Kiểu C# chuẩn
-
-Dùng `ApiResponse<T>` trong `TuneVault.Application.Common`.
-
-Chuẩn mong muốn:
+Code mới nên dùng:
 
 ```csharp
-return Ok(ApiResponse<UserDto>.Ok(user, "Lấy thông tin người dùng thành công."));
+IDbConnectionFactory
 ```
 
-Khi lỗi:
+Không nhân rộng `DapperContext` nếu không bắt buộc.
+
+SQL phải dùng parameter:
 
 ```csharp
-return BadRequest(ApiResponse<object?>.Fail("Dữ liệu gửi lên không hợp lệ."));
+WHERE Id = @Id
 ```
 
-Không trả:
+Không nối chuỗi SQL bằng interpolation với input người dùng.
+
+### 7.3 Feature / Handler
+
+Business logic nằm trong Handler.
+
+Mỗi Command/Query phải có Handler tương ứng.
+
+Command/Query nên implement:
 
 ```csharp
-return Ok(new { success = true, data = result });
+IRequest<TResponse>
 ```
 
-trừ khi đang sửa tạm trong module cũ và task không cho phép refactor rộng. Nếu đang chạm vào endpoint đó, hãy chuẩn hóa luôn trong phạm vi endpoint đang sửa.
+Handler có nhiệm vụ:
 
-### 10.3 Message tiếng Việt
-
-Message trả về API phải là tiếng Việt, dễ hiểu, dùng được cho frontend hiển thị.
-
-Ví dụ tốt:
-
-```text
-Đăng nhập thành công.
-Không tìm thấy bài hát.
-Bạn không có quyền sửa playlist này.
-File tải lên không hợp lệ.
+```txt
+Validate nghiệp vụ
+Kiểm tra quyền nếu cần
+Gọi repository
+Map sang DTO
+Trả response
 ```
 
-Ví dụ không tốt:
+### 7.4 Controller
 
-```text
-Object reference not set to an instance of an object.
-Violation of PRIMARY KEY constraint.
-SqlException: Invalid column name.
+Controller chỉ nên:
+
+```txt
+Nhận request
+Gọi _mediator.Send(...)
+Trả response
 ```
 
-### 10.4 Streaming endpoint exception
+Không viết truy vấn DB trong controller.
 
-Endpoint stream audio/video có thể trả `FileResult`, `PhysicalFile`, `FileStreamResult` thay vì `ApiResponse<T>` khi thành công, vì response chính là binary stream.
+Không viết business logic dài trong controller.
 
-Tuy nhiên khi lỗi vẫn phải trả JSON chuẩn nếu có thể:
+### 7.5 Comment và summary
 
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy file media.",
-  "data": null
-}
-```
+Method mới hoặc class mới phải có summary ngắn gọn.
 
----
-
-## 11. Chuẩn error handling
-
-### 11.1 Không lộ lỗi hệ thống
-
-Không bao giờ trả trực tiếp ra client:
-
-- Stack trace.
-- SQL exception.
-- Dapper exception.
-- Connection string.
-- File path nội bộ.
-- JWT secret.
-- Exception message hệ thống chưa được xử lý.
-
-Sai:
-
-```json
-{
-  "message": "Violation of PRIMARY KEY constraint 'PK_MediaItem'..."
-}
-```
-
-Đúng:
-
-```json
-{
-  "success": false,
-  "message": "Không thể tạo media. Vui lòng kiểm tra dữ liệu và thử lại.",
-  "data": null
-}
-```
-
-### 11.2 Mapping lỗi đề xuất
-
-| Loại lỗi | HTTP status | Message tiếng Việt |
-|---|---:|---|
-| Validation error | 400 | Dữ liệu gửi lên không hợp lệ. |
-| DomainException | 400 | Dùng message nghiệp vụ đã kiểm soát. |
-| Unauthorized | 401 | Bạn cần đăng nhập để thực hiện thao tác này. |
-| Forbidden | 403 | Bạn không có quyền thực hiện thao tác này. |
-| Not found | 404 | Không tìm thấy dữ liệu yêu cầu. |
-| Conflict | 409 | Dữ liệu đã tồn tại hoặc bị xung đột. |
-| Unexpected exception | 500 | Đã xảy ra lỗi không mong muốn. Vui lòng thử lại sau. |
-
-### 11.3 Exception middleware
-
-Ưu tiên xử lý lỗi tập trung trong middleware hoặc `UseExceptionHandler`.
-
-Controller không nên try/catch mọi lỗi nếu middleware đã xử lý được.
-
-Controller chỉ nên catch khi:
-
-- Cần map lỗi nghiệp vụ rất cụ thể.
-- Cần trả status đặc biệt.
-- Code cũ chưa được chuẩn hóa và đang refactor cục bộ.
-
----
-
-## 12. Luật code bắt buộc
-
-### 12.1 Naming convention
-
-| Loại | Convention | Ví dụ |
-|---|---|---|
-| Class, record, enum | PascalCase | `MediaRepository` |
-| Interface | Prefix `I` | `IMediaRepository` |
-| Method | PascalCase | `GetByIdAsync` |
-| Property | PascalCase | `DisplayName` |
-| Private field | `_camelCase` | `_mediaRepository` |
-| Local variable | camelCase | `mediaItem` |
-| DTO | Suffix `Dto` | `UserProfileDto` |
-| Command | Suffix `Command` | `UploadMediaCommand` |
-| Query | Suffix `Query` | `GetMediaByIdQuery` |
-| Handler | Suffix `Handler` | `UploadMediaCommandHandler` |
-| Validator | Suffix `Validator` | `UploadMediaCommandValidator` |
-| Controller | Suffix `Controller` | `MediaController` |
-| Repository | Suffix `Repository` | `MediaRepository` |
-
-### 12.2 Async convention
-
-Async method phải có suffix `Async`, trừ method bắt buộc từ interface/framework không dùng suffix.
-
-Ví dụ:
-
-```csharp
-Task<MediaItem?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
-```
-
-### 12.3 CancellationToken
-
-Repository, service, handler nên nhận `CancellationToken` nếu có I/O operation.
-
-Không bỏ qua token nếu method phía dưới hỗ trợ.
-
-### 12.4 Không dùng magic string/magic number bừa bãi
-
-Nếu giá trị là business rule, đưa vào constant hoặc options.
-
-Ví dụ:
-
-```csharp
-private const int MaxBioLength = 300;
-```
-
-### 12.5 Không để TODO/FIXME/HACK trong code mới
-
-Không kết thúc task với TODO trong code mới.
-
-Nếu cần làm sau, ghi vào báo cáo cuối hoặc PLAN file khi người dùng yêu cầu.
-
----
-
-## 13. Phong cách comment và XML documentation
-
-### 13.1 XML summary bắt buộc
-
-Mọi class, interface, record, enum, public method và method quan trọng phải có XML documentation.
+Trong method có nhiều bước xử lý, thêm comment theo từng bước.
 
 Ví dụ:
 
 ```csharp
 /// <summary>
-/// Handler xử lý upload media mới cho nghệ sĩ.
-/// Lưu metadata qua repository và dùng file storage service cho file vật lý.
+/// Handles creating a new playlist for the authenticated user.
 /// </summary>
-public sealed class UploadMediaCommandHandler
-    : IRequestHandler<UploadMediaCommand, MediaItemDto>
+public async Task<PlaylistDto> Handle(CreatePlaylistCommand request, CancellationToken ct)
 {
+    // Step 1: Validate owner/user existence.
+    // Step 2: Create playlist entity.
+    // Step 3: Persist playlist.
+    // Step 4: Map result to response DTO.
 }
 ```
 
-### 13.2 Comment phải giống người viết code
+Không comment lan man những dòng quá hiển nhiên.
 
-Comment không được quá máy móc kiểu AI.
+---
 
-Tránh comment vô nghĩa:
+## 8. Quy tắc chạy thử và giới hạn số lần run
+
+### 8.1 Số lần run tối đa
+
+Agent chỉ được run tối đa 2 lần cho cùng một hướng sửa.
+
+Nếu sau 2 lần vẫn lỗi:
+
+```txt
+1. Dừng code
+2. Phân tích lại nguyên nhân
+3. Ghi rõ lỗi nằm ở đâu
+4. Lập kế hoạch mới
+5. Chỉ tiếp tục khi đã có hướng sửa mới
+```
+
+Không được sửa mò liên tục.
+
+### 8.2 Với frontend
+
+Ưu tiên chạy:
+
+```bash
+npm install
+npm run dev
+```
+
+Nếu có lỗi TypeScript hoặc build, đọc lỗi rồi sửa đúng nguyên nhân.
+
+### 8.3 Với backend
+
+Tùy cấu trúc project trong `RUN_LOCAL.md`, dùng lệnh phù hợp như:
+
+```bash
+dotnet restore
+dotnet build
+dotnet run
+```
+
+Không được tự đổi connection string thật.
+
+Không commit secret, password, JWT key thật.
+
+---
+
+## 9. Quy tắc ghi AI_CHANGELOG.md
+
+Sau khi task chạy được hoặc sửa xong một phần rõ ràng, phải ghi thêm vào `AI_CHANGELOG.md`.
+
+### 9.1 Format bắt buộc
+
+```md
+## 001 - Tên task ngắn gọn
+
+- Mục đích:
+  - Mô tả task này dùng để làm gì.
+
+- File đã sửa:
+  - `path/to/file1`
+  - `path/to/file2`
+
+- File đã đọc/tham khảo:
+  - `AGENTS.md`
+  - `CURRENT_STATUS.md`
+  - `API_CONTRACT.md`
+
+- Kiểm tra:
+  - `npm install`: pass/fail/not run
+  - `npm run dev`: pass/fail/not run
+  - `dotnet build`: pass/fail/not run
+
+- Ghi chú:
+  - Ghi lỗi còn tồn tại hoặc điều cần developer xác nhận.
+```
+
+### 9.2 Quy tắc đánh số
+
+Mỗi task tăng số thứ tự:
+
+```txt
+001
+002
+003
+...
+```
+
+Không ghi đè log cũ.
+
+---
+
+## 10. Quy tắc cập nhật CURRENT_STATUS.md
+
+Sau task lớn, nếu trạng thái project thay đổi, cập nhật `CURRENT_STATUS.md`.
+
+Nên cập nhật khi:
+
+* Hoàn thành một chức năng.
+* Fix xong một lỗi quan trọng.
+* Thêm endpoint mới.
+* Nối xong frontend với endpoint.
+* Phát hiện bug lớn chưa sửa.
+* Có việc cần developer quyết định.
+
+Không cần cập nhật nếu chỉ sửa typo nhỏ.
+
+---
+
+## 11. Quy tắc cập nhật API_CONTRACT.md
+
+Phải cập nhật `API_CONTRACT.md` khi:
+
+* Thêm endpoint mới.
+* Đổi route endpoint.
+* Đổi request DTO.
+* Đổi response DTO.
+* Đổi yêu cầu auth/role.
+* Frontend bắt đầu dùng endpoint mới.
+
+Mỗi endpoint nên ghi:
+
+````md
+### METHOD /api/route
+
+Auth: Required / Not required
+
+Request:
+```json
+{}
+````
+
+Response:
+
+```json
+{}
+```
+
+Ghi chú:
+
+* Mô tả ngắn chức năng.
+
+````
+
+---
+
+## 12. Quy tắc Clean Architecture
+
+Project theo Clean Architecture:
+
+```txt
+Domain → Application → Infrastructure → API
+````
+
+Quy tắc dependency:
+
+* `Domain` không phụ thuộc layer khác.
+* `Application` chỉ phụ thuộc `Domain`.
+* `Infrastructure` phụ thuộc `Application` và `Domain`.
+* `API` gọi `Application`, không gọi trực tiếp database trong controller.
+
+Không được import ngược layer.
+
+Không được đưa logic nghiệp vụ vào controller.
+
+Không được để frontend quyết định nghiệp vụ bảo mật thay backend.
+
+---
+
+## 13. Quy tắc Dapper và SQL
+
+Khi viết repository bằng Dapper:
+
+* Luôn mở connection bằng `using var`.
+* Luôn dùng parameterized query.
+* Không nối chuỗi SQL với input người dùng.
+* Nếu có nhiều thao tác ghi liên quan nhau, cân nhắc transaction.
+* Không trả entity thô ra controller nếu đã có DTO.
+* Không hardcode connection string.
+
+Ví dụ đúng:
 
 ```csharp
-// Set user id
-request.UserId = userId;
+using var conn = _db.CreateConnection();
 
-// Check if media is null
-if (media is null)
+var sql = """
+    SELECT *
+    FROM MediaItems
+    WHERE Id = @Id
+""";
+
+return await conn.QuerySingleOrDefaultAsync<MediaItem>(sql, new { Id = id });
+```
+
+---
+
+## 14. Quy tắc JWT/Auth
+
+Project đang có một số bất nhất về JWT/Auth, agent phải cẩn thận.
+
+Ưu tiên dùng:
+
+```csharp
+IJwtTokenGenerator
+```
+
+Không dùng `ITokenService` nếu đó là service stub hoặc không còn được dùng.
+
+Khi sửa auth, phải kiểm tra:
+
+* JWT config trong `Program.cs`.
+* SecretKey/Issuer/Audience có thống nhất không.
+* `UseAuthentication()` có bật không.
+* `UseAuthorization()` có bật không.
+* Endpoint nhạy cảm có `[Authorize]` không.
+* Frontend có gửi Bearer token không.
+
+Không tự đổi toàn bộ auth flow nếu task không yêu cầu.
+
+---
+
+## 15. Quy tắc response format
+
+Response nên thống nhất theo dạng:
+
+```json
 {
+  "success": true,
+  "data": {},
+  "message": null
 }
 ```
 
-Ưu tiên comment có lý do:
-
-```csharp
-// Unfollow dùng soft delete để người dùng có thể follow lại
-// mà không làm mất lịch sử quan hệ trước đó.
-```
-
-```csharp
-// Không trả path vật lý của file ra frontend vì đây là thông tin nội bộ server.
-```
-
-```csharp
-// Range processing bắt buộc để trình phát có thể seek tới đoạn khác của audio/video.
-```
-
-### 13.3 Comment nên giải thích “vì sao”, không giải thích “đang làm gì”
-
-Code đã nói nó đang làm gì. Comment nên giải thích:
-
-- Vì sao cần check này.
-- Business rule nằm ở đâu.
-- Ràng buộc frontend/backend.
-- Quyết định kiến trúc.
-- Cạm bẫy dễ sửa sai.
-
-### 13.4 Không lạm dụng comment
-
-Không comment từng dòng.
-
-Code rõ ràng thì không cần comment.
-
----
-
-## 14. Luật về Dapper và Database
-
-### 14.1 Dapper là bắt buộc
-
-Project dùng Dapper. Không thêm EF Core.
-
-Không dùng:
-
-```csharp
-DbContext
-DbSet<T>
-Migration EF Core
-```
-
-### 14.2 SQL phải parameterized
-
-Đúng:
-
-```csharp
-const string sql = "SELECT * FROM MediaItems WHERE OwnerId = @OwnerId";
-var result = await connection.QueryAsync<MediaItem>(sql, new { OwnerId = ownerId });
-```
-
-Sai:
-
-```csharp
-var sql = $"SELECT * FROM MediaItems WHERE OwnerId = '{ownerId}'";
-```
-
-### 14.3 Write operation phải dùng transaction khi cần nhất quán
-
-Các thao tác `INSERT`, `UPDATE`, `DELETE` liên quan nhiều bảng phải dùng transaction.
-
-Ví dụ:
-
-- Share media + tạo notification.
-- Upload media + insert artists/albums liên quan.
-- Add track vào playlist + update order.
-
-### 14.4 Không tự tạo/sửa SQL schema nếu chưa được yêu cầu
-
-Người dùng có thể tự tạo database script bằng tay.
-
-Agent không được tự ý thêm/chỉnh database schema nếu task không yêu cầu rõ.
-
-Nếu code cần cột/bảng chưa chắc tồn tại, phải hỏi:
-
-```text
-Bảng MediaItem hiện đã có cột AudioUrl, VideoUrl, CoverUrl chưa?
-Bạn muốn mình chờ bạn tạo SQL trước hay tạo script gợi ý riêng?
-```
-
-### 14.5 Không hardcode connection string
-
-Connection string phải lấy từ config/environment.
-
-Không commit secret.
-Không lộ password SQL Server.
-
----
-
-## 15. Luật bảo mật
-
-Không bao giờ:
-
-- Hardcode JWT secret.
-- Hardcode SQL password.
-- Hardcode API key.
-- Commit `appsettings.Development.json` nếu chứa secret thật.
-- Trả `PasswordHash` ra API.
-- Trả entity thô ra API.
-- Cho controller gọi SQL trực tiếp.
-- Dùng string interpolation cho SQL.
-
-Luôn:
-
-- Dùng `[Authorize]` cho endpoint cần đăng nhập.
-- Check ownership trước khi sửa/xóa resource.
-- Map entity sang DTO.
-- Trả error message đã chuẩn hóa.
-- Dùng config/environment variables cho secret.
-
----
-
-## 16. Media streaming roadmap
-
-### 16.1 Thứ tự ưu tiên
-
-Làm theo thứ tự:
-
-1. Audio streaming.
-2. Video streaming.
-3. Poster/thumbnail serving.
-4. Frontend player integration.
-
-### 16.2 Không fake streaming
-
-Không tạo endpoint stream chỉ trả URL nếu yêu cầu là streaming thực sự.
-
-Streaming đúng cần hỗ trợ:
-
-- Progressive playback.
-- HTTP Range requests.
-- Seek forward/backward.
-- Content-Type đúng.
-- Không lộ path vật lý server.
-
-### 16.3 ASP.NET Core streaming rule
-
-Với file local, ưu tiên:
-
-```csharp
-return PhysicalFile(filePath, contentType, enableRangeProcessing: true);
-```
-
-hoặc `FileStreamResult` có range processing nếu phù hợp.
-
-### 16.4 Error của stream endpoint
-
-Khi không tìm thấy media:
+Hoặc lỗi:
 
 ```json
 {
   "success": false,
-  "message": "Không tìm thấy media.",
-  "data": null
+  "data": null,
+  "message": "Mô tả lỗi"
 }
 ```
 
-Khi file vật lý mất:
+Nếu project hiện tại chưa có `ApiResponse<T>`, chỉ tạo/sửa khi task liên quan response format hoặc endpoint mới cần dùng.
 
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy file media trên server.",
-  "data": null
-}
-```
-
-Không trả:
-
-```text
-/home/user/project/uploads/audio/file.mp3 not found
-```
+Không đổi toàn bộ response cũ nếu có thể làm vỡ frontend hiện tại, trừ khi developer yêu cầu chuẩn hóa.
 
 ---
 
-## 17. Frontend policy
+## 16. Quy tắc xử lý thiếu dữ liệu
 
-Frontend đã có nhưng chưa ổn định.
+Nếu thiếu dữ liệu, thiếu field, thiếu endpoint, thiếu rule nghiệp vụ hoặc không chắc ý developer, phải hỏi lại.
 
-Agent chỉ sửa frontend khi:
+Không được:
 
-- Backend contract đã ổn định.
-- Cần cập nhật Axios service theo response mới.
-- Cần test luồng upload/stream/login.
-- Người dùng yêu cầu rõ.
+* Tự bịa dữ liệu.
+* Tự đổi schema.
+* Tự đổi route.
+* Tự thêm role.
+* Tự thêm field DB.
+* Tự đổi business rule.
+* Tự xóa file nghi là dư thừa.
 
-Không tự:
-
-- Rewrite toàn bộ UI.
-- Chuyển framework.
-- Migrate JavaScript sang TypeScript toàn bộ nếu không được yêu cầu.
-- Thêm state management library mới nếu chưa cần.
-
-Nếu sửa frontend, phải cố gắng giữ style hiện tại và chỉ thay đổi phần liên quan task.
+Nếu phát hiện file thừa hoặc code chết, chỉ báo cáo và đề xuất xóa. Không tự xóa nếu developer chưa đồng ý.
 
 ---
 
-## 18. Refactoring policy
+## 17. Quy tắc không sửa file không liên quan
 
-Người dùng chọn hướng an toàn:
+Trước khi sửa, agent phải liệt kê file dự kiến sửa.
 
-```text
-Chỉ sửa module đang làm, hạn chế đụng code cũ.
-```
+Trong quá trình làm:
 
-Vì vậy agent phải:
-
-- Sửa cục bộ.
-- Không refactor lan rộng.
-- Không rename hàng loạt.
-- Không đổi namespace hàng loạt.
-- Không format lại file không liên quan.
-- Không chuyển toàn bộ controller sang style mới nếu task chỉ sửa một endpoint.
-
-Tuy nhiên, nếu đang chạm vào một endpoint/module có response chưa chuẩn, agent nên chuẩn hóa trong phạm vi đó.
-
-Ví dụ:
-
-- Task sửa `MediaController.Stream` → được chuẩn hóa response lỗi của `Stream`.
-- Task sửa `AuthController.Login` → được chuẩn hóa response của Login.
-- Không tự sửa toàn bộ `PlaylistController`, `FavoriteController`, `ShareController` nếu task không liên quan.
+* Chỉ sửa file liên quan trực tiếp.
+* Không format toàn bộ project.
+* Không đổi tên hàng loạt.
+* Không refactor lớn nếu task chỉ là fix nhỏ.
+* Không sửa cả frontend và backend nếu task chỉ yêu cầu một phía, trừ khi có lý do rõ ràng và phải báo trước.
 
 ---
 
-## 19. Definition of Done
+## 18. Những lỗi/bẫy đã biết trong project
 
-Một task chỉ được coi là xong khi:
+Agent phải kiểm tra lại trong code hiện tại trước khi kết luận, nhưng cần đặc biệt chú ý các điểm sau:
 
-```text
-[ ] Đúng yêu cầu người dùng.
-[ ] Không bịa thông tin còn thiếu.
-[ ] Không phá Clean Architecture.
-[ ] Không sửa lan rộng ngoài module/task.
-[ ] Response endpoint mới/sửa đã dùng ApiResponse<T> nếu là JSON endpoint.
-[ ] Error message trả về API là tiếng Việt.
-[ ] Không lộ exception hệ thống ra client.
-[ ] Không trả entity thô.
-[ ] Không hardcode secret.
-[ ] SQL dùng parameterized query.
-[ ] Write operation quan trọng dùng transaction.
-[ ] Class/method mới có XML summary hợp lý.
-[ ] Comment giống người viết code, không máy móc.
-[ ] Dependency mới đã đăng ký trong DI.
-[ ] Swagger attribute được bổ sung nếu endpoint mới.
-[ ] dotnet build thành công hoặc đã báo lỗi theo Build Failed Protocol.
-```
+1. Có thể tồn tại nhiều convention DTO song song.
+2. Một số interface/service auth có thể bị trùng hoặc là stub.
+3. JWT generator và JWT validation có thể chưa thống nhất config.
+4. Có endpoint yêu cầu auth nhưng frontend chưa gửi token.
+5. Có endpoint trả 401 là hợp lệ nếu user nhập sai login.
+6. Console browser có thể hiện lỗi extension/Chrome built-in AI, không thuộc app.
+7. Một số markdown trong `docs/archive/` chỉ là tài liệu tham khảo, không phải file cần sửa.
+8. Không phải mọi file hiện có đều đúng chuẩn; phải kiểm tra reference thật trước khi dùng.
 
 ---
 
-## 20. Build failed protocol
+## 19. Checklist trước khi báo hoàn thành
 
-Sau khi sửa code, agent được thử build và sửa tối đa 2 vòng.
+Trước khi báo thành công, agent phải tự kiểm tra:
 
-```text
-Lần 1: dotnet build
-        ├── 0 lỗi → DONE
-        └── Có lỗi → phân tích, sửa, build lại
-
-Lần 2: dotnet build
-        ├── 0 lỗi → DONE
-        └── Vẫn lỗi → DỪNG
-```
-
-Nếu sau 2 lần vẫn lỗi, không tiếp tục code lan man.
-
-Báo cáo theo mẫu:
-
-```markdown
-## ⛔ Build Failed — Cần can thiệp thủ công
-
-**Số lần thử:** 2/2
-
-### Lỗi còn lại
-
-| # | File | Line | Error Code | Mô tả |
-|---|------|------|------------|-------|
-| 1 | `src/TuneVault.Application/...` | 47 | CS0246 | Không tìm thấy type `...` |
-
-### Nguyên nhân nghi ngờ
-
-- Interface có thể chưa tồn tại.
-- Database field có thể chưa được tạo.
-- Namespace hiện tại không khớp.
-
-### Những gì đã thử
-
-1. ...
-2. ...
-
-### Cần người dùng xác nhận
-
-- [ ] Bảng/cột database hiện có chưa?
-- [ ] Có được tạo interface mới không?
-```
+* [ ] Đã đọc `AGENTS.md`.
+* [ ] Đã đọc `CURRENT_STATUS.md`.
+* [ ] Đã đọc file markdown liên quan.
+* [ ] Đã lập kế hoạch trước khi code.
+* [ ] Chỉ sửa file liên quan.
+* [ ] Không tự đoán dữ liệu thiếu.
+* [ ] Không hardcode secret.
+* [ ] Không tạo endpoint giả.
+* [ ] Không để SQL injection.
+* [ ] Đã chạy lệnh kiểm tra phù hợp.
+* [ ] Nếu run lỗi quá 2 lần, đã dừng và phân tích lại.
+* [ ] Đã cập nhật `AI_CHANGELOG.md`.
+* [ ] Đã cập nhật `API_CONTRACT.md` nếu có đổi/thêm endpoint.
+* [ ] Đã cập nhật `CURRENT_STATUS.md` nếu trạng thái project thay đổi.
+* [ ] Báo cáo cuối có nêu rõ sửa gì, file nào, test ra sao.
 
 ---
 
-## 21. Checklist trước khi kết thúc task
+## 20. Format báo cáo cuối cho developer
 
-Trước khi trả lời người dùng, agent tự kiểm tra:
+Sau khi làm xong, báo cáo ngắn gọn theo mẫu:
 
-```text
-[ ] Tôi đã đọc AGENTS.md.
-[ ] Tôi hiểu task thuộc module nào.
-[ ] Tôi không tự bịa dữ liệu thiếu.
-[ ] Tôi chỉ sửa đúng phạm vi task.
-[ ] Tôi không phá dependency rule.
-[ ] Tôi không thêm EF Core.
-[ ] Tôi không thêm Windows-only command/script.
-[ ] Tôi không hardcode secret.
-[ ] Tôi không trả lỗi hệ thống ra API.
-[ ] Tôi đã chuẩn hóa response trong phần mình chạm vào.
-[ ] Tôi đã dùng message tiếng Việt cho lỗi API.
-[ ] Tôi đã thêm XML summary/comment hợp lý.
-[ ] Tôi đã chạy build hoặc nói rõ vì sao chưa chạy được.
-[ ] Tôi đã báo cáo ngắn gọn file đã sửa và kết quả.
+```md
+## Kết quả
+
+Đã hoàn thành: <mô tả ngắn>
+
+## File đã sửa
+
+- `file1`
+- `file2`
+
+## Kiểm tra
+
+- `npm install`: pass/fail/not run
+- `npm run dev`: pass/fail/not run
+- `dotnet build`: pass/fail/not run
+
+## Ghi chú
+
+- Vấn đề còn lại nếu có.
+- Điều cần developer xác nhận nếu có.
 ```
 
----
-
-## Ghi chú cho các file PLAN sau này
-
-Hiện tại chưa tạo PLAN file trong AGENTS.md này.
-
-Khi người dùng yêu cầu, nên tạo các file sau:
-
-```text
-PLANS/MASTER_PLAN.md
-PLANS/BACKEND_PLAN.md
-PLANS/FRONTEND_PLAN.md
-PLANS/STREAMING_PLAN.md
-PLANS/API_RESPONSE_STANDARDIZATION_PLAN.md
-```
-
-Khi các file này tồn tại, agent phải đọc chúng trước khi làm feature mới.
-
----
-
-## Nguyên tắc cuối cùng
-
-Nếu phải chọn giữa:
-
-```text
-Code nhanh nhưng có thể sai
-```
-
-và:
-
-```text
-Hỏi lại để hiểu đúng rồi mới code
-```
-
-thì luôn chọn:
-
-```text
-Hỏi lại để hiểu đúng rồi mới code.
-```
-
+Không báo “thành công” nếu chưa chạy được hoặc chưa kiểm tra theo yêu cầu.
