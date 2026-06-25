@@ -91,3 +91,6 @@ appsettings.json
 appsettings.example.json
 
 client/backend/.env
+
+# wwwroot
+backend/src/TuneVault.API/wwwroot
