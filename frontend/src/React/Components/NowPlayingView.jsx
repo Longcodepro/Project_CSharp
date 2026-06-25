@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import '../../CSS/NowPlayingView.css';
 
 const lyrics = [
@@ -20,7 +21,47 @@ export default function NowPlayingView({
   isNextDisabled = false,
   isPreviousDisabled = false,
   onSeek,
+  audioRef = null,
 }) {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const audio = audioRef?.current;
+    if (!video || !audio) return;
+
+    // Sync initial state
+    video.currentTime = audio.currentTime;
+    if (isPlaying) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+
+    const syncPlay = () => {
+      video.play().catch(() => {});
+    };
+    const syncPause = () => {
+      video.pause();
+    };
+    const syncTime = () => {
+      const diff = Math.abs(video.currentTime - audio.currentTime);
+      if (diff > 0.3) {
+        video.currentTime = audio.currentTime;
+      }
+    };
+
+    audio.addEventListener('play', syncPlay);
+    audio.addEventListener('pause', syncPause);
+    audio.addEventListener('timeupdate', syncTime);
+
+    return () => {
+      audio.removeEventListener('play', syncPlay);
+      audio.removeEventListener('pause', syncPause);
+      audio.removeEventListener('timeupdate', syncTime);
+    };
+  }, [isPlaying, audioRef]);
+
   const progressStyle = { width: `${track.progress}%` };
   const knobStyle = { left: `${track.progress}%` };
 
@@ -41,7 +82,24 @@ export default function NowPlayingView({
 
       <section className="now-playing-left">
         <div className="now-playing-cover">
-          <img src={track.image} alt={track.title} />
+          {((track.mediaType === 'video' && track.audioUrl) || track.canvasUrl) ? (
+            <video
+              ref={videoRef}
+              src={track.canvasUrl || track.audioUrl}
+              autoPlay={isPlaying}
+              loop
+              muted
+              playsInline
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: '8px',
+              }}
+            />
+          ) : (
+            <img src={track.image} alt={track.title} />
+          )}
           <div>
             <span className="material-symbols-outlined">expand_more</span>
           </div>

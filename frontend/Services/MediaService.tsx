@@ -323,8 +323,14 @@ export function clearAuthSession(): void {
 
 export async function refreshAuthSession(): Promise<AuthResponse | null> {
   try {
+    const refreshToken = localStorage.getItem(AUTH_REFRESH_TOKEN_KEY);
+    const headers: Record<string, string> = {};
+    if (refreshToken) {
+      headers['X-Refresh-Token'] = refreshToken;
+    }
     const payload = await request<ApiEnvelope<AuthResponse>>('/auth/refresh', {
       method: 'POST',
+      headers,
       skipAuthRefresh: true,
     });
 
@@ -456,6 +462,11 @@ export async function searchUsers(keyword: string, _page = 1, _pageSize = 10) {
     const displayName = readString(user.displayName, user.DisplayName, user.name, user.Name).toLowerCase();
     return idDisplay.includes(trimmed) || displayName.includes(trimmed);
   });
+}
+
+export async function searchAll(keyword: string, page = 1, pageSize = 10) {
+  const payload = await request<ApiEnvelope<any>>(`/search?keyword=${encodeURIComponent(keyword)}&page=${page}&pageSize=${pageSize}`);
+  return extractData(payload);
 }
 
 export async function followUser(followeeId: string): Promise<void> {
@@ -859,7 +870,7 @@ function normalizePlayableMedia(
     media.Artist,
     media.artistName,
     media.ArtistName,
-    artists.map((artist: Record<string, unknown>) => readString(artist.artistId, artist.ArtistId)).join(', '),
+    artists.map((artist: Record<string, unknown>) => readString(artist.artistName, artist.ArtistName, artist.artistId, artist.ArtistId)).join(', '),
     ownerId,
   ) || 'TuneVault';
   const cover = normalizeAssetUrl(
@@ -906,6 +917,7 @@ export const MediaService = {
   getUserById,
   getArtists,
   searchUsers,
+  searchAll,
   followUser,
   unfollowUser,
   checkFollowStatus,

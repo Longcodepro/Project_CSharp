@@ -51,6 +51,7 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
   const [savedCollections, setSavedCollections] = useState([]);
   const [createdMedia, setCreatedMedia] = useState([]);
   const [createdCollections, setCreatedCollections] = useState([]);
+  const [mediaSearchQuery, setMediaSearchQuery] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -99,6 +100,7 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
           subtitle: normalizeType(item.type) === 'video' ? 'Video đã tạo' : 'Bài hát đã tạo',
           image: mediaPosterUrl(item.id) || normalizeAssetUrl(item.coverImageUrl || item.coverImgUrl) || defaultCoverUrl,
           type: 'media',
+          mediaKind: normalizeType(item.type),
           description: item.description,
         }));
 
@@ -177,6 +179,16 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
     </div>
   );
 
+  const filteredCreatedMedia = createdMedia.filter((item) => {
+    if (!mediaSearchQuery) return true;
+    const query = mediaSearchQuery.toLowerCase();
+    return (
+      (item.title || '').toLowerCase().includes(query) ||
+      (item.subtitle || '').toLowerCase().includes(query) ||
+      (item.description || '').toLowerCase().includes(query)
+    );
+  });
+
   return (
     <aside className="sidebar">
       <div className="sidebar-heading">
@@ -211,9 +223,66 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
           <div className="sidebar-mini-group">
             <div className="sidebar-mini-group-header">
               <span>Bài hát / video đã tạo</span>
-              <small>{createdMedia.length}</small>
+              <small>
+                {mediaSearchQuery
+                  ? `${filteredCreatedMedia.length}/${createdMedia.length}`
+                  : createdMedia.length}
+              </small>
             </div>
-            {renderItemList(createdMedia, 'library_music', 'Chưa có bài hát hoặc video nào được tạo.')}
+            
+            <div className="sidebar-search-box" style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              marginBottom: '10px',
+              gap: '6px',
+              transition: 'background-color 0.2s'
+            }}>
+              <span className="material-symbols-outlined" style={{
+                fontSize: '16px',
+                color: 'var(--on-surface-variant)',
+                userSelect: 'none'
+              }}>search</span>
+              <input
+                type="text"
+                placeholder="Lọc bài hát / video..."
+                value={mediaSearchQuery}
+                onChange={(e) => setMediaSearchQuery(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--on-surface)',
+                  fontSize: '12px',
+                  lineHeight: '1.2',
+                  outline: 'none',
+                  width: '100%',
+                  padding: '0'
+                }}
+              />
+              {mediaSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setMediaSearchQuery('')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '0',
+                    color: 'var(--on-surface-variant)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                </button>
+              )}
+            </div>
+
+            {renderItemList(filteredCreatedMedia, 'library_music', 'Chưa có bài hát hoặc video nào được tạo.')}
           </div>
 
           <div className="sidebar-mini-group">

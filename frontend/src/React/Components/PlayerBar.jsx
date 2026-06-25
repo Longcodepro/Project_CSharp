@@ -138,7 +138,7 @@ export default function PlayerBar({
         <button type="button" aria-label="Thêm vào playlist" onClick={onAddPlaylist || requirePlayerAuth}>
           <span className="material-symbols-outlined">playlist_add</span>
         </button>
-        <div className="player-favorite-container">
+        <div className="player-favorite-container" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
             type="button"
             aria-label="Yêu thích"
@@ -149,6 +149,11 @@ export default function PlayerBar({
           >
             <span className="material-symbols-outlined fill-icon">favorite</span>
           </button>
+          {playerTrack?.favoriteCount > 0 && (
+            <span className="favorite-count-badge" style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', fontWeight: '600' }}>
+              {playerTrack.favoriteCount}
+            </span>
+          )}
 
           {/* Reaction picker */}
           {isPickerVisible && (
