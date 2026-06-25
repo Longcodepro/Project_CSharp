@@ -75,23 +75,23 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
         setLikedItems(favoriteMedia.slice(0, 4).map((item) => normalizeMediaItem(item, 'Đã thích')));
 
         const mappedRecentLikes = recentLikes.slice(0, 4).map((item) => ({
-            id: item.targetId || item.id,
-            title: item.title || item.name || 'Nội dung đã lưu',
-            subtitle: String(item.targetType || item.type || 'collection').toLowerCase() === 'album'
-              ? 'Album đã lưu'
-              : 'Playlist đã lưu',
-            image: normalizeAssetUrl(item.coverImageUrl || item.coverImgUrl || item.imageUrl) || defaultCoverUrl,
-            type: normalizeType(item.targetType || item.type || 'collection'),
-            description: item.description,
-          }));
+          id: item.targetId || item.id,
+          title: item.title || item.name || 'Nội dung đã lưu',
+          subtitle: String(item.targetType || item.type || 'collection').toLowerCase() === 'album'
+            ? 'Album đã lưu'
+            : 'Playlist đã lưu',
+          image: normalizeAssetUrl(item.coverImageUrl || item.coverImgUrl || item.imageUrl) || defaultCoverUrl,
+          type: normalizeType(item.targetType || item.type || 'collection'),
+          description: item.description,
+        }));
         const mappedFeaturedPlaylists = featuredPlaylists.slice(0, 4).map((playlist) => ({
-            id: playlist.id,
-            title: playlist.title,
-            subtitle: `Playlist đã lưu • ${playlist.tracks?.length ?? 0} bài hát`,
-            image: normalizeAssetUrl(playlist.coverImgUrl) || defaultCoverUrl,
-            type: 'playlist',
-            description: playlist.description,
-          }));
+          id: playlist.id,
+          title: playlist.title,
+          subtitle: `Playlist đã lưu • ${playlist.tracks?.length ?? 0} bài hát`,
+          image: normalizeAssetUrl(playlist.coverImgUrl) || defaultCoverUrl,
+          type: 'playlist',
+          description: playlist.description,
+        }));
         setSavedCollections(mappedRecentLikes.length > 0 ? mappedRecentLikes : mappedFeaturedPlaylists);
 
         const mediaCards = myMedia.slice(0, 4).map((item) => ({
@@ -229,7 +229,7 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
                   : createdMedia.length}
               </small>
             </div>
-            
+
             <div className="sidebar-search-box" style={{
               display: 'flex',
               alignItems: 'center',

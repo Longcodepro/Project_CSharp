@@ -1,4 +1,4 @@
-﻿USE TuneVault;
+USE TuneVault;
 GO
 
 IF COL_LENGTH('dbo.Favorites', 'TargetId') IS NULL
@@ -31,9 +31,9 @@ GO
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_Favorites_TargetType'
-      AND parent_object_id = OBJECT_ID('dbo.Favorites')
+FROM sys.check_constraints
+WHERE name = 'CK_Favorites_TargetType'
+    AND parent_object_id = OBJECT_ID('dbo.Favorites')
 )
 BEGIN
     ALTER TABLE dbo.Favorites
@@ -43,9 +43,9 @@ GO
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.indexes
-    WHERE name = 'IX_Favorites_User_Target'
-      AND object_id = OBJECT_ID('dbo.Favorites')
+FROM sys.indexes
+WHERE name = 'IX_Favorites_User_Target'
+    AND object_id = OBJECT_ID('dbo.Favorites')
 )
 BEGIN
     CREATE NONCLUSTERED INDEX IX_Favorites_User_Target

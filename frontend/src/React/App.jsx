@@ -200,10 +200,10 @@ export default function App() {
         const profile = await getMyProfile().catch(() => null);
         if (cancelled) return;
 
-          const avatarUrl = normalizeAssetUrl(profile?.avatarUrl || profile?.AvatarUrl || null);
-          const email = String(profile?.email || profile?.Email || '').trim();
-          setCurrentUserAvatarUrl(avatarUrl || null);
-          setCurrentUserEmail(email);
+        const avatarUrl = normalizeAssetUrl(profile?.avatarUrl || profile?.AvatarUrl || null);
+        const email = String(profile?.email || profile?.Email || '').trim();
+        setCurrentUserAvatarUrl(avatarUrl || null);
+        setCurrentUserEmail(email);
 
         if (avatarUrl) {
           localStorage.setItem('user_avatar', avatarUrl);
@@ -277,7 +277,7 @@ export default function App() {
     setBodyMode('home');
     setIsNowPlayingExpanded(false);
   };
- 
+
   const openUserProfileFromPanel = (user) => {
     if (!user?.id && !user?.handle && !user?.idDisplay) return;
     if (!setBodyModeSafely('profile')) return;
@@ -827,18 +827,18 @@ export default function App() {
     }
   }, [playerTrack?.id, isPlaying]);
 
- 
+
   // Effect to fetch available reactions and current favorite status
   useEffect(() => {
     let cancelled = false;
- 
+
     const fetchReactionsAndStatus = async () => {
       if (!isAuthenticated) {
         setAvailableReactions([]);
         setCurrentFavoriteReaction(null);
         return;
       }
- 
+
       try {
         const reactions = await MediaService.getFavoriteReactions();
         if (!cancelled) {
@@ -850,7 +850,7 @@ export default function App() {
           setAvailableReactions([]);
         }
       }
- 
+
       if (playerTrack?.id && playerTrack.id !== fallbackTrack.id) {
         try {
           const [status, countResult] = await Promise.all([
@@ -876,14 +876,14 @@ export default function App() {
         }
       }
     };
- 
+
     void fetchReactionsAndStatus();
- 
+
     return () => {
       cancelled = true;
     };
   }, [authVersion, isAuthenticated, playerTrack.id]); // Re-run when auth status or playing track changes
- 
+
   const closeBodyOverlay = () => {
     if (isVideoViewOpen) {
       setIsVideoViewOpen(false);
@@ -897,16 +897,16 @@ export default function App() {
       setSelectedLibraryItem(null);
       return;
     }
- 
+
     if (bodyMode !== 'home') {
       if (!setBodyModeSafely('home')) return;
       setProfileTarget(null);
       return;
     }
- 
+
     setIsNowPlayingExpanded(false);
   };
- 
+
   // Handler for opening the playlist modal
   const handleOpenPlaylistModal = () => {
     if (!isAuthenticated) {
@@ -914,7 +914,7 @@ export default function App() {
       return;
     }
     if (!playerTrack?.id) return; // Cannot add if no track is playing
- 
+
     requireAuth('Đăng nhập để xem danh sách playlist của bạn.', async () => {
       try {
         const playlists = await getMyPlaylists();
@@ -926,11 +926,11 @@ export default function App() {
       }
     });
   };
- 
+
   // Handler for adding a track to a playlist from the modal
   const handleAddToPlaylist = async (playlistId) => {
     if (!playerTrack?.id || !playlistId) return;
- 
+
     try {
       await addTrackToPlaylist(playlistId, playerTrack.id);
       // Optionally show a success message
@@ -940,7 +940,7 @@ export default function App() {
       // Optionally show an error message to the user
     }
   };
- 
+
   // Handler for opening the video view
   const handleOpenVideoView = () => {
     if (!playerTrack?.id) return; // Need a track to view video for
@@ -954,7 +954,7 @@ export default function App() {
       setIsInfoPanelOpen(false); // Close info panel if open
     });
   };
- 
+
   // Handler for opening the media info panel
   const handleOpenInfoPanel = () => {
     if (!playerTrack?.id) return; // Need a track to view info for
@@ -963,7 +963,7 @@ export default function App() {
       setIsVideoViewOpen(false); // Close info panel if open
     });
   };
- 
+
   // Handlers for favorite reactions
   const handleToggleFavorite = async (reaction = 'Love') => {
     if (!playerTrack?.id) return;
@@ -976,7 +976,7 @@ export default function App() {
       setCurrentFavoriteReaction(reaction);
       setIsFavoritePickerOpen(false); // Close picker after action
       setLibraryVersion((v) => v + 1);
- 
+
       const countResult = await MediaService.getMediaReactionCount(playerTrack.id).catch(() => null);
       setPlayerTrack((curr) => ({
         ...curr,
@@ -987,19 +987,19 @@ export default function App() {
       // Optionally show an error message to the user
     }
   };
- 
+
   const handleSelectFavoriteReaction = async (reaction) => {
     await handleToggleFavorite(reaction);
   };
- 
+
   const handleUnlikeFavorite = async () => {
     await handleToggleFavorite(null); // null reaction means unlike
   };
- 
+
   const toggleFavoritePicker = () => {
     setIsFavoritePickerOpen((prev) => !prev);
   };
- 
+
   return (
     <div className="app-container">
       <div className="main-layout">
@@ -1059,10 +1059,10 @@ export default function App() {
           onProfileDirtyChange={setIsProfileDirty}
           onManageDirtyChange={setIsManageDirty}
           onProfileSaved={(profile) => {
-          const avatarUrl = normalizeAssetUrl(profile?.avatarUrl || profile?.AvatarUrl || null);
-          const email = String(profile?.email || profile?.Email || '').trim();
-          setCurrentUserAvatarUrl(avatarUrl || null);
-          setCurrentUserEmail(email);
+            const avatarUrl = normalizeAssetUrl(profile?.avatarUrl || profile?.AvatarUrl || null);
+            const email = String(profile?.email || profile?.Email || '').trim();
+            setCurrentUserAvatarUrl(avatarUrl || null);
+            setCurrentUserEmail(email);
             if (avatarUrl) {
               localStorage.setItem('user_avatar', avatarUrl);
             } else {
@@ -1098,35 +1098,35 @@ export default function App() {
 
       {/* PlayerBar is now always rendered if authenticated and a track is available */}
       {isAuthenticated && playerTrack?.id && playerTrack.id !== fallbackTrack.id ? (
-      <PlayerBar
-        isExpanded={isNowPlayingExpanded}
-        isPlaying={isPlaying}
-        onTogglePlay={handleTogglePlay}
-        onToggleExpanded={() => {
-          requireAuth('Đăng nhập để mở trình phát và nghe nội dung.', () => {
-            setIsNowPlayingExpanded((isExpanded) => !isExpanded);
-          });
-        }}
-        onRequireAuth={() => requireAuth('Đăng nhập để nghe nhạc và sử dụng trình phát.')}
-        playerTrack={playerTrack}
-        onPlayNext={playNextTrack}
-        onPlayPrevious={playPreviousTrack}
-        isNextDisabled={currentQueueIndex >= playerQueue.length - 1}
-        isPreviousDisabled={currentQueueIndex <= 0}
-        onVolumeChange={handleVolumeChange}
-        volume={volume}
-        onToggleMute={handleToggleMute}
-        isMuted={isMuted}
-        onAddPlaylist={handleOpenPlaylistModal} // Pass handler for add to playlist
-        onOpenVideo={handleOpenVideoView} // Pass handler for video view
-        onOpenInfo={handleOpenInfoPanel} // Pass handler for info panel
-        onToggleFavorite={handleToggleFavorite} // Pass handler for direct favorite click
-        currentFavoriteReaction={currentFavoriteReaction} // Pass current favorite reaction
-        onSelectFavoriteReaction={handleSelectFavoriteReaction} // Pass handler for selecting other reactions
-        availableReactions={availableReactions} // Pass available reactions for the picker
-        isFavoritePickerOpen={isFavoritePickerOpen} // Pass state for picker visibility
-        onToggleFavoritePicker={toggleFavoritePicker} // Pass handler to toggle picker visibility
-      />
+        <PlayerBar
+          isExpanded={isNowPlayingExpanded}
+          isPlaying={isPlaying}
+          onTogglePlay={handleTogglePlay}
+          onToggleExpanded={() => {
+            requireAuth('Đăng nhập để mở trình phát và nghe nội dung.', () => {
+              setIsNowPlayingExpanded((isExpanded) => !isExpanded);
+            });
+          }}
+          onRequireAuth={() => requireAuth('Đăng nhập để nghe nhạc và sử dụng trình phát.')}
+          playerTrack={playerTrack}
+          onPlayNext={playNextTrack}
+          onPlayPrevious={playPreviousTrack}
+          isNextDisabled={currentQueueIndex >= playerQueue.length - 1}
+          isPreviousDisabled={currentQueueIndex <= 0}
+          onVolumeChange={handleVolumeChange}
+          volume={volume}
+          onToggleMute={handleToggleMute}
+          isMuted={isMuted}
+          onAddPlaylist={handleOpenPlaylistModal} // Pass handler for add to playlist
+          onOpenVideo={handleOpenVideoView} // Pass handler for video view
+          onOpenInfo={handleOpenInfoPanel} // Pass handler for info panel
+          onToggleFavorite={handleToggleFavorite} // Pass handler for direct favorite click
+          currentFavoriteReaction={currentFavoriteReaction} // Pass current favorite reaction
+          onSelectFavoriteReaction={handleSelectFavoriteReaction} // Pass handler for selecting other reactions
+          availableReactions={availableReactions} // Pass available reactions for the picker
+          isFavoritePickerOpen={isFavoritePickerOpen} // Pass state for picker visibility
+          onToggleFavoritePicker={toggleFavoritePicker} // Pass handler to toggle picker visibility
+        />
       ) : null}
 
       <VideoPlayerView

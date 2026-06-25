@@ -186,10 +186,10 @@ export default function App() {
 
     const previousState = navHistory[navIndex];
     if (previousState &&
-        previousState.bodyMode === currentState.bodyMode &&
-        previousState.selectedLibraryItem?.id === currentState.selectedLibraryItem?.id &&
-        previousState.isNowPlayingExpanded === currentState.isNowPlayingExpanded &&
-        previousState.profileTarget?.id === currentState.profileTarget?.id) {
+      previousState.bodyMode === currentState.bodyMode &&
+      previousState.selectedLibraryItem?.id === currentState.selectedLibraryItem?.id &&
+      previousState.isNowPlayingExpanded === currentState.isNowPlayingExpanded &&
+      previousState.profileTarget?.id === currentState.profileTarget?.id) {
       return;
     }
 
@@ -434,7 +434,6 @@ export default function App() {
     setBodyMode('home');
     setIsNowPlayingExpanded(false);
   };
-
   const openUserProfileFromPanel = (user: UserProfile | null | undefined) => {
     if (!user?.id && !user?.handle && !user?.idDisplay) return;
     if (!setBodyModeSafely('profile')) return;
@@ -1016,7 +1015,6 @@ export default function App() {
         setCurrentFavoriteReaction(null);
         return;
       }
-
       try {
         const reactions = await MediaService.getFavoriteReactions();
         if (!cancelled) {
@@ -1141,7 +1139,6 @@ export default function App() {
       setIsVideoViewOpen(false); // Close info panel if open
     });
   };
-
   // Handlers for favorite reactions
   const handleToggleFavorite = async (reaction: string | null = 'Love'): Promise<void> => {
     if (!playerTrack?.id) return;
@@ -1173,7 +1170,6 @@ export default function App() {
   const toggleFavoritePicker = (): void => {
     setIsFavoritePickerOpen((prev) => !prev);
   };
-
   return (
     <div className="app-container">
       <div className="main-layout">

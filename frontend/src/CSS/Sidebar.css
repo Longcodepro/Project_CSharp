@@ -24,7 +24,7 @@
   margin-bottom: 8px;
 }
 
-.sidebar-heading > div {
+.sidebar-heading>div {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -72,7 +72,7 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
-.sidebar-mini-group + .sidebar-mini-group {
+.sidebar-mini-group+.sidebar-mini-group {
   margin-top: 12px;
 }
 
@@ -156,7 +156,7 @@
   object-fit: cover;
 }
 
-.sidebar-thumb > .material-symbols-outlined {
+.sidebar-thumb>.material-symbols-outlined {
   width: 100%;
   height: 100%;
   display: flex;

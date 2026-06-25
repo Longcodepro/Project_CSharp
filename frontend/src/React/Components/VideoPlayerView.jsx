@@ -17,13 +17,13 @@ export default function VideoPlayerView({ isOpen, onClose, track, audioRef, isPl
     // Sync initial state
     video.currentTime = audio.currentTime;
     if (isPlaying) {
-      video.play().catch(() => {});
+      video.play().catch(() => { });
     } else {
       video.pause();
     }
 
     const syncPlay = () => {
-      video.play().catch(() => {});
+      video.play().catch(() => { });
     };
     const syncPause = () => {
       video.pause();
@@ -48,7 +48,7 @@ export default function VideoPlayerView({ isOpen, onClose, track, audioRef, isPl
 
   const handleVideoPlay = () => {
     if (audioRef?.current && audioRef.current.paused) {
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().catch(() => { });
     }
   };
 

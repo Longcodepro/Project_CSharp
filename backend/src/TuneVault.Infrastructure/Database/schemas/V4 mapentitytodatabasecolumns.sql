@@ -1,4 +1,4 @@
-﻿-- V4: Map Entity ValueObjects to Database Columns
+-- V4: Map Entity ValueObjects to Database Columns
 -- Purpose: Add columns to match Entity.Url (ValueObject), Duration (ValueObject), DurationTrailer (ValueObject)
 -- Migration: AudioUrl/VideoUrl → Url, DurationSeconds → (DurationMinutes, DurationSeconds), etc.
 
@@ -8,7 +8,9 @@ USE TuneVault;
 -- Step 1: Add new columns to MediaItems TABLE FIRST (before any UPDATE/SELECT)
 -- ============================================================================
 
-IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MediaItems' AND COLUMN_NAME = 'Url')
+IF NOT EXISTS (SELECT 1
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'MediaItems' AND COLUMN_NAME = 'Url')
 BEGIN
     ALTER TABLE [MediaItems] ADD Url varchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL;
     PRINT 'Column Url added successfully.';
@@ -18,7 +20,9 @@ BEGIN
     PRINT 'Column Url already exists.';
 END;
 
-IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MediaItems' AND COLUMN_NAME = 'DurationMinutes')
+IF NOT EXISTS (SELECT 1
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'MediaItems' AND COLUMN_NAME = 'DurationMinutes')
 BEGIN
     ALTER TABLE [MediaItems] ADD DurationMinutes int DEFAULT 0 NOT NULL;
     PRINT 'Column DurationMinutes added successfully.';
@@ -28,7 +32,9 @@ BEGIN
     PRINT 'Column DurationMinutes already exists.';
 END;
 
-IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MediaItems' AND COLUMN_NAME = 'TrailerMinutes')
+IF NOT EXISTS (SELECT 1
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'MediaItems' AND COLUMN_NAME = 'TrailerMinutes')
 BEGIN
     ALTER TABLE [MediaItems] ADD TrailerMinutes int DEFAULT 0 NOT NULL;
     PRINT 'Column TrailerMinutes added successfully.';
@@ -90,7 +96,9 @@ PRINT 'Url column is now NOT NULL.';
 -- Step 6: Create index on Url (for optimization if needed later)
 -- ============================================================================
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_MediaItems_Url' AND object_id = OBJECT_ID('MediaItems'))
+IF NOT EXISTS (SELECT 1
+FROM sys.indexes
+WHERE name = 'IX_MediaItems_Url' AND object_id = OBJECT_ID('MediaItems'))
 BEGIN
     CREATE NONCLUSTERED INDEX IX_MediaItems_Url ON TuneVault.dbo.MediaItems (Url ASC)
         WITH (PAD_INDEX = OFF, FILLFACTOR = 100, SORT_IN_TEMPDB = OFF, 

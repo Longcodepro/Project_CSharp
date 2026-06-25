@@ -14,6 +14,7 @@
         "outputPath": "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\backend\\src\\TuneVault.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
+          "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\NuGet.Config",
           "C:\\Users\\LENOVO\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -21,7 +22,6 @@
           "net9.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {

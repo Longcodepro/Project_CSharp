@@ -33,13 +33,13 @@ export default function NowPlayingView({
     // Sync initial state
     video.currentTime = audio.currentTime;
     if (isPlaying) {
-      video.play().catch(() => {});
+      video.play().catch(() => { });
     } else {
       video.pause();
     }
 
     const syncPlay = () => {
-      video.play().catch(() => {});
+      video.play().catch(() => { });
     };
     const syncPause = () => {
       video.pause();

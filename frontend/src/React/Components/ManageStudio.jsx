@@ -260,7 +260,7 @@ export default function ManageStudio({
   const [confirm, setConfirm] = useState(null);
   const [dontAskAgain, setDontAskAgain] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const activeTabConfig = manageTabs.find((tab) => tab.key === activeTab) || manageTabs[0];
 
   const filteredItems = useMemo(() => {
@@ -822,7 +822,7 @@ export default function ManageStudio({
               <div className="content-state content-state-error">{error}</div>
             ) : filteredItems.length === 0 ? (
               <div className="section-empty-state">
-                {searchQuery 
+                {searchQuery
                   ? `Không tìm thấy kết quả nào phù hợp với "${searchQuery}"`
                   : `Chưa có dữ liệu để hiển thị. Hãy tạo mục mới.`}
               </div>
@@ -974,19 +974,19 @@ export default function ManageStudio({
                           />
                         </label>
                       </div>
-                    {activeTabConfig.scope === 'media' && draft.tabKey !== 'video' && (
-                      <div className="create-field">
-                        <label>Canvas</label>
-                        <label className="manage-file-input">
-                          <span>Chọn file video canvas</span>
-                          <input
-                            type="file"
-                            accept="video/*"
-                            onChange={(event) => setPreviewFile('canvasFile', event.target.files?.[0], 'video')}
-                          />
-                        </label>
-                      </div>
-                    )}
+                      {activeTabConfig.scope === 'media' && draft.tabKey !== 'video' && (
+                        <div className="create-field">
+                          <label>Canvas</label>
+                          <label className="manage-file-input">
+                            <span>Chọn file video canvas</span>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={(event) => setPreviewFile('canvasFile', event.target.files?.[0], 'video')}
+                            />
+                          </label>
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (

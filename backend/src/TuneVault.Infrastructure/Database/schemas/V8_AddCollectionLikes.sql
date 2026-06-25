@@ -1,4 +1,4 @@
-﻿IF OBJECT_ID(N'dbo.CollectionLikes', N'U') IS NULL
+IF OBJECT_ID(N'dbo.CollectionLikes', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.CollectionLikes
     (

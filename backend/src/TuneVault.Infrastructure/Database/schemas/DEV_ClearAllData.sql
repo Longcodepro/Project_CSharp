@@ -1,4 +1,4 @@
-﻿/*
+/*
     DEV ONLY - Clear toàn bộ dữ liệu TuneVault.
 
     Script này chỉ xóa dữ liệu, không xóa bảng/cột/constraint.

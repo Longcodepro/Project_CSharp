@@ -287,7 +287,7 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-.profile-dropdown > div {
+.profile-dropdown>div {
   height: 1px;
   margin: 4px 0;
   background: rgba(255, 255, 255, 0.05);
@@ -2357,7 +2357,7 @@
     flex-direction: column-reverse;
   }
 
-.profile-confirm-actions button {
+  .profile-confirm-actions button {
     width: 100%;
   }
 

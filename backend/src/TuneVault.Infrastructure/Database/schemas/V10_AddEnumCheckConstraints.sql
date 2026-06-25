@@ -1,10 +1,10 @@
-﻿USE TuneVault;
+USE TuneVault;
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_MediaItems_MediaType'
-      AND parent_object_id = OBJECT_ID('dbo.MediaItems')
+FROM sys.check_constraints
+WHERE name = 'CK_MediaItems_MediaType'
+    AND parent_object_id = OBJECT_ID('dbo.MediaItems')
 )
 BEGIN
     ALTER TABLE dbo.MediaItems
@@ -13,9 +13,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_MediaItems_AccessLevel'
-      AND parent_object_id = OBJECT_ID('dbo.MediaItems')
+FROM sys.check_constraints
+WHERE name = 'CK_MediaItems_AccessLevel'
+    AND parent_object_id = OBJECT_ID('dbo.MediaItems')
 )
 BEGIN
     ALTER TABLE dbo.MediaItems
@@ -24,9 +24,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_Albums_ContentType'
-      AND parent_object_id = OBJECT_ID('dbo.Albums')
+FROM sys.check_constraints
+WHERE name = 'CK_Albums_ContentType'
+    AND parent_object_id = OBJECT_ID('dbo.Albums')
 )
 BEGIN
     ALTER TABLE dbo.Albums
@@ -35,9 +35,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_Playlists_ContentType'
-      AND parent_object_id = OBJECT_ID('dbo.Playlists')
+FROM sys.check_constraints
+WHERE name = 'CK_Playlists_ContentType'
+    AND parent_object_id = OBJECT_ID('dbo.Playlists')
 )
 BEGIN
     ALTER TABLE dbo.Playlists
@@ -46,9 +46,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_Friends_Status'
-      AND parent_object_id = OBJECT_ID('dbo.Friends')
+FROM sys.check_constraints
+WHERE name = 'CK_Friends_Status'
+    AND parent_object_id = OBJECT_ID('dbo.Friends')
 )
 BEGIN
     ALTER TABLE dbo.Friends
@@ -57,9 +57,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_MediaShares_ShareType'
-      AND parent_object_id = OBJECT_ID('dbo.MediaShares')
+FROM sys.check_constraints
+WHERE name = 'CK_MediaShares_ShareType'
+    AND parent_object_id = OBJECT_ID('dbo.MediaShares')
 )
 BEGIN
     ALTER TABLE dbo.MediaShares
@@ -68,9 +68,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_Notifications_NotifyType'
-      AND parent_object_id = OBJECT_ID('dbo.Notifications')
+FROM sys.check_constraints
+WHERE name = 'CK_Notifications_NotifyType'
+    AND parent_object_id = OBJECT_ID('dbo.Notifications')
 )
 BEGIN
     ALTER TABLE dbo.Notifications
@@ -79,9 +79,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_Notifications_TargetType'
-      AND parent_object_id = OBJECT_ID('dbo.Notifications')
+FROM sys.check_constraints
+WHERE name = 'CK_Notifications_TargetType'
+    AND parent_object_id = OBJECT_ID('dbo.Notifications')
 )
 BEGIN
     ALTER TABLE dbo.Notifications
@@ -90,9 +90,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_Ads_AdType'
-      AND parent_object_id = OBJECT_ID('dbo.Ads')
+FROM sys.check_constraints
+WHERE name = 'CK_Ads_AdType'
+    AND parent_object_id = OBJECT_ID('dbo.Ads')
 )
 BEGIN
     ALTER TABLE dbo.Ads
@@ -101,9 +101,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_OtpLogs_Purpose'
-      AND parent_object_id = OBJECT_ID('dbo.OtpLogs')
+FROM sys.check_constraints
+WHERE name = 'CK_OtpLogs_Purpose'
+    AND parent_object_id = OBJECT_ID('dbo.OtpLogs')
 )
 BEGIN
     ALTER TABLE dbo.OtpLogs
@@ -112,9 +112,9 @@ END
 
 IF NOT EXISTS (
     SELECT 1
-    FROM sys.check_constraints
-    WHERE name = 'CK_Favorites_Reaction'
-      AND parent_object_id = OBJECT_ID('dbo.Favorites')
+FROM sys.check_constraints
+WHERE name = 'CK_Favorites_Reaction'
+    AND parent_object_id = OBJECT_ID('dbo.Favorites')
 )
 BEGIN
     ALTER TABLE dbo.Favorites

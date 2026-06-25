@@ -1,4 +1,4 @@
-﻿IF COL_LENGTH('dbo.Friends', 'IsActive') IS NULL
+IF COL_LENGTH('dbo.Friends', 'IsActive') IS NULL
 BEGIN
     ALTER TABLE dbo.Friends
     ADD IsActive bit NOT NULL

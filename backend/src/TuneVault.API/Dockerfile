@@ -1,5 +1,5 @@
 # src/TuneVault.API/Dockerfile
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /app
 
 COPY TuneVault.sln .
@@ -14,7 +14,7 @@ COPY . .
 
 RUN dotnet publish TuneVault.API/TuneVault.API.csproj -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "TuneVault.API.dll"]

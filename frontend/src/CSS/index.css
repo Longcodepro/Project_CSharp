@@ -93,13 +93,14 @@ select:focus-visible {
 }
 
 /* Premium soft styles for all studio & management buttons */
-.create-primary, 
-.create-secondary, 
-.manage-file-button, 
+.create-primary,
+.create-secondary,
+.manage-file-button,
 .manage-file-input,
 .create-actions button {
   border: none !important;
-  border-radius: 999px !important; /* Pill shape */
+  border-radius: 999px !important;
+  /* Pill shape */
   padding: 12px 28px !important;
   font-size: var(--text-sm) !important;
   font-weight: var(--weight-semibold) !important;

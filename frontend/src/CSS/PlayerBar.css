@@ -137,7 +137,7 @@
   gap: 8px;
 }
 
-.player-progress-row > span {
+.player-progress-row>span {
   color: var(--on-surface-variant);
   font-family: var(--font-family-mono);
   font-size: var(--text-xs);
