@@ -40,6 +40,7 @@ ScaffoldingReadMe.txt
 
 # dotenv environment variables file
 .env
+frontend/.env.development
 
 # Others
 ~$*
@@ -62,6 +63,28 @@ nunit-*.xml
 # AI
 .agents/
 .codex/
+
+# Plans/docs generated for coordination
+PLANS/
+
+# Large media and archive files
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.bmp
+*.tiff
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.mp3
+*.wav
+*.flac
+*.zip
+*.rar
+*.7z
 
 # connect database
 appsettings.json
