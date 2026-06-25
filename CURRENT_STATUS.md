@@ -228,3 +228,11 @@ Khi hoàn thành một task lớn, AI Agent phải đề xuất cập nhật ph�
   - `docker-compose.yml` đã được cập nhật sang cấu trúc hiện tại `backend/` + `frontend/`.
   - Docker backend mount trực tiếp `backend/src/TuneVault.API/wwwroot/uploads` để giữ dữ liệu avatar/media khi chia sẻ.
   - Gói zip sạch phục vụ chia sẻ nằm tại `/tmp/TuneVault_with_wwwroot_data.zip`.
+- Tinh chỉnh PlayerBar và media seeking:
+  - Kích hoạt tính năng tua bài hát và video trên PlayerBar (destructure `onSeek`).
+  - Hỗ trợ thao tác kéo để tua (drag-to-seek) bằng chuột hoặc cảm ứng, hiển thị thời gian chạy theo thời gian thực như YouTube.
+  - Loại bỏ nút xem video (slideshow icon) và tính năng xem video dạng overlay (`VideoPlayerView` và `isVideoViewOpen` state).
+  - Loại bỏ các biểu tượng Micro (`mic`) và Thiết bị (`devices`) ở phía bên phải của nút thông tin (`info`).
+  - Làm tròn thời lượng bài hát/video hiển thị trong panel thông tin (`MediaInfoPanel`) về số giây nguyên gần nhất (dạng `M:SS`).
+  - `npm run build`: pass
+

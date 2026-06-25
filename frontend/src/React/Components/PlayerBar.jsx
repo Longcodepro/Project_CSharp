@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import '../../CSS/PlayerBar.css';
 
 const DEFAULT_REACTION_ICONS = {
@@ -34,7 +34,6 @@ export default function PlayerBar({
   onToggleMute,
   isMuted = false,
   onAddPlaylist, // New prop for add to playlist
-  onOpenVideo, // New prop for video view
   onOpenInfo, // New prop for info panel
   onToggleFavorite, // New prop for toggling favorite (direct love)
   currentFavoriteReaction, // New prop for current favorite reaction
@@ -43,9 +42,18 @@ export default function PlayerBar({
   availableReactions = [],
   isFavoritePickerOpen, // Added prop to control picker visibility
   onToggleFavoritePicker, // Added prop to toggle the picker
+  onSeek, // Seek callback
 }) {
-  const progressStyle = { width: `${playerTrack.progress}%` };
-  const knobStyle = { left: `${playerTrack.progress}%` };
+  const [dragProgress, setDragProgress] = useState(null);
+  const [dragTime, setDragTime] = useState('');
+  const progressBarRef = useRef(null);
+
+  const isDragging = dragProgress !== null;
+  const displayProgress = isDragging ? dragProgress : playerTrack.progress;
+  const displayCurrentTime = isDragging ? dragTime : playerTrack.currentTime;
+
+  const progressStyle = { width: `${displayProgress}%` };
+  const knobStyle = { left: `${displayProgress}%` };
   const requirePlayerAuth = () => onRequireAuth?.();
 
   // State for controlling the visibility of the favorite reaction picker
@@ -98,15 +106,88 @@ export default function PlayerBar({
     setIsPickerVisible(false);
   };
 
-  const handleProgressClick = (e) => {
-    if (!playerTrack.durationSeconds || !onSeek) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
+  const formatDuration = (seconds) => {
+    if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+    const totalSeconds = Math.floor(seconds);
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainingSeconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${minutes}:${remainingSeconds}`;
+  };
+
+  const getPercentageFromEvent = (clientX, rect) => {
+    const clickX = clientX - rect.left;
     const width = rect.width;
-    if (width <= 0) return;
-    const percentage = Math.max(0, Math.min(1, clickX / width));
-    const targetTime = percentage * playerTrack.durationSeconds;
-    onSeek(targetTime);
+    if (width <= 0) return 0;
+    return Math.max(0, Math.min(100, (clickX / width) * 100));
+  };
+
+  const handleProgressMouseDown = (e) => {
+    if (!playerTrack.durationSeconds || !onSeek) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pct = getPercentageFromEvent(e.clientX, rect);
+    setDragProgress(pct);
+    setDragTime(formatDuration((pct / 100) * playerTrack.durationSeconds));
+
+    const handleMouseMove = (moveEvent) => {
+      if (!progressBarRef.current) return;
+      const currentRect = progressBarRef.current.getBoundingClientRect();
+      const currentPct = getPercentageFromEvent(moveEvent.clientX, currentRect);
+      setDragProgress(currentPct);
+      setDragTime(formatDuration((currentPct / 100) * playerTrack.durationSeconds));
+    };
+
+    const handleMouseUp = (upEvent) => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      
+      if (progressBarRef.current) {
+        const currentRect = progressBarRef.current.getBoundingClientRect();
+        const finalPct = getPercentageFromEvent(upEvent.clientX, currentRect);
+        const targetTime = (finalPct / 100) * playerTrack.durationSeconds;
+        onSeek(targetTime);
+      }
+      
+      setDragProgress(null);
+      setDragTime('');
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleProgressTouchStart = (e) => {
+    if (!playerTrack.durationSeconds || !onSeek) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const pct = getPercentageFromEvent(touch.clientX, rect);
+    setDragProgress(pct);
+    setDragTime(formatDuration((pct / 100) * playerTrack.durationSeconds));
+
+    const handleTouchMove = (moveEvent) => {
+      if (!progressBarRef.current) return;
+      const currentRect = progressBarRef.current.getBoundingClientRect();
+      const currentTouch = moveEvent.touches[0];
+      const currentPct = getPercentageFromEvent(currentTouch.clientX, currentRect);
+      setDragProgress(currentPct);
+      setDragTime(formatDuration((currentPct / 100) * playerTrack.durationSeconds));
+    };
+
+    const handleTouchEnd = () => {
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      
+      setDragProgress((currentProgress) => {
+        if (currentProgress !== null) {
+          const targetTime = (currentProgress / 100) * playerTrack.durationSeconds;
+          onSeek(targetTime);
+        }
+        return null;
+      });
+      setDragTime('');
+    };
+
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
   };
 
   const handleVolumeChange = (e) => {
@@ -202,8 +283,14 @@ export default function PlayerBar({
           </button>
         </div>
         <div className="player-progress-row">
-          <span>{playerTrack.currentTime}</span>
-          <div className="player-progress" onClick={handleProgressClick} style={{ cursor: 'pointer' }}>
+          <span>{displayCurrentTime}</span>
+          <div 
+            ref={progressBarRef}
+            className="player-progress" 
+            onMouseDown={handleProgressMouseDown}
+            onTouchStart={handleProgressTouchStart}
+            style={{ cursor: 'pointer' }}
+          >
             <div style={progressStyle}></div>
             <i style={knobStyle}></i>
           </div>
@@ -212,17 +299,8 @@ export default function PlayerBar({
       </div>
 
       <div className="player-secondary">
-        <button type="button" aria-label="Xem video" onClick={onOpenVideo || requirePlayerAuth}>
-          <span className="material-symbols-outlined">slideshow</span>
-        </button>
         <button type="button" aria-label="Thông tin media" onClick={onOpenInfo || requirePlayerAuth}>
           <span className="material-symbols-outlined">info</span>
-        </button>
-        <button type="button" aria-label="Micro" onClick={requirePlayerAuth}>
-          <span className="material-symbols-outlined">mic</span>
-        </button>
-        <button type="button" aria-label="Thiết bị" onClick={requirePlayerAuth}>
-          <span className="material-symbols-outlined">devices</span>
         </button>
         <div className="player-volume">
           <button type="button" aria-label={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'} onClick={onToggleMute || requirePlayerAuth}>

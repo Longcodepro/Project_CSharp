@@ -4,15 +4,41 @@ import '../../CSS/MediaInfoPanel.css'; // Assuming a CSS file for the info panel
 export default function MediaInfoPanel({ isOpen, onClose, track }) {
   if (!isOpen || !track || !track.id) return null;
 
-  // Helper to format duration if it's in seconds
   const formatDuration = (duration) => {
-    if (!duration) return 'N/A';
+    if (duration === null || duration === undefined || duration === '') return 'N/A';
+    
+    let secondsVal = 0;
     if (typeof duration === 'number') {
-      const minutes = Math.floor(duration / 60);
-      const seconds = String(duration % 60).padStart(2, '0');
-      return `${minutes}:${seconds}`;
+      secondsVal = duration;
+    } else {
+      const str = String(duration).trim();
+      if (str.includes(':')) {
+        const parts = str.split(':');
+        if (parts.length === 2) {
+          const mins = parseFloat(parts[0]);
+          const secs = parseFloat(parts[1]);
+          if (!isNaN(mins) && !isNaN(secs)) {
+            secondsVal = mins * 60 + secs;
+          } else {
+            return str;
+          }
+        } else {
+          return str;
+        }
+      } else {
+        const parsed = parseFloat(str);
+        if (!isNaN(parsed)) {
+          secondsVal = parsed;
+        } else {
+          return str;
+        }
+      }
     }
-    return duration; // Assume it's already formatted
+    
+    const roundedSeconds = Math.round(secondsVal);
+    const minutes = Math.floor(roundedSeconds / 60);
+    const seconds = String(roundedSeconds % 60).padStart(2, '0');
+    return `${minutes}:${seconds}`;
   };
 
   return (
