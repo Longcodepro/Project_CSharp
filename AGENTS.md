@@ -28,10 +28,9 @@ Project có nhiều file hướng dẫn. Agent phải đọc đúng file theo ng
 | ------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
 | `README.md`         | Khi cần hiểu tổng quan project hoặc chuẩn bị nộp bài | Mô tả project, công nghệ, cách chạy tổng quan, tài khoản seed nếu có |
 | `AGENTS.md`         | Luôn đọc đầu tiên                                    | Luật làm việc bắt buộc cho AI                                        |
-| `RUN_LOCAL.md`      | Khi cần chạy backend/frontend local                  | Hướng dẫn chạy project local, biến môi trường, lệnh backend/frontend |
+| `DOCKER_GUIDE.md`    | Khi cần build/chạy project bằng Docker              | Hướng dẫn `.env`, `docker compose`, build, up, down, clean          |
 | `API_CONTRACT.md`   | Khi nối frontend với backend hoặc sửa endpoint       | Danh sách endpoint, request/response, DTO, route frontend đang dùng  |
 | `CURRENT_STATUS.md` | Luôn đọc trước khi làm task mới                      | Trạng thái hiện tại: đã xong gì, đang lỗi gì, ưu tiên tiếp theo      |
-| `AI_CHANGELOG.md`   | Sau khi sửa thành công                               | Ghi lại AI đã sửa gì, sửa file nào, test ra sao                      |
 
 ### 2.2 File trong `docs/archive/`
 
@@ -41,7 +40,6 @@ Project có nhiều file hướng dẫn. Agent phải đọc đúng file theo ng
 | `docs/archive/DATABASE_SCHEMA.md`                   | Khi sửa database, repository, SQL, DTO liên quan DB | Cấu trúc bảng, field, quan hệ dữ liệu                                  |
 | `docs/archive/ENDPOINT_PERMISSION_AUDIT.md`         | Khi sửa phân quyền hoặc endpoint cần `[Authorize]`  | Kiểm tra endpoint nào cần đăng nhập, quyền owner, quyền user           |
 | `docs/archive/DESIGN-spotify.md`                    | Khi sửa UI/layout frontend                          | Quy chuẩn giao diện Spotify-like                                       |
-| `docs/archive/AI_WORKFLOW_TUNEVault_FINAL_STAGE.md` | Khi chưa rõ quy trình làm task                      | Quy trình chi tiết cho frontend, nối endpoint, thêm backend endpoint   |
 
 ### 2.3 Folder `PLANS/`
 
@@ -69,7 +67,7 @@ Trước khi làm bất kỳ task nào, đọc theo thứ tự:
 ```txt
 1. AGENTS.md
 2. CURRENT_STATUS.md
-3. RUN_LOCAL.md
+3. DOCKER_GUIDE.md nếu task liên quan Docker/build/chạy project
 ```
 
 ### 3.2 Nếu task là sửa frontend
@@ -79,7 +77,6 @@ Trước khi làm bất kỳ task nào, đọc theo thứ tự:
 ```txt
 4. API_CONTRACT.md
 5. docs/archive/DESIGN-spotify.md
-6. docs/archive/AI_WORKFLOW_TUNEVault_FINAL_STAGE.md
 ```
 
 ### 3.3 Nếu task là nối endpoint vào frontend
@@ -89,7 +86,6 @@ Trước khi làm bất kỳ task nào, đọc theo thứ tự:
 ```txt
 4. API_CONTRACT.md
 5. docs/archive/ENDPOINT_PERMISSION_AUDIT.md
-6. docs/archive/AI_WORKFLOW_TUNEVault_FINAL_STAGE.md
 ```
 
 Sau đó phải kiểm tra code backend xem endpoint đó đã tồn tại thật chưa.
@@ -102,7 +98,6 @@ Sau đó phải kiểm tra code backend xem endpoint đó đã tồn tại thậ
 4. API_CONTRACT.md
 5. docs/archive/DATABASE_SCHEMA.md
 6. docs/archive/ENDPOINT_PERMISSION_AUDIT.md
-7. docs/archive/AI_WORKFLOW_TUNEVault_FINAL_STAGE.md
 ```
 
 ### 3.5 Nếu task liên quan yêu cầu đồ án
@@ -150,20 +145,19 @@ Dùng khi developer yêu cầu sửa giao diện, layout, state, service, route,
 ```txt
 1. Đọc AGENTS.md
 2. Đọc CURRENT_STATUS.md
-3. Đọc RUN_LOCAL.md
+3. Đọc DOCKER_GUIDE.md nếu task cần build/chạy Docker hoặc local
 4. Đọc API_CONTRACT.md nếu frontend có gọi API
 5. Đọc DESIGN-spotify.md nếu liên quan UI
 6. Phân tích lỗi/yêu cầu
 7. Lập kế hoạch sửa
 8. Sửa đúng file frontend liên quan
 9. Chạy kiểm tra
-10. Ghi AI_CHANGELOG.md
-11. Báo cáo kết quả
+10. Báo cáo kết quả
 ```
 
 ### 5.2 Lệnh kiểm tra frontend bắt buộc
 
-Chạy trong thư mục frontend hoặc đúng thư mục được `RUN_LOCAL.md` hướng dẫn:
+Chạy trong thư mục frontend hoặc đúng thư mục được `DOCKER_GUIDE.md` hướng dẫn:
 
 ```bash
 npm install
@@ -193,7 +187,7 @@ Dùng khi developer yêu cầu một chức năng frontend gọi backend thật.
 ```txt
 1. Đọc AGENTS.md
 2. Đọc CURRENT_STATUS.md
-3. Đọc RUN_LOCAL.md
+3. Đọc DOCKER_GUIDE.md nếu task cần build/chạy Docker hoặc local
 4. Đọc API_CONTRACT.md
 5. Kiểm tra code backend xem endpoint có tồn tại thật không
 6. Kiểm tra DTO request/response thật
@@ -201,8 +195,7 @@ Dùng khi developer yêu cầu một chức năng frontend gọi backend thật.
 8. Nếu endpoint chưa có: chuyển sang quy trình thêm endpoint backend
 9. Sửa service/frontend state/component liên quan
 10. Run thử
-11. Ghi AI_CHANGELOG.md
-12. Báo cáo kết quả
+11. Báo cáo kết quả
 ```
 
 ### 6.2 Luật kiểm tra endpoint
@@ -247,7 +240,7 @@ Thứ tự ưu tiên:
 7. API Controller
 8. Cập nhật API_CONTRACT.md
 9. Run kiểm tra
-10. Ghi AI_CHANGELOG.md
+10. Ghi lại trong commit message hoặc báo cáo cuối
 ```
 
 Nếu task đơn giản và project hiện tại đã có pattern khác, được giữ style hiện tại của feature đó, nhưng không được phá dependency rule.
@@ -366,7 +359,7 @@ Nếu có lỗi TypeScript hoặc build, đọc lỗi rồi sửa đúng nguyên
 
 ### 8.3 Với backend
 
-Tùy cấu trúc project trong `RUN_LOCAL.md`, dùng lệnh phù hợp như:
+Tùy cấu trúc project trong `DOCKER_GUIDE.md`, dùng lệnh phù hợp như:
 
 ```bash
 dotnet restore
@@ -380,52 +373,7 @@ Không commit secret, password, JWT key thật.
 
 ---
 
-## 9. Quy tắc ghi AI_CHANGELOG.md
-
-Sau khi task chạy được hoặc sửa xong một phần rõ ràng, phải ghi thêm vào `AI_CHANGELOG.md`.
-
-### 9.1 Format bắt buộc
-
-```md
-## 001 - Tên task ngắn gọn
-
-- Mục đích:
-  - Mô tả task này dùng để làm gì.
-
-- File đã sửa:
-  - `path/to/file1`
-  - `path/to/file2`
-
-- File đã đọc/tham khảo:
-  - `AGENTS.md`
-  - `CURRENT_STATUS.md`
-  - `API_CONTRACT.md`
-
-- Kiểm tra:
-  - `npm install`: pass/fail/not run
-  - `npm run dev`: pass/fail/not run
-  - `dotnet build`: pass/fail/not run
-
-- Ghi chú:
-  - Ghi lỗi còn tồn tại hoặc điều cần developer xác nhận.
-```
-
-### 9.2 Quy tắc đánh số
-
-Mỗi task tăng số thứ tự:
-
-```txt
-001
-002
-003
-...
-```
-
-Không ghi đè log cũ.
-
----
-
-## 10. Quy tắc cập nhật CURRENT_STATUS.md
+## 9. Quy tắc cập nhật CURRENT_STATUS.md
 
 Sau task lớn, nếu trạng thái project thay đổi, cập nhật `CURRENT_STATUS.md`.
 
@@ -442,7 +390,7 @@ Không cần cập nhật nếu chỉ sửa typo nhỏ.
 
 ---
 
-## 11. Quy tắc cập nhật API_CONTRACT.md
+## 10. Quy tắc cập nhật API_CONTRACT.md
 
 Phải cập nhật `API_CONTRACT.md` khi:
 
@@ -479,7 +427,7 @@ Ghi chú:
 
 ---
 
-## 12. Quy tắc Clean Architecture
+## 11. Quy tắc Clean Architecture
 
 Project theo Clean Architecture:
 
@@ -502,7 +450,7 @@ Không được để frontend quyết định nghiệp vụ bảo mật thay ba
 
 ---
 
-## 13. Quy tắc Dapper và SQL
+## 12. Quy tắc Dapper và SQL
 
 Khi viết repository bằng Dapper:
 
@@ -529,7 +477,7 @@ return await conn.QuerySingleOrDefaultAsync<MediaItem>(sql, new { Id = id });
 
 ---
 
-## 14. Quy tắc JWT/Auth
+## 13. Quy tắc JWT/Auth
 
 Project đang có một số bất nhất về JWT/Auth, agent phải cẩn thận.
 
@@ -554,7 +502,7 @@ Không tự đổi toàn bộ auth flow nếu task không yêu cầu.
 
 ---
 
-## 15. Quy tắc response format
+## 14. Quy tắc response format
 
 Response nên thống nhất theo dạng:
 
@@ -582,7 +530,7 @@ Không đổi toàn bộ response cũ nếu có thể làm vỡ frontend hiện 
 
 ---
 
-## 16. Quy tắc xử lý thiếu dữ liệu
+## 15. Quy tắc xử lý thiếu dữ liệu
 
 Nếu thiếu dữ liệu, thiếu field, thiếu endpoint, thiếu rule nghiệp vụ hoặc không chắc ý developer, phải hỏi lại.
 
@@ -600,7 +548,7 @@ Nếu phát hiện file thừa hoặc code chết, chỉ báo cáo và đề xu�
 
 ---
 
-## 17. Quy tắc không sửa file không liên quan
+## 16. Quy tắc không sửa file không liên quan
 
 Trước khi sửa, agent phải liệt kê file dự kiến sửa.
 
@@ -614,7 +562,7 @@ Trong quá trình làm:
 
 ---
 
-## 18. Những lỗi/bẫy đã biết trong project
+## 17. Những lỗi/bẫy đã biết trong project
 
 Agent phải kiểm tra lại trong code hiện tại trước khi kết luận, nhưng cần đặc biệt chú ý các điểm sau:
 
@@ -629,7 +577,7 @@ Agent phải kiểm tra lại trong code hiện tại trước khi kết luận,
 
 ---
 
-## 19. Checklist trước khi báo hoàn thành
+## 18. Checklist trước khi báo hoàn thành
 
 Trước khi báo thành công, agent phải tự kiểm tra:
 
@@ -644,14 +592,13 @@ Trước khi báo thành công, agent phải tự kiểm tra:
 * [ ] Không để SQL injection.
 * [ ] Đã chạy lệnh kiểm tra phù hợp.
 * [ ] Nếu run lỗi quá 2 lần, đã dừng và phân tích lại.
-* [ ] Đã cập nhật `AI_CHANGELOG.md`.
 * [ ] Đã cập nhật `API_CONTRACT.md` nếu có đổi/thêm endpoint.
 * [ ] Đã cập nhật `CURRENT_STATUS.md` nếu trạng thái project thay đổi.
 * [ ] Báo cáo cuối có nêu rõ sửa gì, file nào, test ra sao.
 
 ---
 
-## 20. Format báo cáo cuối cho developer
+## 19. Format báo cáo cuối cho developer
 
 Sau khi làm xong, báo cáo ngắn gọn theo mẫu:
 
