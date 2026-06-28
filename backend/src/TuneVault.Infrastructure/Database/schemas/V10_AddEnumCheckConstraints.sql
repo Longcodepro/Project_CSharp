@@ -1,4 +1,4 @@
-USE TuneVault;
+USE [TuneVaultDb];
 
 IF NOT EXISTS (
     SELECT 1
@@ -9,17 +9,6 @@ WHERE name = 'CK_MediaItems_MediaType'
 BEGIN
     ALTER TABLE dbo.MediaItems
     ADD CONSTRAINT CK_MediaItems_MediaType CHECK (MediaType IN (0, 1, 2, 3));
-END
-
-IF NOT EXISTS (
-    SELECT 1
-FROM sys.check_constraints
-WHERE name = 'CK_MediaItems_AccessLevel'
-    AND parent_object_id = OBJECT_ID('dbo.MediaItems')
-)
-BEGIN
-    ALTER TABLE dbo.MediaItems
-    ADD CONSTRAINT CK_MediaItems_AccessLevel CHECK (AccessLevel IN (0, 1));
 END
 
 IF NOT EXISTS (
@@ -91,32 +80,10 @@ END
 IF NOT EXISTS (
     SELECT 1
 FROM sys.check_constraints
-WHERE name = 'CK_Ads_AdType'
-    AND parent_object_id = OBJECT_ID('dbo.Ads')
-)
-BEGIN
-    ALTER TABLE dbo.Ads
-    ADD CONSTRAINT CK_Ads_AdType CHECK (AdType IN (1, 2, 3));
-END
-
-IF NOT EXISTS (
-    SELECT 1
-FROM sys.check_constraints
 WHERE name = 'CK_OtpLogs_Purpose'
     AND parent_object_id = OBJECT_ID('dbo.OtpLogs')
 )
 BEGIN
     ALTER TABLE dbo.OtpLogs
     ADD CONSTRAINT CK_OtpLogs_Purpose CHECK (Purpose IN ('register', 'reset_password', 'change_password'));
-END
-
-IF NOT EXISTS (
-    SELECT 1
-FROM sys.check_constraints
-WHERE name = 'CK_Favorites_Reaction'
-    AND parent_object_id = OBJECT_ID('dbo.Favorites')
-)
-BEGIN
-    ALTER TABLE dbo.Favorites
-    ADD CONSTRAINT CK_Favorites_Reaction CHECK (Reaction IN (0, 1, 2, 3, 4, 5));
 END

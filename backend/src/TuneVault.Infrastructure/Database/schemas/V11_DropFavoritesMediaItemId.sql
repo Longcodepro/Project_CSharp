@@ -1,4 +1,4 @@
-USE TuneVault;
+USE [TuneVaultDb];
 
 IF COL_LENGTH('dbo.Favorites', 'MediaItemId') IS NOT NULL
 BEGIN

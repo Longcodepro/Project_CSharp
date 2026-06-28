@@ -2,8 +2,6 @@ services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver
-    ports:
-      - "1433:1433"
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file}"
@@ -38,15 +36,13 @@ services:
       context: ./backend/src
       dockerfile: TuneVault.API/Dockerfile
     container_name: tunevault_backend
-    ports:
-      - "5128:8080"
     depends_on:
       db:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__DefaultConnection: "Server=db,1433;Database=TuneVaultDb;User Id=sa;Password=${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file};TrustServerCertificate=True;"
       DatabaseOptions__ConnectionString: "Server=db,1433;Database=TuneVaultDb;User Id=sa;Password=${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file};TrustServerCertificate=True;"
@@ -66,7 +62,7 @@ services:
         VITE_API_BASE_URL: /api
     container_name: tunevault_frontend
     ports:
-      - "3000:80"
+      - "80:80"
     depends_on:
       - backend
     restart: on-failure
