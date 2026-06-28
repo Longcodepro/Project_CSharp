@@ -1,22 +1,21 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\backend\\src\\TuneVault.Domain\\TuneVault.Domain.csproj": {}
+    "/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Domain/TuneVault.Domain.csproj": {}
   },
   "projects": {
-    "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\backend\\src\\TuneVault.Domain\\TuneVault.Domain.csproj": {
+    "/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Domain/TuneVault.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\backend\\src\\TuneVault.Domain\\TuneVault.Domain.csproj",
+        "projectUniqueName": "/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Domain/TuneVault.Domain.csproj",
         "projectName": "TuneVault.Domain",
-        "projectPath": "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\backend\\src\\TuneVault.Domain\\TuneVault.Domain.csproj",
-        "packagesPath": "C:\\Users\\LENOVO\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\backend\\src\\TuneVault.Domain\\obj\\",
+        "projectPath": "/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Domain/TuneVault.Domain.csproj",
+        "packagesPath": "/home/long/.nuget/packages/",
+        "outputPath": "/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Domain/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\NuGet.Config",
-          "C:\\Users\\LENOVO\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/NuGet.Config",
+          "/home/long/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
@@ -40,7 +39,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "9.0.200"
       },
       "frameworks": {
         "net9.0": {
@@ -56,26 +55,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[9.0.15, 9.0.15]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[9.0.15, 9.0.15]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[9.0.15, 9.0.15]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.203/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

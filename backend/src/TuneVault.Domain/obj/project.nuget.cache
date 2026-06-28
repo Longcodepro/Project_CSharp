@@ -1,12 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "p/XDtEK+frE=",
+  "dgSpecHash": "EAt4qYWKA7s=",
   "success": true,
-  "projectFilePath": "C:\\Users\\LENOVO\\OneDrive\\Tài liệu\\Tài liệu\\học tập\\CSharp\\TuneVault_with_wwwroot_data\\backend\\src\\TuneVault.Domain\\TuneVault.Domain.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\LENOVO\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.15\\microsoft.netcore.app.ref.9.0.15.nupkg.sha512",
-    "C:\\Users\\LENOVO\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.15\\microsoft.windowsdesktop.app.ref.9.0.15.nupkg.sha512",
-    "C:\\Users\\LENOVO\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.15\\microsoft.aspnetcore.app.ref.9.0.15.nupkg.sha512"
-  ],
+  "projectFilePath": "/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Domain/TuneVault.Domain.csproj",
+  "expectedPackageFiles": [],
   "logs": []
 }

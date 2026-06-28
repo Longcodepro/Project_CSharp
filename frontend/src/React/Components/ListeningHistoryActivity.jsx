@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  getMediaById,
+  getRecentHistory,
   mediaPosterUrl,
   normalizeAssetUrl,
 } from '../../../Services/MediaService.tsx';
@@ -18,7 +18,7 @@ function formatTime(seconds = 0) {
 }
 
 function normalizeType(value) {
-  const numericMap = ['audio', 'video', 'podcast', 'song'];
+  const numericMap = ['audio', 'video', '', 'song'];
   if (typeof value === 'number') return numericMap[value] || '';
   const normalized = String(value || '').trim().toLowerCase();
   if (/^\d+$/.test(normalized)) return numericMap[Number(normalized)] || normalized;
@@ -34,74 +34,47 @@ export default function ListeningHistoryActivity({ onClose, onPlayMedia }) {
     setIsLoading(true);
     setError('');
     try {
-      let rawHistory = [];
-      try {
-        rawHistory = JSON.parse(localStorage.getItem('listening_history') || '[]');
-      } catch {
-        rawHistory = [];
-      }
+      const recentHistory = await getRecentHistory();
+      const history = Array.isArray(recentHistory) ? recentHistory : [];
 
-      if (!Array.isArray(rawHistory)) {
-        rawHistory = [];
-      }
-
-      // Filter for last 72 hours
-      const now = Date.now();
-      const cutoff = now - 259200000; // 72 hours
-      const validHistory = rawHistory.filter(item => item && item.id && item.timestamp >= cutoff);
-
-      // Save filtered back if changed
-      if (validHistory.length !== rawHistory.length) {
-        localStorage.setItem('listening_history', JSON.stringify(validHistory));
-      }
-
-      if (validHistory.length === 0) {
+      if (history.length === 0) {
         setHistoryItems([]);
         setIsLoading(false);
         return;
       }
 
-      // Fetch song details in parallel
-      const details = await Promise.all(
-        validHistory.map(async (item) => {
-          try {
-            const track = await getMediaById(item.id);
-            if (!track) return null;
+      const details = history
+        .map((track, index) => {
+          const id = track.id || track.Id;
+          if (!id) return null;
 
-            const mediaType = normalizeType(track.type || track.mediaType);
-            const coverImageUrl = track.coverImageUrl || track.CoverImageUrl || track.coverImgUrl || track.CoverImgUrl || null;
+          const mediaType = normalizeType(track.type || track.Type || track.mediaType || track.MediaType);
+          const coverImageUrl = track.coverImageUrl || track.CoverImageUrl || track.coverImgUrl || track.CoverImgUrl || null;
+          const uploadedAt = track.uploadedAt || track.UploadedAt || track.releaseDate || track.ReleaseDate || null;
 
-            // Map to standard playable item structure
-            const playItem = {
-              id: track.id,
-              kind: 'media',
-              type: 'media',
-              mediaType,
-              ownerId: track.ownerId || track.OwnerId,
-              artists: track.artists || [],
-              title: track.title || track.Title || 'Không có tiêu đề',
-              subtitle: track.genre || track.Genre || track.description || track.Description || 'Media',
-              image: mediaPosterUrl(track.id) || normalizeAssetUrl(coverImageUrl) || defaultCoverUrl,
-              coverImageUrl,
-              audioUrl: track.audioUrl || track.AudioUrl || null,
-              videoUrl: track.videoUrl || track.VideoUrl || null,
-              durationSeconds: Number(track.durationSeconds ?? track.DurationSeconds ?? 0),
-              reactionCount: Number(track.favoriteCount ?? track.FavoriteCount ?? 0),
-            };
-
-            return {
-              ...playItem,
-              listenedAt: item.timestamp,
-            };
-          } catch (e) {
-            console.error(`Failed to fetch media details for id: ${item.id}`, e);
-            return null;
-          }
+          return {
+            ...track,
+            id,
+            kind: 'media',
+            type: 'media',
+            mediaType,
+            ownerId: track.ownerId || track.OwnerId,
+            ownerName: track.ownerName || track.OwnerName,
+            title: track.title || track.Title || 'Không có tiêu đề',
+            subtitle: track.genre || track.Genre || track.description || track.Description || 'Media',
+            image: mediaPosterUrl(id) || normalizeAssetUrl(coverImageUrl) || defaultCoverUrl,
+            coverImageUrl,
+            audioUrl: track.audioUrl || track.AudioUrl || null,
+            videoUrl: track.videoUrl || track.VideoUrl || null,
+            durationSeconds: Number(track.durationSeconds ?? track.DurationSeconds ?? 0),
+            reactionCount: Number(track.favoriteCount ?? track.FavoriteCount ?? 0),
+            listenedAt: uploadedAt ? Date.parse(uploadedAt) : null,
+            historyOrder: index + 1,
+          };
         })
-      );
+        .filter(Boolean);
 
-      // Filter out failed loads
-      setHistoryItems(details.filter(Boolean));
+      setHistoryItems(details);
     } catch (err) {
       console.error('Error loading history details:', err);
       setError('Không tải được lịch sử nghe.');
@@ -114,23 +87,18 @@ export default function ListeningHistoryActivity({ onClose, onPlayMedia }) {
     loadHistory();
   }, []);
 
-  const handleClearHistory = () => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử nghe trong 72 giờ qua?')) {
-      localStorage.removeItem('listening_history');
-      setHistoryItems([]);
-    }
-  };
-
   const formatListenedTime = (timestamp) => {
+    if (!timestamp) return 'Gần đây';
+
     const date = new Date(timestamp);
     const now = new Date();
     
-    // Check if today
+    // Kiểm tra ngày hôm nay.
     if (date.toDateString() === now.toDateString()) {
       return `Hôm nay, lúc ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
     }
     
-    // Check if yesterday
+    // Kiểm tra ngày hôm qua.
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     if (date.toDateString() === yesterday.toDateString()) {
@@ -157,19 +125,6 @@ export default function ListeningHistoryActivity({ onClose, onPlayMedia }) {
         </button>
       </div>
 
-      {historyItems.length > 0 && (
-        <div className="history-tools">
-          <button
-            className="clear-history-button"
-            type="button"
-            onClick={handleClearHistory}
-          >
-            <span className="material-symbols-outlined text-xs">delete</span>
-            <span>Xóa lịch sử 72h</span>
-          </button>
-        </div>
-      )}
-
       {isLoading ? (
         <div className="history-empty">Đang tải lịch sử nghe...</div>
       ) : error ? (
@@ -178,15 +133,11 @@ export default function ListeningHistoryActivity({ onClose, onPlayMedia }) {
 
       <div className="history-list">
         {!isLoading && !error && historyItems.length === 0 && (
-          <div className="history-empty">Chưa có bài hát/video nào trong lịch sử 72h qua.</div>
+          <div className="history-empty">Chưa có bài hát/video nào trong lịch sử nghe gần đây.</div>
         )}
 
         {historyItems.map((item, index) => {
-          // Build artist name label
-          let artistLabel = 'TuneVault';
-          if (item.artists && item.artists.length > 0) {
-            artistLabel = item.artists.map(a => a.artistName || a.ArtistName || a.artistId || a.ArtistId).join(', ');
-          }
+          const artistLabel = item.ownerName || item.OwnerName || item.ownerId || item.OwnerId || 'TuneVault';
 
           return (
             <article 

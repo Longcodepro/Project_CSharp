@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { changePassword, loginUser, registerUser, saveAuthSession, sendOtp } from '../../../Services/MediaService.tsx';
+import {
+  changePassword,
+  getUserByIdDisplay,
+  loginUser,
+  registerUser,
+  saveAuthSession,
+  sendOtp,
+} from '../../../Services/MediaService.tsx';
 import '../../CSS/Login_style.css';
 
 const initialLoginForm = {
@@ -56,6 +63,7 @@ export default function AuthLoginModal({
 
   // OTP countdown state
   const [otpCountdown, setOtpCountdown] = useState(90); // 90 seconds = 1 minute 30 seconds
+  const [otpCountdownToken, setOtpCountdownToken] = useState(0);
   const countdownIntervalRef = useRef(null);
 
   const otpInputRefs = useRef([]); // Ref for OTP input fields
@@ -79,6 +87,33 @@ export default function AuthLoginModal({
   const isOtpStep = isRegisterMode && registerStep === 'otp';
   const isChangePasswordOtpStep = isChangePasswordMode && changePasswordStep === 'otp';
 
+  const clearOtpCountdownInterval = () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  };
+
+  const startOtpCountdown = () => {
+    clearOtpCountdownInterval();
+    setOtpCountdown(90);
+    countdownIntervalRef.current = window.setInterval(() => {
+      setOtpCountdown((prevCountdown) => {
+        if (prevCountdown <= 1) {
+          clearOtpCountdownInterval();
+          return 0;
+        }
+        return prevCountdown - 1;
+      });
+    }, 1000);
+  };
+
+  const requestOtpCountdownRestart = () => {
+    clearOtpCountdownInterval();
+    setOtpCountdown(90);
+    setOtpCountdownToken((currentToken) => currentToken + 1);
+  };
+
   const switchMode = (nextMode) => {
     setMode(nextMode);
     setRegisterStep('form');
@@ -87,6 +122,8 @@ export default function AuthLoginModal({
     setMessage('');
     setOtpDigits(['', '', '', '', '', '']);
     setOtpCountdown(90);
+    clearOtpCountdownInterval();
+    setOtpCountdownToken(0);
     setChangePasswordForm({
       ...initialChangePasswordForm,
       email: currentUserEmail || localStorage.getItem('user_email') || '',
@@ -115,31 +152,17 @@ export default function AuthLoginModal({
   };
 
   useEffect(() => {
-    if (isOtpStep) {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-      countdownIntervalRef.current = setInterval(() => {
-        setOtpCountdown((prevCountdown) => {
-          if (prevCountdown <= 1) {
-            clearInterval(countdownIntervalRef.current);
-            return 0;
-          }
-          return prevCountdown - 1;
-        });
-      }, 1000);
-    } else {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
+    if (!isOpen || (!isOtpStep && !isChangePasswordOtpStep)) {
+      clearOtpCountdownInterval();
+      return undefined;
     }
 
+    startOtpCountdown();
+
     return () => {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
+      clearOtpCountdownInterval();
     };
-  }, [isOtpStep]);
+  }, [isOpen, isOtpStep, isChangePasswordOtpStep, otpCountdownToken]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -287,6 +310,28 @@ export default function AuthLoginModal({
     });
   };
 
+  const ensureRegisterIdDisplayAvailable = async () => {
+    const idDisplay = registerForm.idDisplay.trim();
+    if (!idDisplay) return false;
+
+    try {
+      const existingUser = await getUserByIdDisplay(idDisplay);
+      if (existingUser) {
+        setFieldErrors((currentErrors) => ({
+          ...currentErrors,
+          registerIdDisplay: `Tên người dùng '${idDisplay}' đã tồn tại.`,
+        }));
+        registerIdDisplayRef.current?.focus();
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      setMessage(error?.message || 'Không thể kiểm tra idname lúc này.');
+      return false;
+    }
+  };
+
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
 
@@ -322,9 +367,16 @@ export default function AuthLoginModal({
     setMessage('');
 
     try {
+      const isIdDisplayAvailable = await ensureRegisterIdDisplayAvailable();
+      if (!isIdDisplayAvailable) {
+        return;
+      }
+
       await sendOtp(registerForm.email.trim(), 'register');
-      setOtpCountdown(90);
+      setOtpDigits(['', '', '', '', '', '']);
+      setRegisterForm((currentForm) => ({ ...currentForm, otpCode: '' }));
       setRegisterStep('otp');
+      requestOtpCountdownRestart();
       setFieldErrors(initialErrors);
       setMessage('OTP đã gửi. Vui lòng nhập mã xác nhận để hoàn tất đăng ký.');
     } catch (error) {
@@ -346,8 +398,15 @@ export default function AuthLoginModal({
     setMessage('');
 
     try {
+      const isIdDisplayAvailable = await ensureRegisterIdDisplayAvailable();
+      if (!isIdDisplayAvailable) {
+        return;
+      }
+
       await sendOtp(registerForm.email.trim(), 'register');
-      setOtpCountdown(90);
+      setOtpDigits(['', '', '', '', '', '']);
+      setRegisterForm((currentForm) => ({ ...currentForm, otpCode: '' }));
+      requestOtpCountdownRestart();
       setMessage('OTP mới đã được gửi. Vui lòng nhập mã xác nhận để hoàn tất đăng ký.');
     } catch (error) {
       setMessage(error.message || 'Gửi OTP mới thất bại.');
@@ -401,8 +460,10 @@ export default function AuthLoginModal({
 
     try {
       await sendOtp(changePasswordForm.email.trim(), 'change_password');
-      setOtpCountdown(90);
+      setOtpDigits(['', '', '', '', '', '']);
+      setChangePasswordForm((currentForm) => ({ ...currentForm, otpCode: '' }));
       setChangePasswordStep('otp');
+      requestOtpCountdownRestart();
       setFieldErrors(initialErrors);
       setMessage('OTP đã gửi. Vui lòng nhập mã xác nhận để đổi mật khẩu.');
     } catch (error) {
@@ -425,7 +486,9 @@ export default function AuthLoginModal({
 
     try {
       await sendOtp(changePasswordForm.email.trim(), 'change_password');
-      setOtpCountdown(90);
+      setOtpDigits(['', '', '', '', '', '']);
+      setChangePasswordForm((currentForm) => ({ ...currentForm, otpCode: '' }));
+      requestOtpCountdownRestart();
       setMessage('OTP mới đã được gửi. Vui lòng nhập mã xác nhận để đổi mật khẩu.');
     } catch (error) {
       setMessage(error.message || 'Gửi OTP mới thất bại.');

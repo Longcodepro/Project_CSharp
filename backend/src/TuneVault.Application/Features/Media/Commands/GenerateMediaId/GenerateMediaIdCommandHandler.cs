@@ -1,25 +1,29 @@
 using MediatR;
-using TuneVault.Application.Interfaces; // Assuming ISequentialIdGenerator is here or similar
-using TuneVault.Domain.Interfaces; // Assuming IMediaRepository is here
+using TuneVault.Application.Interfaces;
+using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Media.Commands.GenerateMediaId;
 
+/// <summary>
+/// Sinh mã media mới theo định dạng tuần tự.
+/// </summary>
 public sealed class GenerateMediaIdCommandHandler : IRequestHandler<GenerateMediaIdCommand, string>
 {
     private readonly IMediaRepository _mediaRepository;
-    // Assuming a service or interface exists for sequential ID generation, similar to User/Follow
-    // If not, we'll need to implement it in MediaRepository.
-    // For now, let's assume MediaRepository has a method to generate the next ID.
 
+    /// <summary>
+    /// Khởi tạo handler sinh mã media.
+    /// </summary>
     public GenerateMediaIdCommandHandler(IMediaRepository mediaRepository)
     {
         _mediaRepository = mediaRepository;
     }
 
+    /// <summary>
+    /// Lấy mã media tiếp theo từ repository.
+    /// </summary>
     public async Task<string> Handle(GenerateMediaIdCommand request, CancellationToken cancellationToken)
     {
-        // This method will call a new method in MediaRepository to get the next sequential ID.
-        // Example: "I0001", "I0002", etc.
         return await _mediaRepository.GenerateNextMediaIdAsync(cancellationToken);
     }
 }

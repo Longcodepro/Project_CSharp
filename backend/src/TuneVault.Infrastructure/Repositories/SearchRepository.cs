@@ -16,7 +16,7 @@ namespace TuneVault.Infrastructure.Repositories;
 /// 4. Repository thực thi SQL và trả về kết quả dynamic
 /// 
 /// Các chức năng:
-/// - SearchMediaAsync: Tìm bài hát/podcast theo title, JOIN MediaArtists+Users để lấy ArtistName
+/// - SearchMediaAsync: Tìm media theo title, JOIN Users để lấy ArtistName
 /// - SearchArtistsAsync: Tìm nghệ sĩ theo IdDisplay hoặc DisplayName
 /// - SearchAlbumsAsync: Tìm album công khai theo title
 /// - SearchPlaylistsAsync: Tìm playlist công khai theo title, JOIN Users lấy OwnerName, đếm TrackCount
@@ -33,8 +33,8 @@ public sealed class SearchRepository : ISearchRepository
     public SearchRepository(IDbConnectionFactory db) => _db = db;
 
     /// <summary>
-    /// Tìm kiếm bài hát / podcast theo title.
-    /// JOIN MediaArtists + Users để lấy ArtistName (DisplayName của nghệ sĩ đầu tiên)
+    /// Tìm kiếm media theo title.
+    /// JOIN Users để lấy ArtistName (DisplayName của owner media)
     /// </summary>
     public async Task<IEnumerable<dynamic>> SearchMediaAsync(string keyword, CancellationToken cancellationToken = default)
     {
@@ -44,15 +44,13 @@ public sealed class SearchRepository : ISearchRepository
                 m.Title,
                 u.DisplayName AS ArtistName,
                 m.Genre,
-                m.DurationSeconds,
+                (ISNULL(m.DurationMinutes, 0) * 60 + ISNULL(m.DurationSeconds, 0)) AS DurationSeconds,
                 m.ViewCount,
                 m.CoverImageUrl
             FROM MediaItems m
-            LEFT JOIN MediaArtists ma ON m.Id = ma.MediaItemId
-            LEFT JOIN Users u ON ma.ArtistId = u.Id
+            LEFT JOIN Users u ON m.OwnerId = u.Id
             WHERE m.IsPublic = 1
               AND m.IsActive = 1
-              AND m.IsValid = 0
               AND (m.Title LIKE @Keyword OR u.DisplayName LIKE @Keyword)
             ORDER BY m.Title ASC;";
 
@@ -62,7 +60,7 @@ public sealed class SearchRepository : ISearchRepository
     }
 
     /// <summary>
-    /// Tìm kiếm nghệ sĩ theo IdDisplay hoặc DisplayName.
+    /// Tìm kiếm người dùng theo IdDisplay hoặc DisplayName.
     /// SQL: SELECT Id, IdDisplay AS UserName, DisplayName, AvatarUrl, TotalFollowers FROM Users
     /// </summary>
     public async Task<IEnumerable<dynamic>> SearchArtistsAsync(string keyword, CancellationToken cancellationToken = default)
@@ -76,7 +74,6 @@ public sealed class SearchRepository : ISearchRepository
                 TotalFollowers
             FROM Users
             WHERE IsActive = 1
-              AND IsArtist = 1
               AND (IdDisplay LIKE @Keyword OR DisplayName LIKE @Keyword)
             ORDER BY DisplayName ASC;";
 
@@ -150,15 +147,13 @@ public sealed class SearchRepository : ISearchRepository
                 m.Title,
                 u.DisplayName AS ArtistName,
                 m.Genre,
-                m.DurationSeconds,
+                (ISNULL(m.DurationMinutes, 0) * 60 + ISNULL(m.DurationSeconds, 0)) AS DurationSeconds,
                 m.ViewCount,
                 m.CoverImageUrl
             FROM MediaItems m
-            LEFT JOIN MediaArtists ma ON m.Id = ma.MediaItemId
-            LEFT JOIN Users u ON ma.ArtistId = u.Id
+            LEFT JOIN Users u ON m.OwnerId = u.Id
             WHERE m.IsPublic = 1
               AND m.IsActive = 1
-              AND m.IsValid = 0
             ORDER BY m.ViewCount DESC;";
 
         using var conn = _db.CreateConnection();

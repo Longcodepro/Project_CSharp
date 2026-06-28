@@ -6,7 +6,7 @@ namespace TuneVault.Domain.Enums;
 public enum MediaAssetKind
 {
     /// <summary>
-    /// Asset chính của media: audio cho bài hát/podcast, video cho video.
+    /// Asset chính của media: audio cho bài hát/audio, video cho video.
     /// </summary>
     Primary,
 

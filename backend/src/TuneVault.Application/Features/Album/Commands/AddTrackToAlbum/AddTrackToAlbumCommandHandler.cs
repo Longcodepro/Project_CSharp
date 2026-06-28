@@ -23,7 +23,7 @@ public sealed class AddTrackToAlbumCommandHandler : IRequestHandler<AddTrackToAl
     }
 
     /// <summary>
-    /// Thêm media vào album nếu owner hợp lệ và media thỏa rule album.
+    /// Thêm media vào album nếu owner hợp lệ và media đúng điều kiện album.
     /// </summary>
     public async Task Handle(AddTrackToAlbumCommand request, CancellationToken cancellationToken)
     {
@@ -36,7 +36,7 @@ public sealed class AddTrackToAlbumCommandHandler : IRequestHandler<AddTrackToAl
         var media = await _mediaRepository.GetByIdAsync(request.Request.MediaItemId, cancellationToken)
             ?? throw new DomainException("Không tìm thấy media cần thêm vào album.");
 
-        if (!media.IsActive || media.IsValid)
+        if (!media.IsActive)
             throw new DomainException("Media này hiện không đủ điều kiện để thêm vào album.");
 
         if (!string.Equals(media.OwnerId, request.CurrentUserId, StringComparison.OrdinalIgnoreCase))

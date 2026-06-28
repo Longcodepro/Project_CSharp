@@ -32,12 +32,12 @@ public interface IMediaRepository
     Task<MediaItem?> GetPublicByIdAsync(string id, CancellationToken ct = default);
 
     /// <summary>
-    /// Lấy danh sách các <see cref="MediaArtist"/> của một bài hát (ca sĩ chính + ca sĩ phụ).
+    /// Lấy tên hiển thị của người sở hữu media.
     /// </summary>
     /// <param name="mediaItemId">Mã định danh bài hát.</param>
     /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
-    /// <returns>Danh sách <see cref="MediaArtist"/>.</returns>
-    Task<IEnumerable<MediaArtist>> GetArtistsByMediaIdAsync(string mediaItemId, CancellationToken ct = default);
+    /// <returns>Tên hiển thị của owner hoặc <c>null</c> nếu không tìm thấy.</returns>
+    Task<string?> GetOwnerDisplayNameAsync(string mediaItemId, CancellationToken ct = default);
 
     /// <summary>
     /// Lấy danh sách media theo phân trang.
@@ -80,14 +80,6 @@ public interface IMediaRepository
     /// <param name="mediaItem">Entity bài hát cần lưu.</param>
     /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
     Task AddAsync(MediaItem mediaItem, CancellationToken ct = default);
-
-    /// <summary>
-    /// Thêm danh sách quan hệ nghệ sĩ cho một bài hát (bulk insert).
-    /// Mỗi bài hát có 1 MainArtist và n FeaturedArtist.
-    /// </summary>
-    /// <param name="artists">Danh sách <see cref="MediaArtist"/> cần thêm.</param>
-    /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>
-    Task AddArtistsAsync(IEnumerable<MediaArtist> artists, CancellationToken ct = default);
 
     /// <summary>
     /// Cập nhật thông tin của một <see cref="MediaItem"/> trong database.

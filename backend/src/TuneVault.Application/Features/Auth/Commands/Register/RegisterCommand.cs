@@ -1,10 +1,10 @@
 using MediatR;
-using TuneVault.Application.Abstractions; // For IEmailService
+using TuneVault.Application.Abstractions;
 using TuneVault.Application.Features.Auth.DTOs;
-using TuneVault.Application.Interfaces; // For IJwtTokenGenerator
+using TuneVault.Application.Interfaces;
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Exceptions;
-using TuneVault.Domain.Interfaces; // For IUserRepository
+using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Auth.Commands.Register;
 
@@ -13,13 +13,19 @@ namespace TuneVault.Application.Features.Auth.Commands.Register;
 /// </summary>
 public sealed record RegisterCommand(string Email, string OtpCode, string IdDisplay, string DisplayName, string Password) : IRequest<AuthResponseDto>;
 
+/// <summary>
+/// Tạo tài khoản mới sau khi email đã xác minh OTP.
+/// </summary>
 public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResponseDto>
 {
     private readonly IUserRepository _userRepo;
     private readonly IOtpLogRepository _otpRepo;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
-    private readonly IEmailService _emailService; // For sending OTP
+    private readonly IEmailService _emailService;
 
+    /// <summary>
+    /// Khởi tạo handler đăng ký.
+    /// </summary>
     public RegisterCommandHandler(
         IUserRepository userRepo,
         IOtpLogRepository otpRepo,
@@ -32,16 +38,17 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Au
         _emailService = emailService;
     }
 
+    /// <summary>
+    /// Kiểm tra OTP, tạo user và cấp token đăng nhập.
+    /// </summary>
     public async Task<AuthResponseDto> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        // 1. Verify OTP
         var isOtpValid = await _otpRepo.VerifyAndConsumeAsync(request.Email, request.OtpCode, "register", cancellationToken);
         if (!isOtpValid)
         {
             throw new DomainException("Mã OTP không hợp lệ hoặc đã hết hạn.");
         }
 
-        // 2. Check if user already exists
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var existingEmail = await _userRepo.GetByEmailAsync(normalizedEmail, cancellationToken);
         if (existingEmail != null)
@@ -55,10 +62,8 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Au
             throw new DomainException($"Tên người dùng '{request.IdDisplay}' đã tồn tại.");
         }
 
-        // 3. Hash password (using BCrypt)
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-        // 4. Create new user
         var newUserId = await _userRepo.GenerateNextIdAsync(cancellationToken);
         var newUser = new TuneVault.Domain.Entities.User(
             newUserId,
@@ -70,12 +75,10 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Au
 
         await _userRepo.InsertAsync(newUser, cancellationToken);
 
-        // 5. Generate JWT Token
-        var userRoles = new List<string> { "Listener" }; // Default role for new users
+        var userRoles = new List<string> { "Listener" };
         var token = _jwtTokenGenerator.GenerateToken(newUser.Id, newUser.IdDisplay, string.Join(",", userRoles));
         var refreshToken = _jwtTokenGenerator.GenerateRefreshToken(newUser.Id, newUser.IdDisplay, string.Join(",", userRoles));
 
-        // 6. Return AuthResponseDto
         return new AuthResponseDto(
             AccessToken: token,
             RefreshToken: refreshToken,

@@ -1,5 +1,5 @@
 using MediatR;
-using TuneVault.Application.Features.Share.DTOs; // Assuming SharedItemDto is here
+using TuneVault.Application.Features.Share.DTOs;
 
 namespace TuneVault.Application.Features.Share.Queries.GetSharedByMe;
 

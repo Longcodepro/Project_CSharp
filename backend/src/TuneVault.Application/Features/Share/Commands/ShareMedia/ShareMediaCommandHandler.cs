@@ -2,8 +2,10 @@ using MediatR;
 using TuneVault.Application.Abstractions;
 using TuneVault.Application.Features.Notification.Commands;
 using TuneVault.Application.Features.Notification.DTOs;
+using TuneVault.Domain.Entities;
 using TuneVault.Domain.Enums;
 using TuneVault.Domain.Exceptions;
+using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Share.Commands.ShareMedia;
 
@@ -14,13 +16,19 @@ public sealed class ShareMediaCommandHandler : IRequestHandler<ShareMediaCommand
 {
     private readonly IMediaShareCommandRepository _mediaShareRepository;
     private readonly INotificationPusher _notificationPusher;
+    private readonly IMediaRepository _mediaRepository;
+    private readonly IUserRepository _userRepository;
 
     public ShareMediaCommandHandler(
         IMediaShareCommandRepository mediaShareRepository,
-        INotificationPusher notificationPusher)
+        INotificationPusher notificationPusher,
+        IMediaRepository mediaRepository,
+        IUserRepository userRepository)
     {
         _mediaShareRepository = mediaShareRepository ?? throw new ArgumentNullException(nameof(mediaShareRepository));
         _notificationPusher = notificationPusher ?? throw new ArgumentNullException(nameof(notificationPusher));
+        _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
     }
 
     public async Task<string> Handle(ShareMediaCommand request, CancellationToken ct)
@@ -86,7 +94,12 @@ public sealed class ShareMediaCommandHandler : IRequestHandler<ShareMediaCommand
             _ => throw new DomainException("Loại chia sẻ không hợp lệ.")
         };
 
-        var (title, defaultMessage) = BuildNotificationContent(shareType);
+        var mediaItem = shareType == ShareType.MediaItem
+            ? await _mediaRepository.GetByIdAsync(sharedItemId, ct)
+            : null;
+
+        var notificationType = MapNotificationType(shareType, mediaItem?.Type);
+        var (title, defaultMessage) = BuildNotificationContent(shareType, mediaItem?.Type);
 
         var (shareId, notificationId) = await _mediaShareRepository.CreateMediaShareWithNotificationAsync(
             senderId,
@@ -98,7 +111,7 @@ public sealed class ShareMediaCommandHandler : IRequestHandler<ShareMediaCommand
             {
                 UserId = receiverId,
                 SenderId = senderId,
-                NotifyType = NotificationType.MediaShared,
+                NotifyType = notificationType,
                 Title = title,
                 Message = message ?? defaultMessage,
                 TargetType = targetType,
@@ -106,10 +119,18 @@ public sealed class ShareMediaCommandHandler : IRequestHandler<ShareMediaCommand
             },
             ct);
 
+        var sender = await _userRepository.GetByIdAsync(senderId, ct);
+
         var notification = new NotificationDto(
             Id: notificationId,
             UserId: receiverId,
-            Type: NotificationType.MediaShared.ToString(),
+            SenderId: senderId,
+            SenderIdDisplay: sender?.IdDisplay,
+            SenderDisplayName: sender?.DisplayName,
+            SenderAvatarUrl: sender?.AvatarUrl,
+            Type: notificationType.ToString(),
+            Title: title,
+            Message: message ?? defaultMessage,
             TargetType: (int)targetType,
             TargetId: sharedItemId,
             PayloadJson: null,
@@ -121,13 +142,33 @@ public sealed class ShareMediaCommandHandler : IRequestHandler<ShareMediaCommand
         return shareId;
     }
 
-    private static (string Title, string DefaultMessage) BuildNotificationContent(ShareType shareType)
+    private static NotificationType MapNotificationType(ShareType shareType, MediaType? mediaType)
+    {
+        if (shareType != ShareType.MediaItem)
+            return NotificationType.ShareSong;
+
+        return mediaType switch
+        {
+            MediaType.Video => NotificationType.ShareVideo,
+            MediaType.Audio => NotificationType.ShareAudio,
+            MediaType.Song => NotificationType.ShareSong,
+            _ => NotificationType.ShareSong
+        };
+    }
+
+    private static (string Title, string DefaultMessage) BuildNotificationContent(ShareType shareType, MediaType? mediaType)
     {
         return shareType switch
         {
             ShareType.Playlist => ("Playlist được chia sẻ", "Bạn vừa nhận được một playlist được chia sẻ."),
             ShareType.Album => ("Album được chia sẻ", "Bạn vừa nhận được một album được chia sẻ."),
-            _ => ("Media được chia sẻ", "Bạn vừa nhận được một bài hát hoặc video được chia sẻ.")
+            _ => mediaType switch
+            {
+                MediaType.Video => ("Video được chia sẻ", "Bạn vừa nhận được một video được chia sẻ."),
+                MediaType.Audio => ("Audio được chia sẻ", "Bạn vừa nhận được một audio được chia sẻ."),
+                MediaType.Song => ("Bài hát được chia sẻ", "Bạn vừa nhận được một bài hát được chia sẻ."),
+                _ => ("Nội dung được chia sẻ", "Bạn vừa nhận được một nội dung được chia sẻ.")
+            }
         };
     }
 

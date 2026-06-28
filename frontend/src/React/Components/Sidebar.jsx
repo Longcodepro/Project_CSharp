@@ -15,7 +15,7 @@ const defaultCoverUrl = normalizeAssetUrl('/uploads/default-cover/Default.png')
   || 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=600&q=80';
 
 function normalizeType(value) {
-  const numericMap = ['audio', 'video', 'podcast', 'song'];
+  const numericMap = ['audio', 'video', '', 'song'];
   if (typeof value === 'number') return numericMap[value] || 'media';
 
   const normalized = String(value || '').trim().toLowerCase();
@@ -24,14 +24,23 @@ function normalizeType(value) {
   return normalized || 'media';
 }
 
+function isPlayableMediaType(type) {
+  return ['audio', 'song', 'video'].includes(normalizeType(type));
+}
+
+function isSavedCollectionType(type) {
+  return ['album', 'playlist'].includes(normalizeType(type));
+}
+
 function normalizeMediaItem(item, fallbackSubtitle) {
-  const id = item.id || item.mediaItemId || item.title;
+  const id = item.id || item.mediaItemId || item.mediaId || item.targetId || item.TargetId || '';
   const coverUrl = normalizeAssetUrl(item.coverImageUrl || item.coverImgUrl || item.imageUrl || item.avatarUrl);
+  const posterUrl = id ? mediaPosterUrl(id) : '';
   return {
     id,
     title: item.title || item.name || 'Nội dung',
     subtitle: item.subtitle || fallbackSubtitle,
-    image: (id ? mediaPosterUrl(id) : undefined) || coverUrl || item.image || defaultCoverUrl,
+    image: posterUrl || coverUrl || item.image || defaultCoverUrl,
     type: normalizeType(item.type),
     description: item.description,
   };
@@ -60,21 +69,43 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
       try {
         const hasToken = Boolean(localStorage.getItem('auth_session'));
         const roles = getStoredRoles();
-        const canLoadAlbums = roles.includes('artist') || roles.includes('admin');
+        const canLoadAlbums = roles.includes('artist');
         const [favoriteMedia, recentLikes, myMedia, featuredPlaylists, myPlaylists, myAlbums] = await Promise.all([
-          hasToken ? getLikedSongs().catch(() => []) : Promise.resolve([]),
-          hasToken ? getRecentCollectionLikes(4).catch(() => []) : Promise.resolve([]),
-          hasToken ? getMyMedia().catch(() => []) : Promise.resolve([]),
-          getFeaturedPlaylists(4).catch(() => []),
-          hasToken ? getMyPlaylists().catch(() => []) : Promise.resolve([]),
-          hasToken && canLoadAlbums ? getMyAlbums().catch(() => []) : Promise.resolve([]),
+          hasToken ? getLikedSongs().catch((error) => {
+            console.warn('[TuneVault] Khong the tai danh sach bai hat yeu thich.', error);
+            return [];
+          }) : Promise.resolve([]),
+          hasToken ? getRecentCollectionLikes(4).catch((error) => {
+            console.warn('[TuneVault] Khong the tai recent collections. Bo qua section nay.', error);
+            return [];
+          }) : Promise.resolve([]),
+          hasToken ? getMyMedia().catch((error) => {
+            console.warn('[TuneVault] Khong the tai media da tao.', error);
+            return [];
+          }) : Promise.resolve([]),
+          getFeaturedPlaylists(4).catch((error) => {
+            console.warn('[TuneVault] Khong the tai featured playlists.', error);
+            return [];
+          }),
+          hasToken ? getMyPlaylists().catch((error) => {
+            console.warn('[TuneVault] Khong the tai playlist cua ban.', error);
+            return [];
+          }) : Promise.resolve([]),
+          hasToken && canLoadAlbums ? getMyAlbums().catch((error) => {
+            console.warn('[TuneVault] Khong the tai album cua ban.', error);
+            return [];
+          }) : Promise.resolve([]),
         ]);
 
         if (!isMounted) return;
 
-        setLikedItems(favoriteMedia.slice(0, 4).map((item) => normalizeMediaItem(item, 'Đã thích')));
+        const mappedLikedMedia = favoriteMedia
+          .map((item) => normalizeMediaItem(item, 'Đã thích'))
+          .filter((item) => isPlayableMediaType(item.type))
+          .slice(0, 4);
 
-        const mappedRecentLikes = recentLikes.slice(0, 4).map((item) => ({
+        const mappedRecentLikes = recentLikes
+          .map((item) => ({
           id: item.targetId || item.id,
           title: item.title || item.name || 'Nội dung đã lưu',
           subtitle: String(item.targetType || item.type || 'collection').toLowerCase() === 'album'
@@ -83,7 +114,9 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
           image: normalizeAssetUrl(item.coverImageUrl || item.coverImgUrl || item.imageUrl) || defaultCoverUrl,
           type: normalizeType(item.targetType || item.type || 'collection'),
           description: item.description,
-        }));
+        }))
+          .filter((item) => isSavedCollectionType(item.type))
+          .slice(0, 4);
         const mappedFeaturedPlaylists = featuredPlaylists.slice(0, 4).map((playlist) => ({
           id: playlist.id,
           title: playlist.title,
@@ -92,6 +125,7 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
           type: 'playlist',
           description: playlist.description,
         }));
+        setLikedItems(mappedLikedMedia);
         setSavedCollections(mappedRecentLikes.length > 0 ? mappedRecentLikes : mappedFeaturedPlaylists);
 
         const mediaCards = myMedia.slice(0, 4).map((item) => ({
@@ -125,7 +159,8 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
 
         setCreatedMedia(mediaCards);
         setCreatedCollections(collectionCards);
-      } catch {
+      } catch (error) {
+        console.warn('[TuneVault] Khong the tai thu vien Sidebar. Hien fallback rong.', error);
         if (!isMounted) return;
         setLikedItems([]);
         setSavedCollections([]);
@@ -145,10 +180,10 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
     <div className="sidebar-mini-group-body">
       {items.length > 0 ? (
         <div className="sidebar-item-list sidebar-item-list-scroll">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <button
               className={`sidebar-library-item ${activeItemId === item.id ? 'active' : ''}`}
-              key={item.id}
+              key={item.id || `${item.title || 'item'}-${index}`}
               type="button"
               onClick={() => onSelectItem?.(item)}
             >
@@ -203,7 +238,7 @@ export default function Sidebar({ activeItemId, onSelectItem, onAddCreate }) {
           <h2>Nội dung đã lưu</h2>
           <div className="sidebar-mini-group">
             <div className="sidebar-mini-group-header">
-              <span>Video đã thích</span>
+              <span>Bài hát / video đã thích</span>
               <small>{likedItems.length}</small>
             </div>
             {renderItemList(likedItems, 'video_library', 'Chưa có video hoặc bài hát đã thích.')}

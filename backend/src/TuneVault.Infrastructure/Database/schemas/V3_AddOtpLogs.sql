@@ -1,4 +1,4 @@
-USE TuneVault;
+USE [TuneVaultDb];
 GO
 
 CREATE TABLE OtpLogs

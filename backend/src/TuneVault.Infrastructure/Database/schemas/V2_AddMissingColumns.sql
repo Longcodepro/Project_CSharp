@@ -1,5 +1,5 @@
 -- Chạy lần lượt từng khối lệnh bằng cách bôi đen khối đó và nhấn Ctrl+Enter
-USE TuneVault;
+USE [TuneVaultDb];
 
 IF NOT EXISTS (SELECT 1
 FROM INFORMATION_SCHEMA.COLUMNS

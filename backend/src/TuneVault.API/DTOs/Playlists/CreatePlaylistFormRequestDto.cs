@@ -17,6 +17,9 @@ public sealed class CreatePlaylistFormRequestDto
     /// <summary>File ảnh bìa playlist.</summary>
     public IFormFile? CoverImage { get; init; }
 
+    /// <summary>URL ảnh bìa mặc định trong /uploads/default-cover.</summary>
+    public string? CoverImageUrl { get; init; }
+
     /// <summary>Kiểu nội dung chung của playlist.</summary>
     public string? ContentType { get; init; }
 

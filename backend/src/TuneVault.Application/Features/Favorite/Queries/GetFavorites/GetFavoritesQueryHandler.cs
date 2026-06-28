@@ -24,7 +24,7 @@ public sealed class GetFavoritesQueryHandler : IRequestHandler<GetFavoritesQuery
     }
 
     /// <summary>
-    /// Trả về tên media và reaction đã chọn, không trả toàn bộ metadata media.
+    /// Trả về tên media đã yêu thích, không trả toàn bộ metadata media.
     /// </summary>
     /// <param name="request">Query chứa user id cần lấy danh sách cảm xúc.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>
@@ -40,7 +40,7 @@ public sealed class GetFavoritesQueryHandler : IRequestHandler<GetFavoritesQuery
             if (mediaItem is null)
                 continue;
 
-            result.Add(new FavoriteSummaryDto(mediaItem.Title, favorite.Reaction));
+            result.Add(new FavoriteSummaryDto(mediaItem.Title));
         }
 
         return result;

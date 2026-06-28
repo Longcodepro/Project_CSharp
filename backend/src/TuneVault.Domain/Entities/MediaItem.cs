@@ -5,10 +5,9 @@ using TuneVault.Domain.ValueObjects;
 namespace TuneVault.Domain.Entities;
 
 /// <summary>
-/// Đại diện cho một mục phương tiện (nhạc, podcast, video...) trong hệ thống TuneVault.
+/// Đại diện cho một mục phương tiện (nhạc, audio, video...) trong hệ thống TuneVault.
 /// Thực thể này độc lập quản lý trạng thái, số lượng tương tác và tính toàn vẹn dữ liệu.
-/// Bao gồm quan hệ với nhiều nghệ sĩ qua <see cref="MediaArtist"/>: một ca sĩ chính (MainArtist)
-/// và nhiều ca sĩ phụ (FeaturedArtist).
+/// Mỗi media thuộc về đúng một người tạo thông qua <see cref="OwnerId"/>.
 /// </summary>
 public class MediaItem
 {
@@ -39,7 +38,7 @@ public class MediaItem
     public string? Description { get; private set; }
 
     /// <summary>
-    /// Loại phương tiện (Audio, Video, Podcast, Song).
+    /// Loại phương tiện (Audio, Video, Song).
     /// </summary>
     public MediaType Type { get; private set; }
 
@@ -69,16 +68,6 @@ public class MediaItem
     public MediaDuration Duration { get; private set; } = new MediaDuration(0, 0);
 
     /// <summary>
-    /// Thời lượng đoạn trailer dành cho tài khoản Premium.
-    /// </summary>
-    public MediaDuration DurationTrailer { get; private set; } = new MediaDuration(0, 0);
-
-    /// <summary>
-    /// Cấp độ truy cập (Normal = miễn phí, Premium = trả phí).
-    /// </summary>
-    public AccessLevel AccessLevel { get; private set; }
-
-    /// <summary>
     /// Trạng thái hiển thị công khai của phương tiện.
     /// </summary>
     public bool IsPublic { get; private set; } = true;
@@ -87,12 +76,6 @@ public class MediaItem
     /// Trạng thái hoạt động của phương tiện (Soft Delete — false = đã xóa).
     /// </summary>
     public bool IsActive { get; private set; } = true;
-
-    /// <summary>
-    /// Cờ khóa tạm thời do admin bật khi media vi phạm bản quyền hoặc nguyên tắc.
-    /// Theo schema hiện tại: false = được hoạt động, true = đang bị khóa.
-    /// </summary>
-    public bool IsValid { get; private set; }
 
     /// <summary>
     /// Tổng số lượt yêu thích (phi chuẩn hóa để tối ưu hiệu năng hiển thị).
@@ -121,6 +104,58 @@ public class MediaItem
     /// </summary>
     private MediaItem() { }
 
+    public static MediaItem Hydrate(
+        string id,
+        string ownerId,
+        string title,
+        string? description,
+        MediaType type,
+        string mediaUrl,
+        string? coverImageUrl,
+        string? canvasUrl,
+        string? genre,
+        int durationMinutes,
+        int durationSeconds,
+        bool isPublic,
+        bool isActive,
+        int favoriteCount,
+        int viewCount,
+        DateTime uploadedAt,
+        DateTime? releaseDate)
+    {
+        if (durationMinutes < 0)
+            durationMinutes = 0;
+
+        if (durationSeconds < 0)
+            durationSeconds = 0;
+
+        if (durationSeconds >= 60)
+        {
+            durationMinutes += durationSeconds / 60;
+            durationSeconds %= 60;
+        }
+
+        return new MediaItem
+        {
+            Id = id.Trim(),
+            OwnerId = ownerId.Trim(),
+            Title = title.Trim(),
+            Description = description?.Trim(),
+            Type = type,
+            Url = new MediaUrl(mediaUrl),
+            CoverImageUrl = coverImageUrl?.Trim(),
+            CanvasUrl = canvasUrl?.Trim(),
+            Genre = genre?.Trim(),
+            Duration = new MediaDuration(durationMinutes, durationSeconds),
+            IsPublic = isPublic,
+            IsActive = isActive,
+            FavoriteCount = favoriteCount,
+            ViewCount = viewCount,
+            UploadedAt = uploadedAt,
+            ReleaseDate = releaseDate
+        };
+    }
+
     /// <summary>
     /// Khởi tạo một <see cref="MediaItem"/> mới với các thông tin bắt buộc.
     /// </summary>
@@ -129,8 +164,7 @@ public class MediaItem
     /// <param name="title">Tiêu đề phương tiện (tối đa 30 ký tự).</param>
     /// <param name="type">Loại phương tiện.</param>
     /// <param name="mediaUrl">Value Object chứa URL file phương tiện.</param>
-    /// <param name="accessLevel">Cấp độ truy cập.</param>
-    public MediaItem(string id, string ownerId, string title, MediaType type, MediaUrl mediaUrl, AccessLevel accessLevel)
+    public MediaItem(string id, string ownerId, string title, MediaType type, MediaUrl mediaUrl)
     {
         ValidateMediaId(id);
         ValidateOwnerId(ownerId);
@@ -141,14 +175,12 @@ public class MediaItem
         Title = title.Trim();
         Type = type;
         Url = mediaUrl;
-        AccessLevel = accessLevel;
         UploadedAt = DateTime.UtcNow;
         IsActive = true;
 
         FavoriteCount = 0;
         ViewCount = 0;
         Duration = new MediaDuration(0, 0);
-        DurationTrailer = new MediaDuration(0, 0);
     }
 
     // --- Business Methods ---
@@ -203,24 +235,6 @@ public class MediaItem
     }
 
     /// <summary>
-    /// Cập nhật chính sách truy cập và cấu hình thời lượng trailer.
-    /// </summary>
-    /// <param name="accessLevel">Cấp độ truy cập mới.</param>
-    /// <param name="trailerMinutes">Số phút của đoạn trailer.</param>
-    /// <param name="trailerSeconds">Số giây của đoạn trailer.</param>
-    /// <exception cref="DomainException">Ném ra nếu trailer dài hơn bài hát gốc.</exception>
-    public void UpdateAccessPolicy(AccessLevel accessLevel, int trailerMinutes, int trailerSeconds)
-    {
-        var trailer = new MediaDuration(trailerMinutes, trailerSeconds);
-
-        if (Duration.ToTimeSpan() > TimeSpan.Zero && trailer.ToTimeSpan() > Duration.ToTimeSpan())
-            throw new DomainException("Trailer không thể dài hơn thời lượng bài hát gốc.");
-
-        AccessLevel = accessLevel;
-        DurationTrailer = trailer;
-    }
-
-    /// <summary>
     /// Cập nhật trạng thái công khai của media.
     /// </summary>
     /// <param name="isPublic">True nếu media được hiển thị công khai.</param>
@@ -228,16 +242,6 @@ public class MediaItem
     {
         EnsureActive();
         IsPublic = isPublic;
-    }
-
-    /// <summary>
-    /// Cập nhật trạng thái khóa vi phạm do admin quyết định.
-    /// </summary>
-    /// <param name="isBlocked">True nếu media đang bị khóa vì vi phạm.</param>
-    public void SetPolicyViolation(bool isBlocked)
-    {
-        EnsureActive();
-        IsValid = isBlocked;
     }
 
     /// <summary>

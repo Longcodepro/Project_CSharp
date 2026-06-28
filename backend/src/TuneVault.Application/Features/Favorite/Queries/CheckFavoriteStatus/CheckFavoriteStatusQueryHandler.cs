@@ -1,13 +1,12 @@
 using MediatR;
-using TuneVault.Domain.Enums;
 using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Favorite.Queries.CheckFavoriteStatus;
 
 /// <summary>
-/// Handler lấy reaction hiện tại của người dùng với media, album hoặc playlist.
+/// Handler lấy trạng thái yêu thích hiện tại của người dùng với media, album hoặc playlist.
 /// </summary>
-public sealed class CheckFavoriteStatusQueryHandler : IRequestHandler<CheckFavoriteStatusQuery, FavoriteReaction?>
+public sealed class CheckFavoriteStatusQueryHandler : IRequestHandler<CheckFavoriteStatusQuery, bool>
 {
     private readonly IFavoriteRepository _favoriteRepository;
 
@@ -21,19 +20,19 @@ public sealed class CheckFavoriteStatusQueryHandler : IRequestHandler<CheckFavor
     }
 
     /// <summary>
-    /// Trả reaction hiện tại nếu có, ngược lại trả null.
+    /// Trả true nếu bản ghi favorite đang active, ngược lại trả false.
     /// </summary>
     /// <param name="request">Query chứa user id, target id và target type.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>
-    /// <returns>Reaction hiện tại hoặc null nếu chưa thể hiện cảm xúc.</returns>
-    public async Task<FavoriteReaction?> Handle(CheckFavoriteStatusQuery request, CancellationToken cancellationToken)
+    /// <returns>true nếu đã yêu thích.</returns>
+    public async Task<bool> Handle(CheckFavoriteStatusQuery request, CancellationToken cancellationToken)
     {
         var favorite = await _favoriteRepository.GetByUserIdAndTargetAsync(
             request.UserId,
             request.TargetId,
             request.TargetType,
-            cancellationToken);
+            ct: cancellationToken);
 
-        return favorite?.Reaction;
+        return favorite is not null && favorite.IsActive;
     }
 }

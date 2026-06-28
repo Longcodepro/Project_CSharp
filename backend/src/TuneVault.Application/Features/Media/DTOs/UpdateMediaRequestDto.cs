@@ -10,8 +10,8 @@ namespace TuneVault.Application.Features.Media.DTOs;
 /// <param name="MediaUrl">URL file media mới (nullable — null để giữ file gốc).</param>
 /// <param name="CoverImageUrl">URL ảnh bìa mới (nullable — null để xóa ảnh bìa).</param>
 /// <param name="CanvasUrl">URL canvas mới (nullable — null để xóa canvas).</param>
+/// <param name="DurationSeconds">Thời lượng media theo giây nếu có thay đổi hoặc cần đồng bộ DB.</param>
 /// <param name="IsPublic">Trạng thái hiển thị công khai.</param>
-/// <param name="AccessLevel">Cấp độ truy cập: Normal (0) hoặc Premium (1).</param>
 public sealed record UpdateMediaRequestDto(
     string Title,
     string? Description,
@@ -19,6 +19,6 @@ public sealed record UpdateMediaRequestDto(
     string? MediaUrl,
     string? CoverImageUrl,
     string? CanvasUrl,
-    bool IsPublic,
-    int AccessLevel
+    int? DurationSeconds,
+    bool IsPublic
 );

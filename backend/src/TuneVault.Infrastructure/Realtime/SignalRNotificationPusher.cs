@@ -5,32 +5,30 @@ using TuneVault.Application.Features.Notification.DTOs;
 namespace TuneVault.Infrastructure.Realtime;
 
 /// <summary>
-/// Implementation of INotificationPusher using SignalR.
+/// Đẩy thông báo realtime qua SignalR.
 /// </summary>
 public sealed class SignalRNotificationPusher : INotificationPusher
 {
     private readonly IHubContext<NotificationHub> _hubContext;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SignalRNotificationPusher"/> class.
+    /// Khởi tạo dịch vụ đẩy thông báo.
     /// </summary>
-    /// <param name="hubContext">The SignalR hub context.</param>
+    /// <param name="hubContext">Hub SignalR dùng để gửi sự kiện.</param>
     public SignalRNotificationPusher(IHubContext<NotificationHub> hubContext)
     {
         _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
     }
 
     /// <summary>
-    /// Sends a notification to the correct group (userId) of the recipient.
+    /// Gửi thông báo tới group của người nhận.
     /// </summary>
-    /// <param name="userId">The identifier of the user receiving the notification.</param>
-    /// <param name="notification">The notification data to send.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <param name="userId">Mã người nhận.</param>
+    /// <param name="notification">Dữ liệu thông báo.</param>
+    /// <param name="ct">Token hủy thao tác.</param>
+    /// <returns>Task bất đồng bộ.</returns>
     public async Task PushAsync(string userId, NotificationDto notification, CancellationToken ct = default)
     {
-        // Bước 1: Gửi thông báo tới group của người dùng.
-        // Tên event là "ReceiveNotification" để client lắng nghe.
         await _hubContext.Clients.Group(userId).SendAsync("ReceiveNotification", notification, ct);
     }
 }

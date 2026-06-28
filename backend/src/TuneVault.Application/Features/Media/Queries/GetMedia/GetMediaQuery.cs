@@ -33,8 +33,8 @@ public sealed class GetMediaQueryHandler : IRequestHandler<GetMediaQuery, IReadO
         var result = new List<MediaPublicDto>(items.Count);
         foreach (var item in items)
         {
-            var artists = await _mediaRepository.GetArtistsByMediaIdAsync(item.Id, ct);
-            result.Add(MediaDtoMapper.ToPublicDto(item, artists));
+            var ownerName = await _mediaRepository.GetOwnerDisplayNameAsync(item.Id, ct);
+            result.Add(MediaDtoMapper.ToPublicDto(item, ownerName));
         }
 
         return result;

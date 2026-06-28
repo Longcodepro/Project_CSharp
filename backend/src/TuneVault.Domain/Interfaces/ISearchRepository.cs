@@ -1,24 +1,12 @@
 namespace TuneVault.Domain.Interfaces;
 
 /// <summary>
-/// SUMMARY PHẦN TÌM KIẾM & KHÁM PHÁ - DOMAIN INTERFACE
-/// File này khai báo các chức năng search/discovery cần có.
-/// 
-/// Nhiệm vụ được cover:
-/// - Tìm kiếm bài hát / podcast.
-/// - Tìm kiếm nghệ sĩ.
-/// - Tìm kiếm album.
-/// - Tìm kiếm playlist.
-/// - Lấy danh sách trending, tức bài nghe nhiều nhất.
-/// 
-/// Lưu ý:
-/// Interface chỉ khai báo method.
-/// SQL thật nằm ở Infrastructure/Repositories/SearchRepository.cs.
+/// Khai báo các truy vấn tìm kiếm và khám phá nội dung.
 /// </summary>
 public interface ISearchRepository
 {
     /// <summary>
-    /// Tìm kiếm bài hát / podcast theo keyword.
+    /// Tìm kiếm media theo keyword.
     /// </summary>
     Task<IEnumerable<dynamic>> SearchMediaAsync(string keyword, CancellationToken cancellationToken = default);
 

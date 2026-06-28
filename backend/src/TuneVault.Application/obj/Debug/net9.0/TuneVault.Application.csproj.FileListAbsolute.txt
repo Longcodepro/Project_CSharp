@@ -1,16 +1,31 @@
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\bin\Debug\net9.0\TuneVault.Application.deps.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\bin\Debug\net9.0\TuneVault.Application.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\bin\Debug\net9.0\TuneVault.Application.pdb
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\bin\Debug\net9.0\TuneVault.Domain.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\bin\Debug\net9.0\TuneVault.Domain.pdb
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVault.Application.csproj.AssemblyReference.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVault.Application.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVault.Application.AssemblyInfoInputs.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVault.Application.AssemblyInfo.cs
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVault.Application.csproj.CoreCompileInputs.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVaul.CD6889CD.Up2Date
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVault.Application.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\refint\TuneVault.Application.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVault.Application.pdb
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\ref\TuneVault.Application.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.Application\obj\Debug\net9.0\TuneVault.Application.sourcelink.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Application.deps.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Application.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Application.pdb
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Domain.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Domain.pdb
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.csproj.AssemblyReference.cache
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.GeneratedMSBuildEditorConfig.editorconfig
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.AssemblyInfoInputs.cache
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.AssemblyInfo.cs
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.csproj.CoreCompileInputs.cache
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVaul.CD6889CD.Up2Date
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/refint/TuneVault.Application.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.pdb
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.Application/obj/Debug/net9.0/ref/TuneVault.Application.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Application.deps.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Application.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Application.pdb
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Domain.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/bin/Debug/net9.0/TuneVault.Domain.pdb
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.csproj.AssemblyReference.cache
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.GeneratedMSBuildEditorConfig.editorconfig
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.AssemblyInfoInputs.cache
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.AssemblyInfo.cs
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.csproj.CoreCompileInputs.cache
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.sourcelink.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVaul.CD6889CD.Up2Date
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/refint/TuneVault.Application.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/TuneVault.Application.pdb
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.Application/obj/Debug/net9.0/ref/TuneVault.Application.dll

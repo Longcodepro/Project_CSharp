@@ -21,12 +21,13 @@ public sealed class FavoriteRepository : IFavoriteRepository
     }
 
     public async Task<Favorite?> GetByUserIdAndMediaItemIdAsync(string userId, string mediaItemId, CancellationToken ct = default)
-        => await GetByUserIdAndTargetAsync(userId, mediaItemId, FavoriteTargetType.Media, ct);
+        => await GetByUserIdAndTargetAsync(userId, mediaItemId, FavoriteTargetType.Media, false, ct);
 
     public async Task<Favorite?> GetByUserIdAndTargetAsync(
         string userId,
         string targetId,
         FavoriteTargetType targetType,
+        bool includeInactive = false,
         CancellationToken ct = default)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
@@ -37,19 +38,21 @@ public sealed class FavoriteRepository : IFavoriteRepository
                 UserId,
                 TargetId,
                 TargetType,
-                Reaction,
+                IsActive,
                 LikedAt
             FROM Favorites
             WHERE UserId = @UserId
               AND TargetId = @TargetId
-              AND TargetType = @TargetType;";
+              AND TargetType = @TargetType
+              AND (@IncludeInactive = 1 OR IsActive = 1);";
 
         var favorite = await connection.QueryFirstOrDefaultAsync<FavoriteRow>(
             new CommandDefinition(sql, new
             {
                 UserId = userId,
                 TargetId = targetId,
-                TargetType = (byte)targetType
+                TargetType = (byte)targetType,
+                IncludeInactive = includeInactive
             }, cancellationToken: ct));
 
         return favorite is null ? null : ToEntity(favorite);
@@ -65,11 +68,12 @@ public sealed class FavoriteRepository : IFavoriteRepository
                 UserId,
                 TargetId,
                 TargetType,
-                Reaction,
+                IsActive,
                 LikedAt
             FROM Favorites
             WHERE UserId = @UserId
               AND TargetType = @TargetType
+              AND IsActive = 1
             ORDER BY LikedAt DESC;";
 
         var result = await connection.QueryAsync<FavoriteRow>(
@@ -92,7 +96,7 @@ public sealed class FavoriteRepository : IFavoriteRepository
             WHERE Id = @MediaItemId
               AND IsActive = 1
               AND IsPublic = 1
-              AND IsValid = 0;
+              ;
             """;
 
         var count = await connection.ExecuteScalarAsync<int>(
@@ -148,7 +152,8 @@ public sealed class FavoriteRepository : IFavoriteRepository
             SELECT COUNT(1)
             FROM Favorites
             WHERE TargetId = @TargetId
-              AND TargetType = @TargetType;
+              AND TargetType = @TargetType
+              AND IsActive = 1;
             """;
 
         return await connection.ExecuteScalarAsync<int>(
@@ -170,16 +175,16 @@ public sealed class FavoriteRepository : IFavoriteRepository
 
         await connection.ExecuteAsync(new CommandDefinition(@"
             INSERT INTO Favorites
-                (Id, UserId, TargetId, TargetType, Reaction, LikedAt)
+                (Id, UserId, TargetId, TargetType, IsActive, LikedAt)
             VALUES
-                (@Id, @UserId, @TargetId, @TargetType, @Reaction, SYSUTCDATETIME());",
+                (@Id, @UserId, @TargetId, @TargetType, @IsActive, SYSUTCDATETIME());",
             new
             {
                 favorite.Id,
                 favorite.UserId,
                 favorite.TargetId,
                 TargetType = (byte)favorite.TargetType,
-                Reaction = (byte)favorite.Reaction
+                favorite.IsActive
             },
             transaction,
             cancellationToken: ct));
@@ -195,18 +200,28 @@ public sealed class FavoriteRepository : IFavoriteRepository
     public async Task UpdateAsync(Favorite favorite, CancellationToken ct = default)
     {
         using var connection = _dbConnectionFactory.CreateConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
 
         await connection.ExecuteAsync(new CommandDefinition(@"
             UPDATE Favorites
-            SET Reaction = @Reaction,
+            SET IsActive = @IsActive,
                 LikedAt = SYSUTCDATETIME()
             WHERE Id = @Id;",
             new
             {
-                Reaction = (byte)favorite.Reaction,
+                favorite.IsActive,
                 favorite.Id
             },
+            transaction,
             cancellationToken: ct));
+
+        if (favorite.TargetType == FavoriteTargetType.Media)
+        {
+            await SyncFavoriteCountAsync(connection, transaction, favorite.TargetId, ct);
+        }
+
+        transaction.Commit();
     }
 
     public async Task RemoveAsync(string id, CancellationToken ct = default)
@@ -223,7 +238,8 @@ public sealed class FavoriteRepository : IFavoriteRepository
                 cancellationToken: ct));
 
         var deletedRows = await connection.ExecuteAsync(new CommandDefinition(@"
-            DELETE FROM Favorites
+            UPDATE Favorites
+            SET IsActive = 0
             WHERE Id = @Id;",
             new
             {
@@ -283,6 +299,7 @@ public sealed class FavoriteRepository : IFavoriteRepository
                 FROM Favorites
                 WHERE TargetId = @MediaItemId
                   AND TargetType = @MediaTargetType
+                  AND IsActive = 1
             )
             WHERE Id = @MediaItemId;
             """;
@@ -299,14 +316,14 @@ public sealed class FavoriteRepository : IFavoriteRepository
     }
 
     /// <summary>
-    /// Dòng dữ liệu Favorite đọc trực tiếp từ SQL, giữ Reaction đúng kiểu tinyint trước khi map sang enum.
+    /// Dòng dữ liệu Favorite đọc trực tiếp từ SQL.
     /// </summary>
     private sealed record FavoriteRow(
         string Id,
         string UserId,
         string TargetId,
         byte TargetType,
-        byte Reaction,
+        bool IsActive,
         DateTime LikedAt);
 
     private sealed record FavoriteTargetRow(string TargetId, byte TargetType);
@@ -316,12 +333,12 @@ public sealed class FavoriteRepository : IFavoriteRepository
     /// </summary>
     private static Favorite ToEntity(FavoriteRow row)
     {
-        var reaction = (FavoriteReaction)row.Reaction;
         return new Favorite(
             row.Id,
             row.UserId,
             row.TargetId,
             (FavoriteTargetType)row.TargetType,
-            reaction);
+            row.LikedAt,
+            row.IsActive);
     }
 }

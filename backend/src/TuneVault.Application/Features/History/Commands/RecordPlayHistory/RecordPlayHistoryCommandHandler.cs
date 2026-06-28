@@ -28,14 +28,17 @@ public sealed class RecordPlayHistoryCommandHandler : IRequestHandler<RecordPlay
             throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện thao tác này.");
         }
 
-        var mediaExists = await _playHistoryRepository.MediaItemExistsAsync(request.MediaItemId, ct);
-        if (!mediaExists)
+        var shouldUpdateStopPosition = request.StoppedAt.HasValue;
+        if (!shouldUpdateStopPosition)
         {
-            throw new DomainException("Không tìm thấy bài hát.");
+            var mediaExists = await _playHistoryRepository.MediaItemExistsAsync(request.MediaItemId, ct);
+            if (!mediaExists)
+            {
+                throw new DomainException("Không tìm thấy bài hát.");
+            }
         }
 
         var existingHistory = await _playHistoryRepository.GetByUserIdAndMediaItemIdAsync(userId, request.MediaItemId, ct);
-        var shouldUpdateStopPosition = request.StoppedAt.HasValue;
 
         if (existingHistory == null)
         {

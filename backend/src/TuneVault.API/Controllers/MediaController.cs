@@ -53,8 +53,6 @@ public sealed class MediaController : ControllerBase
     private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
                                   ?? User.FindFirstValue("sub");
 
-    private bool CurrentUserIsAdmin => User.IsInRole("Admin");
-
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id, CancellationToken ct)
     {
@@ -66,11 +64,6 @@ public sealed class MediaController : ControllerBase
             ? Ok(ApiResponse<MediaItemDto>.Ok(result, "Lấy thông tin media thành công."))
             : NotFound(ApiResponse<object>.Fail($"Không tìm thấy media '{id}' hoặc media này đã bị xóa."));
     }
-
-    [HttpGet("stream/{id}")]
-    [Authorize]
-    public async Task<IActionResult> Stream(string id, CancellationToken ct)
-        => await StreamAssetAsync(id, MediaAssetKind.Primary, enableRangeProcessing: true, ct);
 
     [HttpGet("{id}/audio/stream")]
     [Authorize]
@@ -188,7 +181,6 @@ public sealed class MediaController : ControllerBase
         try
         {
             var mediaType = ResolveUploadMediaType(form, requiredAssetKind);
-            var accessLevel = ResolveAccessLevel(form.AccessLevel);
             ValidateUploadFiles(form, mediaType);
 
             string? audioUrl = null;
@@ -202,6 +194,8 @@ public sealed class MediaController : ControllerBase
 
             try
             {
+                coverUrl = ResolveDefaultCoverUrl(form.CoverImageUrl);
+
                 if (form.AudioFile is not null)
                 {
                     savedAudioPath = await _fileStorage.SaveAsync(form.AudioFile, "media", ct);
@@ -236,10 +230,9 @@ public sealed class MediaController : ControllerBase
                     videoUrl,
                     coverUrl,
                     canvasUrl,
-                    (int)accessLevel,
+                    form.DurationSeconds,
                     form.IsPublic,
-                    form.ReleaseDate,
-                    form.FeaturedArtistIds);
+                    form.ReleaseDate);
 
                 var mediaId = await _mediator.Send(new GenerateMediaIdCommand(), ct);
                 var result = await _mediator.Send(new UploadMediaCommand(mediaId, request), ct);
@@ -290,7 +283,7 @@ public sealed class MediaController : ControllerBase
             try
             {
                 string? mediaUrl = null;
-                string? coverUrl = null;
+                string? coverUrl = ResolveDefaultCoverUrl(request.CoverImageUrl);
                 string? canvasUrl = null;
 
                 if (request.VideoFile is not null)
@@ -326,8 +319,8 @@ public sealed class MediaController : ControllerBase
                     mediaUrl,
                     coverUrl,
                     canvasUrl,
-                    request.IsPublic,
-                    request.AccessLevel);
+                    request.DurationSeconds,
+                    request.IsPublic);
 
                 var result = await _mediator.Send(new UpdateMediaCommand(id, requesterId, commandRequest), ct);
                 return result is not null
@@ -384,24 +377,11 @@ public sealed class MediaController : ControllerBase
         if (requiredAssetKind == MediaAssetKind.Video)
             return MediaType.Video;
 
-        if (!Enum.TryParse<MediaType>(form.Type, ignoreCase: true, out var mediaType))
-            throw new DomainException($"Loại media '{form.Type}' không hợp lệ.");
+        if (!Enum.TryParse<MediaType>(form.Type, ignoreCase: true, out var mediaType)
+            || !Enum.IsDefined(typeof(MediaType), mediaType))
+            throw new DomainException($"Loại media '{form.Type}' không hợp lệ. Các loại hợp lệ: Audio, Video, Song.");
 
         return mediaType;
-    }
-
-    private static AccessLevel ResolveAccessLevel(string rawAccessLevel)
-    {
-        if (int.TryParse(rawAccessLevel, out var numericAccessLevel) &&
-            Enum.IsDefined(typeof(AccessLevel), numericAccessLevel))
-        {
-            return (AccessLevel)numericAccessLevel;
-        }
-
-        if (Enum.TryParse<AccessLevel>(rawAccessLevel, ignoreCase: true, out var accessLevel))
-            return accessLevel;
-
-        throw new DomainException("Cấp độ truy cập không hợp lệ. Vui lòng nhập Normal, Premium, 0 hoặc 1.");
     }
 
     private static void ValidateUploadFiles(UploadMediaFormDto form, MediaType mediaType)
@@ -476,6 +456,34 @@ public sealed class MediaController : ControllerBase
 
     private static string BuildPublicUploadUrl(string folderName, string fileName)
         => $"/uploads/{folderName}/{fileName}";
+
+    private static string? ResolveDefaultCoverUrl(string? coverImageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(coverImageUrl))
+            return null;
+
+        var normalizedUrl = coverImageUrl.Trim();
+        const string prefix = "/uploads/default-cover/";
+        if (!normalizedUrl.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Ảnh bìa mặc định không hợp lệ.");
+
+        var fileName = Path.GetFileName(normalizedUrl);
+        if (string.IsNullOrWhiteSpace(fileName) ||
+            !string.Equals(normalizedUrl, prefix + fileName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Ảnh bìa mặc định không hợp lệ.");
+        }
+
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        if (!AllowedImageExtensions.Contains(extension))
+            throw new ArgumentException("Ảnh bìa mặc định chỉ hỗ trợ jpg, jpeg, png hoặc webp.");
+
+        var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "default-cover", fileName);
+        if (!System.IO.File.Exists(physicalPath))
+            throw new ArgumentException("Ảnh bìa mặc định không tồn tại.");
+
+        return prefix + fileName;
+    }
 
     private async Task DeleteSavedFileAsync(string? physicalPath, CancellationToken ct)
     {

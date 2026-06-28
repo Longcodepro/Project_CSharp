@@ -25,10 +25,8 @@ public sealed class PlaylistRepository : IPlaylistRepository
         m.CoverImageUrl,
         m.CanvasUrl,
         m.Genre,
-        m.AccessLevel,
         m.IsPublic,
         m.IsActive,
-        m.IsValid,
         m.FavoriteCount,
         m.ViewCount,
         m.UploadedAt,
@@ -230,7 +228,6 @@ public sealed class PlaylistRepository : IPlaylistRepository
             INNER JOIN PlaylistTracks pt ON m.Id = pt.MediaItemId
             WHERE pt.PlaylistId = @PlaylistId
               AND m.IsActive = 1
-              AND m.IsValid = 0
             ORDER BY pt.TrackOrder ASC
             """;
         using var conn = _db.CreateConnection();
@@ -246,7 +243,7 @@ public sealed class PlaylistRepository : IPlaylistRepository
         const string sql = """
             SELECT COUNT(1)
             FROM MediaItems
-            WHERE Id = @MediaItemId AND IsActive = 1 AND IsValid = 0
+            WHERE Id = @MediaItemId AND IsActive = 1
             """;
         using var conn = _db.CreateConnection();
         var count = await conn.ExecuteScalarAsync<int>(

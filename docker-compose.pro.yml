@@ -1,0 +1,71 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file}"
+    volumes:
+      - sql-data:/var/opt/mssql
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q 'SELECT 1' -No"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tunevault_db_init
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SQL_SERVER_PASSWORD: "${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file}"
+      DB_NAME: "TuneVaultDb"
+      SQL_HOST: "db"
+    volumes:
+      - ./backend/src/TuneVault.Infrastructure/Database/init:/scripts/init:ro
+      - ./database.sql:/scripts/database.sql:ro
+      - ./seed.sql:/scripts/seed.sql:ro
+    command: ["bash", "/scripts/init/init-db.sh"]
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend/src
+      dockerfile: TuneVault.API/Dockerfile
+    container_name: tunevault_backend
+    depends_on:
+      db:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=TuneVaultDb;User Id=sa;Password=${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file};TrustServerCertificate=True;"
+      DatabaseOptions__ConnectionString: "Server=db,1433;Database=TuneVaultDb;User Id=sa;Password=${SQL_SERVER_PASSWORD:?Set SQL_SERVER_PASSWORD in your shell or .env file};TrustServerCertificate=True;"
+      Anthropic__ApiKey: "${ANTHROPIC_API_KEY}"
+      JwtSettings__SecretKey: "${JWT_SECRET:?Set JWT_SECRET in your shell or .env file}"
+      JwtSettings__Issuer: "TuneVault_Backend_API"
+      JwtSettings__Audience: "TuneVault_Client_Application"
+    volumes:
+      - ./backend/src/TuneVault.API/wwwroot/uploads:/app/wwwroot/uploads
+    restart: on-failure
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: tunevault_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: on-failure
+
+volumes:
+  sql-data:

@@ -2,10 +2,20 @@ using System;
 
 namespace TuneVault.Application.Abstractions;
 
+/// <summary>
+/// Cung cấp thông tin người dùng hiện tại từ phiên đăng nhập.
+/// </summary>
 public interface ICurrentUserService
 {
-    string? UserId { get; } // Changed from Guid? to string? to match JWT 'sub' claim
+    /// <summary>Mã người dùng trong JWT.</summary>
+    string? UserId { get; }
+
+    /// <summary>Tên đăng nhập hoặc tên hiển thị.</summary>
     string? UserName { get; }
-    string? Role { get; } // Changed to return all roles as a comma-separated string
+
+    /// <summary>Vai trò của người dùng hiện tại.</summary>
+    string? Role { get; }
+
+    /// <summary>Cho biết request đã xác thực hay chưa.</summary>
     bool IsAuthenticated { get; }
 }

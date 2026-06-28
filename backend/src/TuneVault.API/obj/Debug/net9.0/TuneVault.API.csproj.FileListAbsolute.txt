@@ -1,92 +1,187 @@
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\appsettings.Development.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\appsettings.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.API.staticwebassets.runtime.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.API.staticwebassets.endpoints.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.API.exe
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.API.deps.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.API.runtimeconfig.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.API.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.API.pdb
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\BCrypt-Net-Next.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Dapper.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\FluentValidation.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\FluentValidation.DependencyInjectionExtensions.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\MediatR.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\MediatR.Contracts.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Bcl.Cryptography.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Data.SqlClient.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Data.SqlClient.Extensions.Abstractions.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Data.SqlClient.Internal.Logging.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Extensions.Caching.Abstractions.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Extensions.Caching.Memory.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Extensions.Logging.Abstractions.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Extensions.Options.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.Extensions.Primitives.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.IdentityModel.Abstractions.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.IdentityModel.JsonWebTokens.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.IdentityModel.Logging.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.IdentityModel.Tokens.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.OpenApi.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Microsoft.SqlServer.Server.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\System.Configuration.ConfigurationManager.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\System.Diagnostics.EventLog.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\System.IdentityModel.Tokens.Jwt.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\System.Security.Cryptography.Pkcs.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\System.Security.Cryptography.ProtectedData.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\cs\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\de\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\es\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\fr\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\it\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\ja\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\ko\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\pl\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\pt-BR\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\ru\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\tr\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\zh-Hans\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\zh-Hant\Microsoft.Data.SqlClient.resources.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\runtimes\unix\lib\net9.0\Microsoft.Data.SqlClient.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\runtimes\win\lib\net9.0\Microsoft.Data.SqlClient.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\runtimes\win-arm64\native\Microsoft.Data.SqlClient.SNI.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\runtimes\win-x86\native\Microsoft.Data.SqlClient.SNI.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Security.Cryptography.Pkcs.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.Application.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.Domain.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.Infrastructure.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.Infrastructure.pdb
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.Application.pdb
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\bin\Debug\net9.0\TuneVault.Domain.pdb
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.csproj.AssemblyReference.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\rpswa.dswa.cache.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.AssemblyInfoInputs.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.AssemblyInfo.cs
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.csproj.CoreCompileInputs.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.MvcApplicationPartsAssemblyInfo.cs
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.MvcApplicationPartsAssemblyInfo.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\rjimswa.dswa.cache.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\scopedcss\bundle\TuneVault.API.styles.css
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\staticwebassets.build.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\staticwebassets.build.json.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\staticwebassets.development.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\staticwebassets.build.endpoints.json
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\swae.build.ex.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVaul.BE12D78A.Up2Date
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\refint\TuneVault.API.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.pdb
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.genruntimeconfig.cache
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\ref\TuneVault.API.dll
-C:\Users\LENOVO\OneDrive\Tài liệu\Tài liệu\học tập\CSharp\TuneVault_with_wwwroot_data\backend\src\TuneVault.API\obj\Debug\net9.0\TuneVault.API.sourcelink.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/appsettings.Development.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/appsettings.example.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/appsettings.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.staticwebassets.runtime.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.staticwebassets.endpoints.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.deps.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.runtimeconfig.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.pdb
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/BCrypt-Net-Next.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Dapper.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/FluentValidation.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/FluentValidation.DependencyInjectionExtensions.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/MediatR.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/MediatR.Contracts.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Bcl.Cryptography.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Data.SqlClient.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Data.SqlClient.Extensions.Abstractions.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Data.SqlClient.Internal.Logging.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Caching.Abstractions.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Caching.Memory.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Logging.Abstractions.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Options.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Primitives.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Abstractions.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Logging.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Tokens.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.OpenApi.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.SqlServer.Server.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Swashbuckle.AspNetCore.Swagger.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerGen.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerUI.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/System.Configuration.ConfigurationManager.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/System.Diagnostics.EventLog.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/System.IdentityModel.Tokens.Jwt.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/System.Security.Cryptography.Pkcs.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/System.Security.Cryptography.ProtectedData.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/cs/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/de/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/es/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/fr/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/it/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/ja/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/ko/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/pl/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/pt-BR/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/ru/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/tr/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/zh-Hans/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/zh-Hant/Microsoft.Data.SqlClient.resources.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/unix/lib/net9.0/Microsoft.Data.SqlClient.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win/lib/net9.0/Microsoft.Data.SqlClient.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win-arm64/native/Microsoft.Data.SqlClient.SNI.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win-x64/native/Microsoft.Data.SqlClient.SNI.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win-x86/native/Microsoft.Data.SqlClient.SNI.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win/lib/net9.0/System.Diagnostics.EventLog.Messages.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win/lib/net9.0/System.Diagnostics.EventLog.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win/lib/net9.0/System.Security.Cryptography.Pkcs.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Application.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Domain.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Infrastructure.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Infrastructure.pdb
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Application.pdb
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Domain.pdb
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.csproj.AssemblyReference.cache
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.GeneratedMSBuildEditorConfig.editorconfig
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.AssemblyInfoInputs.cache
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.AssemblyInfo.cs
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.csproj.CoreCompileInputs.cache
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.MvcApplicationPartsAssemblyInfo.cs
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.MvcApplicationPartsAssemblyInfo.cache
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/scopedcss/bundle/TuneVault.API.styles.css
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets.build.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets.development.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets.build.endpoints.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.TuneVault.API.Microsoft.AspNetCore.StaticWebAssets.props
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.TuneVault.API.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.build.TuneVault.API.props
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.buildMultiTargeting.TuneVault.API.props
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.buildTransitive.TuneVault.API.props
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets.pack.json
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVaul.BE12D78A.Up2Date
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/refint/TuneVault.API.dll
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.pdb
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.genruntimeconfig.cache
+/home/long/3124410195_NguyenThanhLong_TuneVault/backend/src/TuneVault.API/obj/Debug/net9.0/ref/TuneVault.API.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/appsettings.Development.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/appsettings.example.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/appsettings.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.staticwebassets.runtime.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.staticwebassets.endpoints.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.deps.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.runtimeconfig.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.API.pdb
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/BCrypt-Net-Next.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Dapper.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/FluentValidation.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/FluentValidation.DependencyInjectionExtensions.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/MediatR.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/MediatR.Contracts.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Bcl.Cryptography.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Data.SqlClient.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Data.SqlClient.Extensions.Abstractions.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Data.SqlClient.Internal.Logging.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Caching.Abstractions.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Caching.Memory.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Logging.Abstractions.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Options.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.Extensions.Primitives.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Abstractions.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Logging.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.IdentityModel.Tokens.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.OpenApi.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Microsoft.SqlServer.Server.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Swashbuckle.AspNetCore.Swagger.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerGen.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerUI.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/System.Configuration.ConfigurationManager.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/System.Diagnostics.EventLog.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/System.IdentityModel.Tokens.Jwt.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/System.Security.Cryptography.Pkcs.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/System.Security.Cryptography.ProtectedData.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/cs/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/de/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/es/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/fr/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/it/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/ja/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/ko/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/pl/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/pt-BR/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/ru/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/tr/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/zh-Hans/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/zh-Hant/Microsoft.Data.SqlClient.resources.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/unix/lib/net9.0/Microsoft.Data.SqlClient.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win/lib/net9.0/Microsoft.Data.SqlClient.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win-arm64/native/Microsoft.Data.SqlClient.SNI.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win-x64/native/Microsoft.Data.SqlClient.SNI.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win-x86/native/Microsoft.Data.SqlClient.SNI.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win/lib/net9.0/System.Diagnostics.EventLog.Messages.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win/lib/net9.0/System.Diagnostics.EventLog.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/runtimes/win/lib/net9.0/System.Security.Cryptography.Pkcs.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Application.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Domain.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Infrastructure.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Infrastructure.pdb
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Application.pdb
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/bin/Debug/net9.0/TuneVault.Domain.pdb
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.csproj.AssemblyReference.cache
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.GeneratedMSBuildEditorConfig.editorconfig
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.AssemblyInfoInputs.cache
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.AssemblyInfo.cs
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.csproj.CoreCompileInputs.cache
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.MvcApplicationPartsAssemblyInfo.cs
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.MvcApplicationPartsAssemblyInfo.cache
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.sourcelink.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/scopedcss/bundle/TuneVault.API.styles.css
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets.build.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets.development.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets.build.endpoints.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.TuneVault.API.Microsoft.AspNetCore.StaticWebAssets.props
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.TuneVault.API.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.build.TuneVault.API.props
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.buildMultiTargeting.TuneVault.API.props
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets/msbuild.buildTransitive.TuneVault.API.props
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/staticwebassets.pack.json
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVaul.BE12D78A.Up2Date
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/refint/TuneVault.API.dll
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.pdb
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/TuneVault.API.genruntimeconfig.cache
+/home/long/Documents/University/HOCTAP/HK6/Project_CSharp/backend/src/TuneVault.API/obj/Debug/net9.0/ref/TuneVault.API.dll

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   getAlbumReactionCount,
   getArtists,
@@ -17,6 +17,7 @@ import '../../CSS/Home.css';
 import LibraryDetailView from './LibraryDetailView';
 import ProfileView from './ProfileView';
 import NowPlayingView from './NowPlayingView';
+import ReactionSummary from './ReactionSummary';
 
 const defaultCoverUrl = normalizeAssetUrl('/uploads/default-cover/Default.png')
   || 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=600&q=80';
@@ -45,7 +46,6 @@ const contentTabs = [
   { key: 'audio', label: 'Audio' },
   { key: 'song', label: 'Song' },
   { key: 'video', label: 'Video' },
-  { key: 'podcast', label: 'Podcast' },
 ];
 
 const sectionLabels = {
@@ -54,18 +54,16 @@ const sectionLabels = {
   audio: 'Audio được tương tác nhiều',
   song: 'Song được tương tác nhiều',
   video: 'Video được tương tác nhiều',
-  podcast: 'Podcast được tương tác nhiều',
 };
 
 const mediaTypeAliases = {
   audio: ['audio'],
   song: ['song'],
   video: ['video'],
-  podcast: ['podcast', 'podcasts', 'podcard'],
 };
 
 function normalizeType(value) {
-  const numericMap = ['audio', 'video', 'podcast', 'song'];
+  const numericMap = ['audio', 'video', '', 'song'];
   if (typeof value === 'number') return numericMap[value] || '';
 
   const normalized = String(value || '').trim().toLowerCase();
@@ -113,7 +111,7 @@ function buildMediaItem(item) {
     type: 'media',
     mediaType,
     ownerId: item.ownerId || item.OwnerId,
-    artists: item.artists || [],
+    ownerName: item.ownerName || item.OwnerName,
     title: item.title || item.Title || 'Không có tiêu đề',
     subtitle: item.genre || item.Genre || item.description || item.Description || 'Media',
     image: mediaPosterUrl(item.id) || normalizeAssetUrl(coverImageUrl) || defaultCoverUrl,
@@ -160,6 +158,48 @@ function buildArtistItem(item, index) {
   };
 }
 
+function normalizeSearchResults(payload) {
+  const raw = payload?.data || payload?.Data || payload || {};
+  const artists = Array.isArray(raw.artists || raw.Artists) ? (raw.artists || raw.Artists) : [];
+  const media = Array.isArray(raw.media || raw.Media) ? (raw.media || raw.Media) : [];
+  const playlists = Array.isArray(raw.playlists || raw.Playlists) ? (raw.playlists || raw.Playlists) : [];
+  const derivedCount = artists.length + media.length + playlists.length;
+  const totalCountValue = raw.totalCount ?? raw.TotalCount ?? derivedCount;
+  const totalCount = Number(totalCountValue || 0);
+
+  return {
+    artists,
+    media,
+    playlists,
+    totalCount,
+  };
+}
+
+function normalizeSearchText(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function includesQuery(value, query) {
+  const normalizedValue = normalizeSearchText(value);
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedValue || !normalizedQuery) return false;
+  return normalizedValue.includes(normalizedQuery);
+}
+
+function filterSearchArtists(items, query) {
+  return items.filter((item) => (
+    includesQuery(item.idDisplay || item.IdDisplay || item.userName || item.UserName || item.id || item.Id, query) ||
+    includesQuery(item.displayName || item.DisplayName || item.name || item.Name, query)
+  ));
+}
+
+function filterSearchMedia(items, query) {
+  return items.filter((item) => (
+    includesQuery(item.title || item.Title || item.id || item.Id, query) ||
+    includesQuery(item.artistName || item.ArtistName || item.ownerName || item.OwnerName, query)
+  ));
+}
+
 function ContentCard({ item, onPlayMedia, onOpenCollection }) {
   const handleClick = () => {
     if (item.kind === 'media') {
@@ -200,7 +240,9 @@ function ContentCard({ item, onPlayMedia, onOpenCollection }) {
       <div className="content-copy">
         <h3 title={item.title}>{item.title}</h3>
         <p title={item.subtitle}>{item.subtitle}</p>
-        <span>{item.reactionCount || 0} cảm xúc</span>
+        <ReactionSummary
+          totalCount={item.reactionCount || 0}
+        />
       </div>
     </article>
   );
@@ -231,14 +273,14 @@ function ContentSection({ title, items, variant = 'row', onPlayMedia, onOpenColl
   );
 }
 
-function ArtistStrip({ artists, onOpenArtistProfile }) {
+function ArtistStrip({ title = 'Nghệ sĩ nổi bật', countLabel = 'artist', artists, onOpenArtistProfile }) {
   const visibleArtists = artists.slice(0, 10);
 
   return (
     <section className="artist-strip-section">
       <div className="content-section-header">
-        <h2>Nghệ sĩ nổi bật</h2>
-        <span>{visibleArtists.length} artist</span>
+        <h2>{title}</h2>
+        <span>{visibleArtists.length} {countLabel}</span>
       </div>
       {visibleArtists.length > 0 ? (
         <div className="artist-row-scroll">
@@ -316,7 +358,6 @@ export default function Home({
     audio: [],
     song: [],
     video: [],
-    podcast: [],
   });
   const [artists, setArtists] = useState([]);
   const [contentLoading, setContentLoading] = useState(true);
@@ -324,25 +365,12 @@ export default function Home({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
+  const searchRequestIdRef = useRef(0);
+  const searchTimerRef = useRef(null);
 
-  const handleSearchChange = async (event) => {
+  const handleSearchChange = (event) => {
     const value = event.target.value;
     setSearchQuery(value);
-
-    if (!value.trim()) {
-      setSearchResults(null);
-      return;
-    }
-
-    try {
-      setSearchLoading(true);
-      const res = await searchAll(value, 1, 50);
-      setSearchResults(res);
-    } catch (err) {
-      console.error('[TuneVault] Search error:', err);
-    } finally {
-      setSearchLoading(false);
-    }
   };
 
   const defaultAvatarUrl = normalizeAssetUrl(currentUserAvatarUrl)
@@ -392,7 +420,6 @@ export default function Home({
           audio: mediaWithCounts.filter((item) => mediaTypeAliases.audio.includes(item.mediaType)),
           song: mediaWithCounts.filter((item) => mediaTypeAliases.song.includes(item.mediaType)),
           video: mediaWithCounts.filter((item) => mediaTypeAliases.video.includes(item.mediaType)),
-          podcast: mediaWithCounts.filter((item) => mediaTypeAliases.podcast.includes(item.mediaType)),
         };
 
         setContentSections(nextSections);
@@ -406,7 +433,6 @@ export default function Home({
           audio: [],
           song: [],
           video: [],
-          podcast: [],
         });
         setArtists([]);
         setContentError('Không tải được nội dung. Vui lòng kiểm tra backend API.');
@@ -421,18 +447,60 @@ export default function Home({
     };
   }, []);
 
+  useEffect(() => {
+    const trimmedQuery = searchQuery.trim();
+
+    if (searchTimerRef.current) {
+      window.clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+
+    if (trimmedQuery.length < 2) {
+      searchRequestIdRef.current += 1;
+      setSearchResults(null);
+      setSearchLoading(false);
+      return undefined;
+    }
+
+    const requestId = ++searchRequestIdRef.current;
+    setSearchLoading(true);
+    searchTimerRef.current = window.setTimeout(async () => {
+      try {
+        const res = await searchAll(trimmedQuery, 1, 50);
+        if (requestId !== searchRequestIdRef.current) return;
+        setSearchResults(normalizeSearchResults(res));
+      } catch (err) {
+        if (requestId !== searchRequestIdRef.current) return;
+        console.error('[TuneVault] Search error:', err);
+        setSearchResults({ artists: [], media: [], playlists: [], totalCount: 0 });
+      } finally {
+        if (requestId === searchRequestIdRef.current) {
+          setSearchLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      if (searchTimerRef.current) {
+        window.clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
+      }
+    };
+  }, [searchQuery]);
+
   const detailItems = contentSections[activeContentTab] || [];
 
-  const searchData = searchResults?.data || searchResults;
-  const searchArtistsMapped = searchData?.artists
-    ? searchData.artists.map((artist, idx) => buildArtistItem(artist, idx))
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  const normalizedSearchResults = normalizeSearchResults(searchResults);
+  const filteredSearchArtists = normalizedQuery ? filterSearchArtists(normalizedSearchResults.artists, normalizedQuery) : [];
+  const filteredSearchMedia = normalizedQuery ? filterSearchMedia(normalizedSearchResults.media, normalizedQuery) : [];
+  const searchArtistsMapped = filteredSearchArtists
+    ? filteredSearchArtists.map((artist, idx) => buildArtistItem(artist, idx))
     : [];
-  const searchMediaMapped = searchData?.media
-    ? searchData.media.map((item) => buildMediaItem(item))
+  const searchMediaMapped = filteredSearchMedia
+    ? filteredSearchMedia.map((item) => buildMediaItem(item))
     : [];
-  const searchPlaylistsMapped = searchData?.playlists
-    ? searchData.playlists.map((item) => buildCollectionItem(item, 'playlist'))
-    : [];
+  const filteredTotalCount = searchArtistsMapped.length + searchMediaMapped.length;
 
   return (
     <main className="home-panel">
@@ -499,6 +567,15 @@ export default function Home({
               onClick={() => onTogglePanel?.('history')}
             >
               <span className="material-symbols-outlined">history</span>
+            </button>
+            <button
+              className={activePanel === 'shares' ? 'active' : ''}
+              type="button"
+              aria-label="Chia sẻ"
+              aria-pressed={activePanel === 'shares'}
+              onClick={() => onTogglePanel?.('shares')}
+            >
+              <span className="material-symbols-outlined">ios_share</span>
             </button>
             <button
               className={activePanel === 'friends' ? 'active' : ''}
@@ -607,22 +684,24 @@ export default function Home({
             {searchQuery.trim() ? (
               <>
                 <section className="content-hero">
-                  <h1>Kết quả tìm kiếm cho "{searchQuery}"</h1>
+                  <h1>Kết quả tìm kiếm cho "{searchQuery.trim()}"</h1>
                   {searchLoading ? (
                     <span>Đang tìm kiếm...</span>
                   ) : (
-                    <span>Tìm thấy {searchData?.totalCount || 0} kết quả.</span>
+                    <span>Tìm thấy {filteredTotalCount || 0} kết quả.</span>
                   )}
                 </section>
 
                 {searchLoading ? (
                   <div className="content-state">Đang tải kết quả tìm kiếm...</div>
-                ) : !searchResults || (searchData?.totalCount ?? 0) === 0 ? (
+                ) : !searchResults || filteredTotalCount === 0 ? (
                   <div className="section-empty-state">Không tìm thấy kết quả phù hợp cho từ khóa này.</div>
                 ) : (
                   <>
                     {searchArtistsMapped.length > 0 && (
                       <ArtistStrip
+                        title="Người dùng"
+                        countLabel="user"
                         artists={searchArtistsMapped}
                         onOpenArtistProfile={onOpenArtistProfile}
                       />
@@ -630,18 +709,8 @@ export default function Home({
 
                     {searchMediaMapped.length > 0 && (
                       <ContentSection
-                        title="Bài hát & Video"
+                        title="Bài hát"
                         items={searchMediaMapped}
-                        variant="grid"
-                        onPlayMedia={onPlayMedia}
-                        onOpenCollection={onOpenCollection}
-                      />
-                    )}
-
-                    {searchPlaylistsMapped.length > 0 && (
-                      <ContentSection
-                        title="Playlist & Album"
-                        items={searchPlaylistsMapped}
                         variant="grid"
                         onPlayMedia={onPlayMedia}
                         onOpenCollection={onOpenCollection}
@@ -678,7 +747,7 @@ export default function Home({
                   <div className="content-state content-state-error">{contentError}</div>
                 ) : activeContentTab === 'all' ? (
                   <>
-                    {['album', 'playlist', 'audio', 'song', 'video', 'podcast'].map((sectionKey) => (
+                    {['album', 'playlist', 'audio', 'song', 'video'].map((sectionKey) => (
                       <ContentSection
                         key={sectionKey}
                         title={sectionLabels[sectionKey]}

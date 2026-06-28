@@ -11,7 +11,7 @@ using TuneVault.Application.Features.Playlist.Commands.DeletePlaylist;
 using TuneVault.Application.Features.Playlist.Commands.RemoveTrackFromPlaylist;
 using TuneVault.Application.Features.Playlist.Commands.UpdatePlaylist;
 using TuneVault.Application.Features.Playlist.Commands.UpdateTrackOrder;
-using TuneVault.Domain.Interfaces; // Added for ICurrentUserContext
+using TuneVault.Domain.Interfaces;
 using TuneVault.Application.Features.Playlist.DTOs;
 using TuneVault.Application.Features.Playlist.Queries.GetPlaylistById;
 using TuneVault.Application.Features.Playlist.Queries.GetPublicPlaylists;
@@ -26,13 +26,13 @@ namespace TuneVault.API.Controllers;
 [ApiController]
 [Route("api/playlists")]
 [Authorize]
-public sealed class PlaylistController : BaseApiController // Changed from ControllerBase to BaseApiController
+public sealed class PlaylistController : BaseApiController
 {
     private static readonly HashSet<string> AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
     private static readonly HashSet<string> AllowedImageContentTypes = ["image/jpeg", "image/png", "image/webp"];
     private readonly ISender _mediator;
     private readonly IFileStorageService _fileStorage;
-    private readonly ICurrentUserContext _currentUserContext; // Added for standardized user ID retrieval
+    private readonly ICurrentUserContext _currentUserContext;
 
     /// <summary>
     /// Khởi tạo controller playlist với MediatR sender.
@@ -40,14 +40,16 @@ public sealed class PlaylistController : BaseApiController // Changed from Contr
     /// <param name="mediator">Sender dùng để gửi command/query sang Application layer.</param>
     /// <param name="fileStorage">Service lưu file vào wwwroot/uploads.</param>
     /// <param name="currentUserContext">Service để lấy thông tin người dùng hiện tại.</param>
-    public PlaylistController(ISender mediator, IFileStorageService fileStorage, ICurrentUserContext currentUserContext) // Added ICurrentUserContext parameter
+    public PlaylistController(ISender mediator, IFileStorageService fileStorage, ICurrentUserContext currentUserContext)
     {
         _mediator = mediator;
         _fileStorage = fileStorage;
-        _currentUserContext = currentUserContext; // Initialize the service
+        _currentUserContext = currentUserContext;
     }
 
-    // Helper method to get current user ID or return Unauthorized result
+    /// <summary>
+    /// Trả về mã người dùng hiện tại hoặc response 401 nếu request chưa xác thực.
+    /// </summary>
     private IActionResult GetUserIdOrUnauthorizedResult()
     {
         var userId = _currentUserContext.GetCurrentUserId();
@@ -55,12 +57,8 @@ public sealed class PlaylistController : BaseApiController // Changed from Contr
         {
             return Unauthorized(ApiResponse<object?>.Fail("Bạn cần đăng nhập để thực hiện thao tác này."));
         }
-        return Ok(userId); // Return Ok with userId to be used in subsequent logic
+        return Ok(userId);
     }
-
-    // Removed the old CurrentUserId property and GetCurrentUserId method as they are replaced by the helper
-    // private string CurrentUserId => GetCurrentUserId() ?? throw new UnauthorizedAccessException();
-    // private string? GetCurrentUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
 
     /// <summary>
     /// Lấy danh sách playlist của người dùng hiện tại.
@@ -74,7 +72,6 @@ public sealed class PlaylistController : BaseApiController // Changed from Contr
         {
             return userIdResult;
         }
-        // Use ?? throw to ensure userId is not null and satisfy compiler warnings
         var userId = ((OkObjectResult)userIdResult).Value as string ?? throw new InvalidOperationException("User ID is unexpectedly null after authentication.");
 
         var result = await _mediator.Send(new GetPlaylistsQuery(userId), ct);
@@ -192,7 +189,6 @@ public sealed class PlaylistController : BaseApiController // Changed from Contr
         var userIdResult = GetUserIdOrUnauthorizedResult();
         if (userIdResult is UnauthorizedObjectResult) return userIdResult;
         var userId = ((OkObjectResult)userIdResult).Value as string ?? throw new InvalidOperationException("User ID is unexpectedly null after authentication.");
-        // The string.IsNullOrWhiteSpace check is now redundant due to ?? throw, but kept for safety.
         if (string.IsNullOrWhiteSpace(userId))
         {
             return Unauthorized(ApiResponse<object?>.Fail("Invalid user ID."));
@@ -203,7 +199,11 @@ public sealed class PlaylistController : BaseApiController // Changed from Contr
         try
         {
             ValidateImageFile(request.CoverImage, "Ảnh bìa playlist");
-            var coverUrl = await SaveCoverAsync(request.CoverImage, "playlist-covers", ct);
+            var coverUrl = ResolveDefaultCoverUrl(request.CoverImageUrl);
+
+            if (request.CoverImage is not null)
+                coverUrl = await SaveCoverAsync(request.CoverImage, "playlist-covers", ct);
+
             savedCoverPath = ResolvePhysicalUploadPath(coverUrl);
 
             var commandRequest = new CreatePlaylistRequestDto(
@@ -241,7 +241,6 @@ public sealed class PlaylistController : BaseApiController // Changed from Contr
     {
         var userIdResult = GetUserIdOrUnauthorizedResult();
         if (userIdResult is UnauthorizedObjectResult) return userIdResult;
-        // Use ?? throw to ensure userId is not null and satisfy compiler warnings
         var userId = ((OkObjectResult)userIdResult).Value as string ?? throw new InvalidOperationException("User ID is unexpectedly null after authentication.");
 
         string? savedCoverPath = null;
@@ -251,10 +250,14 @@ public sealed class PlaylistController : BaseApiController // Changed from Contr
         {
             ValidateImageFile(request.CoverImage, "Ảnh bìa playlist");
 
-            // Pass userId for owner check. If userId is null, this might cause issues.
-            // However, the ?? throw above should prevent userId from being null here.
             var currentPlaylist = await _mediator.Send(new GetPlaylistByIdQuery(id, userId), ct);
             var coverUrl = request.KeepCurrentCover ? currentPlaylist?.CoverImgUrl : null;
+
+            if (!string.IsNullOrWhiteSpace(request.CoverImageUrl))
+            {
+                coverUrl = ResolveDefaultCoverUrl(request.CoverImageUrl);
+                previousCoverPath = ResolvePhysicalUploadPath(currentPlaylist?.CoverImgUrl);
+            }
 
             if (request.CoverImage is not null)
             {
@@ -402,8 +405,39 @@ public sealed class PlaylistController : BaseApiController // Changed from Contr
             return null;
         }
 
+        if (publicUrl.StartsWith("/uploads/default-cover/", StringComparison.OrdinalIgnoreCase))
+            return null;
+
         var relativePath = publicUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
         return Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath);
+    }
+
+    private static string? ResolveDefaultCoverUrl(string? coverImageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(coverImageUrl))
+            return null;
+
+        var normalizedUrl = coverImageUrl.Trim();
+        const string prefix = "/uploads/default-cover/";
+        if (!normalizedUrl.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            throw new DomainException("Ảnh bìa mặc định không hợp lệ.");
+
+        var fileName = Path.GetFileName(normalizedUrl);
+        if (string.IsNullOrWhiteSpace(fileName) ||
+            !string.Equals(normalizedUrl, prefix + fileName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new DomainException("Ảnh bìa mặc định không hợp lệ.");
+        }
+
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        if (!AllowedImageExtensions.Contains(extension))
+            throw new DomainException("Ảnh bìa mặc định chỉ hỗ trợ .jpg, .jpeg, .png hoặc .webp.");
+
+        var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "default-cover", fileName);
+        if (!System.IO.File.Exists(physicalPath))
+            throw new DomainException("Ảnh bìa mặc định không tồn tại.");
+
+        return prefix + fileName;
     }
 
     /// <summary>

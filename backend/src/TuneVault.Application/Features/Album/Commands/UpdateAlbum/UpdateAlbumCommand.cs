@@ -12,7 +12,7 @@ namespace TuneVault.Application.Features.Album.Commands.UpdateAlbum;
 public sealed record UpdateAlbumCommand(string AlbumId, string CurrentUserId, UpdateAlbumRequestDto Request) : IRequest<AlbumDto>;
 
 /// <summary>
-/// Handler cập nhật thông tin album và giữ rule ngày phát hành không đổi sau khi đã phát hành.
+/// Cập nhật thông tin album và giữ ngày phát hành sau khi đã công khai.
 /// </summary>
 public sealed class UpdateAlbumCommandHandler : IRequestHandler<UpdateAlbumCommand, AlbumDto>
 {
@@ -66,7 +66,8 @@ public sealed class UpdateAlbumCommandHandler : IRequestHandler<UpdateAlbumComma
         if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        if (Enum.TryParse<MediaType>(value, ignoreCase: true, out var mediaType))
+        if (Enum.TryParse<MediaType>(value, ignoreCase: true, out var mediaType)
+            && Enum.IsDefined(typeof(MediaType), mediaType))
             return mediaType;
 
         throw new DomainException("Kiểu nội dung album không hợp lệ.");

@@ -1,4 +1,3 @@
-// Infrastructure/Repositories/MediaRepository.cs
 using Dapper;
 using System.IO;
 using TuneVault.Domain.Entities;
@@ -14,7 +13,7 @@ namespace TuneVault.Infrastructure.Repositories;
 /// 
 /// Chức năng chính:
 /// - Thao tác CRUD với MediaItem entities
-/// - Quản lý MediaArtist relationships (liên kết giữa Media và Artists)
+/// - Trả về thông tin người sở hữu media
 /// - Tìm kiếm Media theo keyword (Title, Genre)
 /// - Deactivate (soft delete) Media items
 /// 
@@ -28,13 +27,16 @@ public sealed class MediaRepository : IMediaRepository
         Title,
         Description,
         MediaType AS [Type],
+        AudioUrl,
+        VideoUrl,
+        Url,
         CoverImageUrl,
         CanvasUrl,
         Genre,
-        AccessLevel,
+        ISNULL(DurationMinutes, 0) AS DurationMinutes,
+        ISNULL(DurationSeconds, 0) AS DurationSeconds,
         IsPublic,
         IsActive,
-        IsValid,
         FavoriteCount,
         ViewCount,
         UploadedAt,
@@ -75,8 +77,9 @@ public sealed class MediaRepository : IMediaRepository
             WHERE Id = @Id AND IsActive = 1
             """;
         using var conn = _db.CreateConnection();
-        return await conn.QuerySingleOrDefaultAsync<MediaItem>(
+        var row = await conn.QuerySingleOrDefaultAsync<MediaItemRow>(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
+        return row is null ? null : MapMediaItem(row);
     }
 
     /// <summary>
@@ -90,35 +93,29 @@ public sealed class MediaRepository : IMediaRepository
             WHERE Id = @Id
               AND IsActive = 1
               AND IsPublic = 1
-              AND IsValid = 0
             """;
 
         using var conn = _db.CreateConnection();
-        return await conn.QuerySingleOrDefaultAsync<MediaItem>(
+        var row = await conn.QuerySingleOrDefaultAsync<MediaItemRow>(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
+        return row is null ? null : MapMediaItem(row);
     }
 
     /// <summary>
-    /// Lấy danh sách Artists liên kết với một MediaItem.
-    /// 
-    /// Các bước thực hiện:
-    /// 1. Tạo connection đến database
-    /// 2. SELECT * FROM MediaArtists WHERE MediaItemId = @MediaItemId
-    /// 3. Lấy tất cả artists liên kết (có thể là singer, composer, producer, v.v.)
-    /// 4. Trả về danh sách MediaArtist objects
+    /// Lấy tên hiển thị của người sở hữu media.
     /// </summary>
     /// <param name="mediaItemId">Id của MediaItem</param>
     /// <param name="ct">CancellationToken để hủy operation</param>
-    /// <returns>IEnumerable&lt;MediaArtist&gt; danh sách artists</returns>
-    public async Task<IEnumerable<MediaArtist>> GetArtistsByMediaIdAsync(string mediaItemId, CancellationToken ct = default)
+    /// <returns>Tên hiển thị của owner hoặc null.</returns>
+    public async Task<string?> GetOwnerDisplayNameAsync(string mediaItemId, CancellationToken ct = default)
     {
         const string sql = @"
-            SELECT ma.MediaItemId, ma.ArtistId, ma.Role, u.DisplayName AS ArtistName
-            FROM [MediaArtists] ma
-            LEFT JOIN [Users] u ON ma.ArtistId = u.Id
-            WHERE ma.MediaItemId = @MediaItemId";
+            SELECT u.DisplayName
+            FROM [MediaItems] m
+            INNER JOIN [Users] u ON m.OwnerId = u.Id
+            WHERE m.Id = @MediaItemId";
         using var conn = _db.CreateConnection();
-        return await conn.QueryAsync<MediaArtist>(
+        return await conn.QuerySingleOrDefaultAsync<string>(
             new CommandDefinition(sql, new { MediaItemId = mediaItemId }, cancellationToken: ct));
     }
 
@@ -132,20 +129,19 @@ public sealed class MediaRepository : IMediaRepository
             FROM [MediaItems]
             WHERE IsActive = 1
               AND IsPublic = 1
-              AND IsValid = 0
             ORDER BY UploadedAt DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
             """;
 
         using var conn = _db.CreateConnection();
-        var items = await conn.QueryAsync<MediaItem>(
+        var rows = await conn.QueryAsync<MediaItemRow>(
             new CommandDefinition(sql, new
             {
                 Offset = (page - 1) * pageSize,
                 PageSize = pageSize
             }, cancellationToken: ct));
 
-        return items.ToList();
+        return rows.Select(MapMediaItem).ToList();
     }
 
     public async Task<IReadOnlyCollection<MediaItem>> GetByOwnerAsync(string ownerId, CancellationToken ct = default)
@@ -159,10 +155,10 @@ public sealed class MediaRepository : IMediaRepository
             """;
 
         using var conn = _db.CreateConnection();
-        var items = await conn.QueryAsync<MediaItem>(
+        var rows = await conn.QueryAsync<MediaItemRow>(
             new CommandDefinition(sql, new { OwnerId = ownerId }, cancellationToken: ct));
 
-        return items.ToList();
+        return rows.Select(MapMediaItem).ToList();
     }
 
     public async Task<IReadOnlyCollection<MediaItem>> GetPublicByOwnerAsync(string ownerId, CancellationToken ct = default)
@@ -172,16 +168,15 @@ public sealed class MediaRepository : IMediaRepository
             FROM [MediaItems]
             WHERE IsActive = 1
               AND IsPublic = 1
-              AND IsValid = 0
               AND OwnerId = @OwnerId
             ORDER BY UploadedAt DESC
             """;
 
         using var conn = _db.CreateConnection();
-        var items = await conn.QueryAsync<MediaItem>(
+        var rows = await conn.QueryAsync<MediaItemRow>(
             new CommandDefinition(sql, new { OwnerId = ownerId }, cancellationToken: ct));
 
-        return items.ToList();
+        return rows.Select(MapMediaItem).ToList();
     }
 
     public async Task<MediaStreamInfo?> GetStreamAsync(
@@ -195,7 +190,6 @@ public sealed class MediaRepository : IMediaRepository
             FROM [MediaItems]
             WHERE Id = @MediaId
               AND IsActive = 1
-              AND IsValid = 0
               AND (IsPublic = 1 OR OwnerId = @RequesterId)";
 
         using var conn = _db.CreateConnection();
@@ -247,14 +241,15 @@ public sealed class MediaRepository : IMediaRepository
         const string sql = $"""
             SELECT {MediaItemSelectColumns}
             FROM [MediaItems]
-            WHERE IsActive = 1 AND IsPublic = 1 AND IsValid = 0
+            WHERE IsActive = 1 AND IsPublic = 1
               AND (Title LIKE @Keyword OR Genre LIKE @Keyword)
             ORDER BY UploadedAt DESC
             """;
 
         using var conn = _db.CreateConnection();
-        return await conn.QueryAsync<MediaItem>(
+        var rows = await conn.QueryAsync<MediaItemRow>(
             new CommandDefinition(sql, new { Keyword = $"%{keyword}%" }, cancellationToken: ct));
+        return rows.Select(MapMediaItem);
     }
 
     // =========================================================================
@@ -267,14 +262,13 @@ public sealed class MediaRepository : IMediaRepository
     /// Các bước thực hiện:
     /// 1. Tạo connection đến database
     /// 2. Chuẩn bị SQL INSERT với các cột: Id, OwnerId, Title, Description, MediaType, 
-    ///    AudioUrl, VideoUrl, CoverImageUrl, CanvasUrl, Genre, DurationSeconds, TrailerSeconds,
-    ///    AccessLevel, IsPublic, IsActive, FavoriteCount, ViewCount, UploadedAt, ReleaseDate
+    ///    AudioUrl, VideoUrl, CoverImageUrl, CanvasUrl, Genre, DurationSeconds,
+    ///    IsPublic, IsActive, FavoriteCount, ViewCount, UploadedAt, ReleaseDate
     /// 3. Trích xuất dữ liệu từ MediaItem entity sang parameters:
     ///    - MediaType: chuyển enum thành int
     ///    - AudioUrl: lấy từ Url.Value nếu không phải video
     ///    - VideoUrl: lấy từ Url.Value nếu là video
-    ///    - Duration: chuyển timespan sang seconds
-    ///    - AccessLevel: chuyển enum thành int
+    ///    - Duration: tách thành phút và giây lẻ để lưu DB
     /// 4. Thực hiện INSERT
     /// </summary>
     /// <param name="mediaItem">MediaItem entity chứa dữ liệu cần lưu</param>
@@ -284,13 +278,13 @@ public sealed class MediaRepository : IMediaRepository
         const string sql = @"
             INSERT INTO [MediaItems]
                 (Id, OwnerId, Title, Description, MediaType, AudioUrl, VideoUrl, Url,
-                 CoverImageUrl, CanvasUrl, Genre, DurationSeconds, TrailerSeconds,
-                 DurationMinutes, TrailerMinutes, AccessLevel, IsPublic, IsActive, IsValid,
+                 CoverImageUrl, CanvasUrl, Genre, DurationSeconds,
+                 DurationMinutes, IsPublic, IsActive,
                  FavoriteCount, ViewCount, UploadedAt, ReleaseDate)
             VALUES
                 (@Id, @OwnerId, @Title, @Description, @MediaType, @AudioUrl, @VideoUrl, @Url,
-                 @CoverImageUrl, @CanvasUrl, @Genre, @DurationSeconds, @TrailerSeconds,
-                 @DurationMinutes, @TrailerMinutes, @AccessLevel, @IsPublic, @IsActive, @IsValid,
+                 @CoverImageUrl, @CanvasUrl, @Genre, @DurationSeconds,
+                 @DurationMinutes, @IsPublic, @IsActive,
                  @FavoriteCount, @ViewCount, @UploadedAt, @ReleaseDate)";
 
         using var conn = _db.CreateConnection();
@@ -307,14 +301,10 @@ public sealed class MediaRepository : IMediaRepository
             mediaItem.CoverImageUrl,
             mediaItem.CanvasUrl,
             mediaItem.Genre,
-            DurationSeconds = mediaItem.Duration.TotalSeconds,
-            TrailerSeconds  = mediaItem.DurationTrailer.TotalSeconds,
+            DurationSeconds = mediaItem.Duration.Seconds,
             DurationMinutes = mediaItem.Duration.Minutes,
-            TrailerMinutes  = mediaItem.DurationTrailer.Minutes,
-            AccessLevel     = (int)mediaItem.AccessLevel,
             mediaItem.IsPublic,
             mediaItem.IsActive,
-            mediaItem.IsValid,
             mediaItem.FavoriteCount,
             mediaItem.ViewCount,
             mediaItem.UploadedAt,
@@ -323,40 +313,15 @@ public sealed class MediaRepository : IMediaRepository
     }
 
     /// <summary>
-    /// Thêm danh sách Artists liên kết với MediaItem vào bảng MediaArtists.
-    /// 
-    /// Các bước thực hiện:
-    /// 1. Tạo connection đến database
-    /// 2. Chuẩn bị SQL INSERT với các cột: MediaItemId, ArtistId, Role
-    /// 3. Lặp qua danh sách artists và INSERT từng bản ghi
-    ///    - MediaItemId: Id của media
-    ///    - ArtistId: Id của artist
-    ///    - Role: vai trò của artist (singer, composer, producer, v.v.)
-    /// 4. Thực hiện batch INSERT
-    /// </summary>
-    /// <param name="artists">Danh sách MediaArtist chứa liên kết giữa Media và Artists</param>
-    /// <param name="ct">CancellationToken để hủy operation</param>
-    public async Task AddArtistsAsync(IEnumerable<MediaArtist> artists, CancellationToken ct = default)
-    {
-        const string sql = @"
-            INSERT INTO [MediaArtists] (MediaItemId, ArtistId, [Role])
-            VALUES (@MediaItemId, @ArtistId, @Role)";
-
-        using var conn = _db.CreateConnection();
-        await conn.ExecuteAsync(new CommandDefinition(sql, artists, cancellationToken: ct));
-    }
-
-    /// <summary>
     /// Cập nhật thông tin MediaItem (không cập nhật URL do đó là immutable).
     /// 
     /// Các bước thực hiện:
     /// 1. Tạo connection đến database
     /// 2. Chuẩn bị SQL UPDATE với các cột: Title, Description, Genre, CoverImageUrl, CanvasUrl,
-    ///    DurationSeconds, TrailerSeconds, AccessLevel, IsPublic, IsActive, FavoriteCount, ViewCount, ReleaseDate
+    ///    DurationSeconds, IsPublic, IsActive, FavoriteCount, ViewCount, ReleaseDate
     /// 3. WHERE Id = @Id để xác định media cần update
     /// 4. Trích xuất dữ liệu từ MediaItem entity sang parameters
-    ///    - Duration: chuyển timespan sang seconds
-    ///    - AccessLevel: chuyển enum thành int
+    ///    - Duration: tách thành phút và giây lẻ để lưu DB
     /// 5. Thực hiện UPDATE
     /// </summary>
     /// <param name="mediaItem">MediaItem entity chứa dữ liệu cập nhật</param>
@@ -371,11 +336,9 @@ public sealed class MediaRepository : IMediaRepository
                 CoverImageUrl   = @CoverImageUrl,
                 CanvasUrl       = @CanvasUrl,
                 DurationSeconds = @DurationSeconds,
-                TrailerSeconds  = @TrailerSeconds,
-                AccessLevel     = @AccessLevel,
+                DurationMinutes = @DurationMinutes,
                 IsPublic        = @IsPublic,
                 IsActive        = @IsActive,
-                IsValid         = @IsValid,
                 FavoriteCount   = @FavoriteCount,
                 ViewCount       = @ViewCount,
                 ReleaseDate     = @ReleaseDate
@@ -390,12 +353,10 @@ public sealed class MediaRepository : IMediaRepository
             mediaItem.Genre,
             mediaItem.CoverImageUrl,
             mediaItem.CanvasUrl,
-            DurationSeconds = mediaItem.Duration.TotalSeconds,
-            TrailerSeconds  = mediaItem.DurationTrailer.TotalSeconds,
-            AccessLevel     = (int)mediaItem.AccessLevel,
+            DurationSeconds = mediaItem.Duration.Seconds,
+            DurationMinutes = mediaItem.Duration.Minutes,
             mediaItem.IsPublic,
             mediaItem.IsActive,
-            mediaItem.IsValid,
             mediaItem.FavoriteCount,
             mediaItem.ViewCount,
             mediaItem.ReleaseDate
@@ -456,6 +417,56 @@ public sealed class MediaRepository : IMediaRepository
         public string? AudioUrl { get; init; }
         public string? VideoUrl { get; init; }
         public string? CoverImageUrl { get; init; }
+    }
+
+    private sealed class MediaItemRow
+    {
+        public string Id { get; init; } = string.Empty;
+        public string OwnerId { get; init; } = string.Empty;
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public int Type { get; init; }
+        public string? AudioUrl { get; init; }
+        public string? VideoUrl { get; init; }
+        public string? Url { get; init; }
+        public string? CoverImageUrl { get; init; }
+        public string? CanvasUrl { get; init; }
+        public string? Genre { get; init; }
+        public int? DurationMinutes { get; init; }
+        public int? DurationSeconds { get; init; }
+        public bool IsPublic { get; init; }
+        public bool IsActive { get; init; }
+        public int FavoriteCount { get; init; }
+        public int ViewCount { get; init; }
+        public DateTime UploadedAt { get; init; }
+        public DateTime? ReleaseDate { get; init; }
+    }
+
+    private static MediaItem MapMediaItem(MediaItemRow row)
+    {
+        var mediaType = (MediaType)row.Type;
+        var mediaUrl = row.Url
+            ?? (mediaType == MediaType.Video ? row.VideoUrl : row.AudioUrl)
+            ?? "https://placeholder.tunevault.com";
+
+        return MediaItem.Hydrate(
+            row.Id,
+            row.OwnerId,
+            row.Title,
+            row.Description,
+            mediaType,
+            mediaUrl,
+            row.CoverImageUrl,
+            row.CanvasUrl,
+            row.Genre,
+            row.DurationMinutes ?? 0,
+            row.DurationSeconds ?? 0,
+            row.IsPublic,
+            row.IsActive,
+            row.FavoriteCount,
+            row.ViewCount,
+            row.UploadedAt,
+            row.ReleaseDate);
     }
 
     /// <summary>
