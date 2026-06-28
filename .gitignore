@@ -24,6 +24,8 @@ bld/
 [Ll]ogs/
 node_modules/
 dist/
+build/
+publish/
 
 # .NET Core
 project.lock.json
@@ -40,7 +42,12 @@ ScaffoldingReadMe.txt
 
 # dotenv environment variables file
 .env
+backend/.env
+client/.env
 frontend/.env.development
+!.env.example
+!backend/.env.example
+!client/.env.example
 
 # Others
 ~$*
@@ -83,12 +90,14 @@ PLANS/
 *.wav
 *.flac
 *.zip
+*.tar.gz
 *.rar
 *.7z
 
 # connect database
 appsettings.json
-appsettings.example.json
+appsettings.Development.json
+!appsettings.example.json
 
 client/backend/.env
 
