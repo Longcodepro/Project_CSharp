@@ -1,23 +1,5 @@
-import { useMemo, useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 import '../../CSS/PlayerBar.css';
-
-const DEFAULT_REACTION_ICONS = {
-  Love: 'favorite',
-  Like: 'thumb_up',
-  Dislike: 'thumb_down',
-  Chill: 'ac_unit',
-  Energetic: 'whatshot',
-  Save: 'bookmark',
-};
-
-const FALLBACK_REACTIONS = [
-  { name: 'Love' },
-  { name: 'Like' },
-  { name: 'Dislike' },
-  { name: 'Chill' },
-  { name: 'Energetic' },
-  { name: 'Save' },
-];
 
 export default function PlayerBar({
   isExpanded = false,
@@ -33,16 +15,16 @@ export default function PlayerBar({
   volume = 1,
   onToggleMute,
   isMuted = false,
-  onAddPlaylist, // New prop for add to playlist
-  onOpenInfo, // New prop for info panel
-  onToggleFavorite, // New prop for toggling favorite (direct love)
-  currentFavoriteReaction, // New prop for current favorite reaction
-  onSelectFavoriteReaction, // New prop for selecting other reactions
-  onToggleExpanded, // Added for fullscreen button
-  availableReactions = [],
-  isFavoritePickerOpen, // Added prop to control picker visibility
-  onToggleFavoritePicker, // Added prop to toggle the picker
-  onSeek, // Seek callback
+  onAddPlaylist,
+  onOpenVideo,
+  onToggleFavorite,
+  isFavoriteActive = false,
+  onToggleExpanded,
+  isFavoriteActionLoading = false,
+  favoriteActionError = '',
+  playerError = '',
+  onShareCurrent,
+  onSeek,
 }) {
   const [dragProgress, setDragProgress] = useState(null);
   const [dragTime, setDragTime] = useState('');
@@ -55,55 +37,15 @@ export default function PlayerBar({
   const progressStyle = { width: `${displayProgress}%` };
   const knobStyle = { left: `${displayProgress}%` };
   const requirePlayerAuth = () => onRequireAuth?.();
+  const canOpenVideo = Boolean(playerTrack?.videoUrl || playerTrack?.mediaType === 'video');
+  const favoriteButtonLabel = isFavoriteActive
+    ? `Bỏ yêu thích nội dung này. Tổng ${playerTrack?.favoriteCount ?? 0} lượt thích.`
+    : `Yêu thích nội dung này. Tổng ${playerTrack?.favoriteCount ?? 0} lượt thích.`;
 
-  // State for controlling the visibility of the favorite reaction picker
-  const [isPickerVisible, setIsPickerVisible] = useState(false);
-  const reactions = useMemo(() => {
-    if (Array.isArray(availableReactions) && availableReactions.length > 0) {
-      return availableReactions
-        .filter((reaction) => reaction?.name && reaction.name !== 'Remove')
-        .map((reaction) => ({
-          name: reaction.name,
-          icon: reaction.icon || DEFAULT_REACTION_ICONS[reaction.name] || 'favorite',
-        }));
-    }
-
-    return FALLBACK_REACTIONS.map((reaction) => ({
-      name: reaction.name,
-      icon: DEFAULT_REACTION_ICONS[reaction.name] || 'favorite',
-    }));
-  }, [availableReactions]);
-
-  // Handler for the main heart button click
   const handleFavoriteClick = () => {
     if (!onToggleFavorite) return;
-
-    if (currentFavoriteReaction === 'Love') {
-      // If already 'Love', unlike it
-      onToggleFavorite(null);
-    } else {
-      // Otherwise, favorite with 'Love'
-      onToggleFavorite('Love');
-    }
-  };
-
-  // Handler for selecting a reaction from the picker
-  const handleReactionSelect = (reactionName) => {
-    if (onSelectFavoriteReaction) {
-      onSelectFavoriteReaction(reactionName);
-    }
-    setIsPickerVisible(false); // Hide picker after selection
-  };
-
-  // Toggle picker visibility on hover
-  const handleFavoriteMouseEnter = () => {
-    if (reactions.length > 0) {
-      setIsPickerVisible(true);
-    }
-  };
-
-  const handleFavoriteMouseLeave = () => {
-    setIsPickerVisible(false);
+    if (!playerTrack?.id || isFavoriteActionLoading) return;
+    onToggleFavorite();
   };
 
   const formatDuration = (seconds) => {
@@ -215,43 +157,36 @@ export default function PlayerBar({
         <div className="player-track-copy">
           <p>{playerTrack.title}</p>
           <span>{playerTrack.artist}</span>
+          {playerError ? <small className="player-inline-error">{playerError}</small> : null}
         </div>
         <button type="button" aria-label="Thêm vào playlist" onClick={onAddPlaylist || requirePlayerAuth}>
           <span className="material-symbols-outlined">playlist_add</span>
         </button>
-        <div className="player-favorite-container" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button type="button" aria-label="Chia sẻ nội dung" onClick={onShareCurrent || requirePlayerAuth}>
+          <span className="material-symbols-outlined">ios_share</span>
+        </button>
+        {canOpenVideo ? (
+          <button type="button" aria-label="Mở trình phát video" onClick={onOpenVideo || requirePlayerAuth}>
+            <span className="material-symbols-outlined">smart_display</span>
+          </button>
+        ) : null}
+        <div className="player-favorite-container">
           <button
             type="button"
-            aria-label="Yêu thích"
+            aria-label={favoriteButtonLabel}
             onClick={handleFavoriteClick}
-            className={`favorite-button ${currentFavoriteReaction === 'Love' ? 'active' : ''}`}
-            onMouseEnter={handleFavoriteMouseEnter}
-            onMouseLeave={handleFavoriteMouseLeave}
+            className={`favorite-button ${isFavoriteActive ? 'active' : ''} ${isFavoriteActionLoading ? 'is-loading' : ''}`}
+            disabled={!playerTrack?.id || isFavoriteActionLoading}
+            aria-pressed={isFavoriteActive}
           >
-            <span className="material-symbols-outlined fill-icon">favorite</span>
+            <span className="favorite-button-emoji" aria-hidden="true">❤</span>
           </button>
-          {playerTrack?.favoriteCount > 0 && (
-            <span className="favorite-count-badge" style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', fontWeight: '600' }}>
-              {playerTrack.favoriteCount}
-            </span>
-          )}
-
-          {/* Reaction picker */}
-          {isPickerVisible && (
-            <div className="favorite-reactions-picker" onMouseEnter={handleFavoriteMouseEnter} onMouseLeave={handleFavoriteMouseLeave}>
-              {reactions.map((reaction) => (
-                <button
-                  key={reaction.name}
-                  type="button"
-                  aria-label={`Reaction: ${reaction.name}`}
-                  onClick={() => handleReactionSelect(reaction.name)}
-                  className={currentFavoriteReaction === reaction.name ? 'active' : ''}
-                >
-                  <span className="material-symbols-outlined">{reaction.icon}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <span className="favorite-count-badge" aria-label={`Tổng ${playerTrack?.favoriteCount ?? 0} cảm xúc`}>
+            {playerTrack?.favoriteCount ?? 0}
+          </span>
+          {favoriteActionError ? (
+            <span className="favorite-inline-error" role="status">{favoriteActionError}</span>
+          ) : null}
         </div>
       </div>
 
@@ -299,9 +234,6 @@ export default function PlayerBar({
       </div>
 
       <div className="player-secondary">
-        <button type="button" aria-label="Thông tin media" onClick={onOpenInfo || requirePlayerAuth}>
-          <span className="material-symbols-outlined">info</span>
-        </button>
         <div className="player-volume">
           <button type="button" aria-label={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'} onClick={onToggleMute || requirePlayerAuth}>
             <span className="material-symbols-outlined">{volumeIcon}</span>

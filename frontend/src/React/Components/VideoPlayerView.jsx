@@ -1,29 +1,24 @@
-import React, { useEffect, useRef } from 'react';
-import '../../CSS/VideoPlayerView.css'; // Assuming a CSS file for the video player view
+import { useEffect, useRef } from 'react';
+import '../../CSS/VideoPlayerView.css';
 
 export default function VideoPlayerView({ isOpen, onClose, track, audioRef, isPlaying }) {
-  if (!isOpen || !track || !track.id) return null;
-
   const videoRef = useRef(null);
-
-  // Determine the video source.
-  const videoSource = track.videoUrl || (track.mediaType === 'video' ? track.audioUrl : null);
+  const videoSource = track?.videoUrl || (track?.mediaType === 'video' ? track?.audioUrl : null);
 
   useEffect(() => {
     const video = videoRef.current;
     const audio = audioRef?.current;
-    if (!isOpen || !video || !audio) return;
+    if (!isOpen || !track?.id || !video || !audio) return;
 
-    // Sync initial state
     video.currentTime = audio.currentTime;
     if (isPlaying) {
-      video.play().catch(() => { });
+      video.play().catch(() => {});
     } else {
       video.pause();
     }
 
     const syncPlay = () => {
-      video.play().catch(() => { });
+      video.play().catch(() => {});
     };
     const syncPause = () => {
       video.pause();
@@ -44,11 +39,11 @@ export default function VideoPlayerView({ isOpen, onClose, track, audioRef, isPl
       audio.removeEventListener('pause', syncPause);
       audio.removeEventListener('timeupdate', syncTime);
     };
-  }, [isOpen, isPlaying, audioRef]);
+  }, [isOpen, isPlaying, audioRef, track?.id, videoSource]);
 
   const handleVideoPlay = () => {
     if (audioRef?.current && audioRef.current.paused) {
-      audioRef.current.play().catch(() => { });
+      audioRef.current.play().catch(() => {});
     }
   };
 
@@ -67,10 +62,12 @@ export default function VideoPlayerView({ isOpen, onClose, track, audioRef, isPl
     }
   };
 
+  if (!isOpen || !track?.id) return null;
+
   return (
     <div className="video-player-overlay" onClick={onClose}>
       <div className="video-player-content" onClick={(e) => e.stopPropagation()}>
-        <button className="close-button" onClick={onClose}>
+        <button className="close-button" type="button" onClick={onClose}>
           <span className="material-symbols-outlined">close</span>
         </button>
         {videoSource ? (

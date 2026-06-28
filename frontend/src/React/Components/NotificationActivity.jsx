@@ -1,69 +1,88 @@
 import { useEffect, useState } from 'react';
+import * as signalR from '@microsoft/signalr';
 import {
   getNotifications,
-  getUnreadNotificationCount,
   getUnreadNotifications,
   deleteNotification,
+  getAuthAccessToken,
   markAllNotificationsAsRead,
   markNotificationAsRead,
+  notificationHubUrl,
 } from '../../../Services/MediaService.tsx';
 import '../../CSS/NotificationActivity.css';
 
 const filterOptions = [
   { value: 'all', label: 'Tất cả thông báo' },
   { value: 'unread', label: 'Chưa đọc' },
-  { value: 'system', label: 'Thông báo hệ thống' },
 ];
 
 const notificationTypeLabels = {
-  NewFollower: 'Người theo dõi mới',
   FriendRequest: 'Lời mời kết bạn',
-  MediaShared: 'Nội dung được chia sẻ',
-  SystemAlert: 'Thông báo hệ thống',
   FriendAccepted: 'Lời mời kết bạn đã được chấp nhận',
-  ArtistNewMedia: 'Nghệ sĩ đăng bài mới',
+  ShareSong: 'Bài hát được chia sẻ',
+  ShareVideo: 'Video được chia sẻ',
+  ShareAudio: 'Audio được chia sẻ',
 };
 
 function mapNotification(item) {
+  const normalizedItem = {
+    id: item.id || item.Id,
+    type: item.type || item.Type,
+    senderId: item.senderId || item.SenderId,
+    senderIdDisplay: item.senderIdDisplay || item.SenderIdDisplay,
+    senderDisplayName: item.senderDisplayName || item.SenderDisplayName,
+    senderAvatarUrl: item.senderAvatarUrl || item.SenderAvatarUrl,
+    title: item.title || item.Title,
+    message: item.message || item.Message,
+    payloadJson: item.payloadJson || item.PayloadJson,
+    createdAt: item.createdAt || item.CreatedAt,
+    isRead: item.isRead ?? item.IsRead ?? false,
+  };
+
   let payload;
   try {
-    payload = item.payloadJson ? JSON.parse(item.payloadJson) : {};
+    payload = normalizedItem.payloadJson ? JSON.parse(normalizedItem.payloadJson) : {};
   } catch {
     payload = {};
   }
 
-  const typeLabel = notificationTypeLabels[item.type] || item.type || 'Thông báo mới';
-  const message = payload.message || payload.title || payload.detail || `Có ${String(typeLabel).toLowerCase()} mới.`;
-  const detail = payload.detail || payload.description || item.payloadJson || message;
+  const typeLabel = notificationTypeLabels[normalizedItem.type] || normalizedItem.type || 'Thông báo mới';
+  const message = normalizedItem.message || payload.message || payload.title || payload.detail || `Có ${String(typeLabel).toLowerCase()} mới.`;
+  const detail = payload.detail || payload.description || normalizedItem.payloadJson || message;
+  const senderName = normalizedItem.senderDisplayName || payload.senderDisplayName || payload.senderName || 'Người gửi';
+  const senderIdDisplay = normalizedItem.senderIdDisplay || payload.senderIdDisplay || payload.idDisplay || '';
+  const senderAvatarUrl = normalizedItem.senderAvatarUrl || payload.senderAvatarUrl || payload.avatarUrl || '';
 
   return {
-    id: item.id,
-    source: payload.source || typeLabel,
+    id: normalizedItem.id,
+    type: normalizedItem.type,
+    source: senderName,
+    senderIdDisplay,
+    senderAvatarUrl,
+    title: normalizedItem.title || payload.title || typeLabel,
     message,
-    time: item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : 'Vừa xong',
-    unread: !item.isRead,
+    time: normalizedItem.createdAt ? new Date(normalizedItem.createdAt).toLocaleString('vi-VN') : 'Vừa xong',
+    unread: !normalizedItem.isRead,
     detail,
-    avatar: payload.avatarUrl,
-    system: item.type?.toLowerCase?.().includes('system') || !payload.avatarUrl,
   };
 }
 
-export default function NotificationActivity({ onClose }) {
+export default function NotificationActivity({ onClose, onOpenProfile }) {
   const [filter, setFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [readIds, setReadIds] = useState(() => new Set());
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const refreshUnreadCount = async () => {
-    try {
-      const data = await getUnreadNotificationCount();
-      setUnreadCount(Number(data?.unreadCount ?? data?.count ?? 0));
-    } catch {
-      setUnreadCount(0);
-    }
+  const openProfile = (notification) => {
+    const target = notification?.senderIdDisplay;
+    if (!target) return;
+    onOpenProfile?.({
+      idDisplay: target,
+      displayName: notification?.source || target,
+      avatarUrl: notification?.senderAvatarUrl || '',
+    });
   };
 
   useEffect(() => {
@@ -84,13 +103,11 @@ export default function NotificationActivity({ onClose }) {
 
         setNotifications(mapped);
         setReadIds(new Set(mapped.filter((item) => !item.unread).map((item) => item.id)));
-        await refreshUnreadCount();
       } catch {
         if (!isMounted) return;
         setNotifications([]);
         setReadIds(new Set());
         setError('Không tải được thông báo.');
-        setUnreadCount(0);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -103,24 +120,55 @@ export default function NotificationActivity({ onClose }) {
     };
   }, [filter]);
 
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(notificationHubUrl(), {
+        accessTokenFactory: () => getAuthAccessToken(),
+        withCredentials: true,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on('ReceiveNotification', (notification) => {
+      const mapped = mapNotification(notification || {});
+      if (!mapped.id) return;
+
+      setNotifications((current) => {
+        const withoutDuplicate = current.filter((item) => item.id !== mapped.id);
+        return [mapped, ...withoutDuplicate];
+      });
+      setReadIds((previous) => {
+        const next = new Set(previous);
+        next.delete(mapped.id);
+        return next;
+      });
+    });
+
+    connection.start().catch((error) => {
+      console.warn('[TuneVault] Không thể kết nối thông báo real-time.', error);
+    });
+
+    return () => {
+      connection.stop().catch(() => null);
+    };
+  }, []);
+
   const visibleNotifications = notifications.filter((notification) => {
     if (filter === 'unread') {
       return !readIds.has(notification.id);
     }
 
-    if (filter === 'system') {
-      return notification.system || !notification.avatar;
-    }
-
     return true;
   });
+
+  const unreadVisibleCount = notifications.filter((notification) => !readIds.has(notification.id)).length;
 
   return (
     <aside className="notification-activity">
       <div className="notification-activity-header">
         <div className="notification-activity-title">
           <h2>Thông báo</h2>
-          <span className="notification-count-badge">{unreadCount}</span>
+          <span className="notification-count-badge">{unreadVisibleCount}</span>
         </div>
         <button type="button" aria-label="Đóng thông báo" onClick={onClose}>
           <span className="material-symbols-outlined">close</span>
@@ -143,7 +191,6 @@ export default function NotificationActivity({ onClose }) {
           onClick={async () => {
             setReadIds(new Set(notifications.map((notification) => notification.id)));
             await markAllNotificationsAsRead().catch(() => null);
-            await refreshUnreadCount();
           }}
         >
           Đánh dấu đã đọc tất cả
@@ -167,31 +214,62 @@ export default function NotificationActivity({ onClose }) {
 
           return (
             <article className={`notification-item ${isUnread ? 'unread' : ''}`} key={notification.id}>
-              <button
+              <div
                 className="notification-summary"
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => {
                   setExpandedId(isExpanded ? null : notification.id);
                   setReadIds((previous) => new Set(previous).add(notification.id));
                   markNotificationAsRead(notification.id).catch(() => null);
-                  refreshUnreadCount();
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  setExpandedId(isExpanded ? null : notification.id);
+                  setReadIds((previous) => new Set(previous).add(notification.id));
+                  markNotificationAsRead(notification.id).catch(() => null);
                 }}
               >
-                {notification.avatar ? (
-                  <img src={notification.avatar} alt={notification.source} />
+                {notification.senderAvatarUrl ? (
+                  <img src={notification.senderAvatarUrl} alt={notification.source} />
                 ) : (
                   <div className="system-icon">
-                    <span className="material-symbols-outlined">shield</span>
+                    <span className="material-symbols-outlined">person</span>
                   </div>
                 )}
                 <div>
-                  <p><strong>{notification.source}</strong> {notification.message}</p>
+                  <p className="notification-title">
+                    <strong>{notification.source}</strong>
+                    {notification.senderIdDisplay ? (
+                      <button
+                        type="button"
+                        className="profile-link"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openProfile(notification);
+                        }}
+                      >
+                        @{notification.senderIdDisplay}
+                      </button>
+                    ) : null}
+                  </p>
+                  <p className="notification-message">{notification.title ? `${notification.title} · ${notification.message}` : notification.message}</p>
                   <small>{notification.time}</small>
                 </div>
                 <span className={`material-symbols-outlined expand-icon ${isExpanded ? 'open' : ''}`}>expand_more</span>
-              </button>
+              </div>
               {isExpanded && (
                 <div className="notification-detail-panel">
+                  {notification.senderIdDisplay ? (
+                    <button
+                      type="button"
+                      className="profile-link detail-link"
+                      onClick={() => openProfile(notification)}
+                    >
+                      Xem profile @{notification.senderIdDisplay}
+                    </button>
+                  ) : null}
                   <p className="notification-detail">{notification.detail}</p>
                   <div className="notification-actions">
                     <button
@@ -206,7 +284,6 @@ export default function NotificationActivity({ onClose }) {
                           return next;
                         });
                         setExpandedId(null);
-                        await refreshUnreadCount();
                       }}
                     >
                       Xóa

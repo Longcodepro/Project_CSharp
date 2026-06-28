@@ -4,59 +4,63 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85); /* Darker background for video */
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(12px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1002; /* Above player bar and modals */
-  padding: 20px; /* Add padding for smaller screens */
+  z-index: 1200;
+  padding: 20px;
   box-sizing: border-box;
 }
 
 .video-player-content {
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(19, 22, 26, 0.98), rgba(11, 13, 16, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
   padding: 20px;
   width: 100%;
-  max-width: 900px; /* Max width for video player */
-  max-height: 85vh; /* Max height for video player */
-  overflow: hidden; /* Hide overflow */
+  max-width: 980px;
+  max-height: 86vh;
+  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
 }
 
 .video-player-content .close-button {
   position: absolute;
   top: 15px;
   right: 15px;
-  background: rgba(255, 255, 255, 0.2);
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
+  border-radius: 999px;
   color: #fff;
   cursor: pointer;
-  font-size: 1.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
-  border-radius: 50%;
   transition: background 0.2s, color 0.2s;
-  z-index: 10; /* Ensure close button is above video */
+  z-index: 10;
 }
 
 .video-player-content .close-button:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .video-player {
   width: 100%;
-  height: auto; /* Adjust height automatically */
-  max-height: 70vh; /* Limit video height within the modal */
-  border-radius: 8px;
-  outline: none; /* Remove outline on focus */
-  background-color: #000; /* Black background for video element */
+  aspect-ratio: 16 / 9;
+  height: auto;
+  max-height: 68vh;
+  border-radius: 16px;
+  outline: none;
+  background-color: #000;
+  object-fit: contain;
 }
 
 .no-video-message {
@@ -64,8 +68,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 300px; /* Placeholder height */
-  color: #ccc;
+  min-height: 320px;
+  color: #c7ccd2;
   text-align: center;
 }
 
@@ -82,11 +86,11 @@
 
 .video-info-section h3 {
   margin: 0 0 8px 0;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
 .video-info-section p {
   margin: 0;
   font-size: 0.95rem;
-  color: #aaa;
+  color: #a5adb8;
 }

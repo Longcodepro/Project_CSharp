@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../CSS/MediaInfoPanel.css'; // Assuming a CSS file for the info panel
+import '../../CSS/MediaInfoPanel.css';
 
 export default function MediaInfoPanel({ isOpen, onClose, track }) {
   if (!isOpen || !track || !track.id) return null;
