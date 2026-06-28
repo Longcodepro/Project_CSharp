@@ -94,3 +94,6 @@ client/backend/.env
 
 # wwwroot
 backend/src/TuneVault.API/wwwroot
+
+# Published build artifacts
+publish/
