@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   checkFollowStatus,
   followUser,
@@ -16,6 +16,7 @@ import {
   getArtistMedia,
 } from '../../../Services/MediaService.tsx';
 import '../../CSS/Home.css';
+import ReactionSummary from './ReactionSummary';
 
 const defaultAvatarUrl = normalizeAssetUrl('/uploads/avatars/Default.png')
   || 'https://i.pravatar.cc/220?u=current-user';
@@ -129,6 +130,8 @@ export default function ProfileView({
   const [bioDraft, setBioDraft] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(normalizeAssetUrl(currentUserAvatarUrl) || defaultAvatarUrl);
+  const [avatarSelectionMode, setAvatarSelectionMode] = useState(null);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -152,6 +155,8 @@ export default function ProfileView({
   const avatarInputRef = useRef(null);
   const displayNameInputRef = useRef(null);
   const idDisplayInputRef = useRef(null);
+  const avatarRemovalRequested = avatarSelectionMode === 'default'
+    && (initialSnapshot.avatarUrl || '') !== defaultAvatarUrl;
   const dirty = isOwnProfile
     && !loading
     && (
@@ -159,11 +164,21 @@ export default function ProfileView({
       || idDisplayDraft.trim().toLowerCase() !== initialSnapshot.idDisplay.trim().toLowerCase()
       || bioDraft !== initialSnapshot.bio
       || Boolean(avatarFile)
+      || avatarRemovalRequested
     );
 
   useEffect(() => {
     onDirtyChange?.(isOwnProfile ? dirty : false);
   }, [dirty, isOwnProfile, onDirtyChange]);
+
+  useLayoutEffect(() => {
+    const scrollRoot = document.querySelector('.home-panel');
+    if (scrollRoot && typeof scrollRoot.scrollTo === 'function') {
+      scrollRoot.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+
+    window.scrollTo(0, 0);
+  }, [isOwnProfile, profileTarget?.id, profileTarget?.idDisplay, profileTarget?.handle, profileTarget?.artistId, profileTarget?.userId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -199,6 +214,8 @@ export default function ProfileView({
           setIdDisplayDraft(nextProfile.idDisplay || '');
           setBioDraft(nextProfile.bio || '');
           setAvatarFile(null);
+          setAvatarSelectionMode(null);
+          setAvatarMenuOpen(false);
           setAvatarPreview(nextProfile.avatarUrl || normalizeAssetUrl(currentUserAvatarUrl) || defaultAvatarUrl);
           setInitialSnapshot(buildSnapshot(nextProfile));
           const ownMedia = Array.isArray(myMedia) ? myMedia : [];
@@ -252,6 +269,8 @@ export default function ProfileView({
         setIdDisplayDraft(normalizedProfile.idDisplay || '');
         setBioDraft(normalizedProfile.bio || '');
         setAvatarFile(null);
+        setAvatarSelectionMode(null);
+        setAvatarMenuOpen(false);
         setAvatarPreview(normalizedProfile.avatarUrl || normalizeAssetUrl(profileTarget?.image) || defaultAvatarUrl);
         setInitialSnapshot(buildSnapshot(normalizedProfile));
         const publicMedia = Array.isArray(createdMedia) ? createdMedia : [];
@@ -310,7 +329,27 @@ export default function ProfileView({
 
   const triggerAvatarPicker = () => {
     if (!isOwnProfile) return;
+    setAvatarMenuOpen(false);
     avatarInputRef.current?.click();
+  };
+
+  const selectDefaultAvatar = () => {
+    if (!isOwnProfile) return;
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+
+    setAvatarMenuOpen(false);
+    setAvatarSelectionMode('default');
+    setAvatarFile(null);
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = '';
+    }
+    setAvatarPreview(defaultAvatarUrl);
+    setError('');
+    setMessage('');
   };
 
   const handleAvatarChange = (file) => {
@@ -322,7 +361,15 @@ export default function ProfileView({
     }
 
     if (!file) {
+      if (avatarSelectionMode === 'default') {
+        if (avatarInputRef.current) {
+          avatarInputRef.current.value = '';
+        }
+        return;
+      }
+
       setAvatarFile(null);
+      setAvatarSelectionMode(null);
       setAvatarPreview(normalizeAssetUrl(profile?.avatarUrl) || normalizeAssetUrl(currentUserAvatarUrl) || defaultAvatarUrl);
       return;
     }
@@ -330,17 +377,22 @@ export default function ProfileView({
     if (!file.type?.startsWith('image/')) {
       setError('Avatar chỉ được chọn file ảnh.');
       setMessage('');
-      setAvatarFile(null);
       if (avatarInputRef.current) {
         avatarInputRef.current.value = '';
       }
-      setAvatarPreview(normalizeAssetUrl(profile?.avatarUrl) || normalizeAssetUrl(currentUserAvatarUrl) || defaultAvatarUrl);
+      if (avatarSelectionMode !== 'default') {
+        setAvatarFile(null);
+        setAvatarSelectionMode(null);
+        setAvatarPreview(normalizeAssetUrl(profile?.avatarUrl) || normalizeAssetUrl(currentUserAvatarUrl) || defaultAvatarUrl);
+      }
       return;
     }
 
     const previewUrl = URL.createObjectURL(file);
     objectUrlRef.current = previewUrl;
     setAvatarFile(file);
+    setAvatarSelectionMode('upload');
+    setAvatarMenuOpen(false);
     setAvatarPreview(previewUrl);
     setError('');
   };
@@ -353,6 +405,7 @@ export default function ProfileView({
 
   const handleOpenConfirm = () => {
     if (!isOwnProfile || !dirty || saving) return;
+    setAvatarMenuOpen(false);
     setMessage('');
     setError('');
     setShowConfirm(true);
@@ -383,7 +436,7 @@ export default function ProfileView({
         idDisplayDraft.trim().toLowerCase(),
         avatarFile,
         bioDraft.trim(),
-        false
+        avatarSelectionMode === 'default'
       );
 
       const nextAvatarUrl = normalizeAssetUrl(result?.avatarUrl) || '';
@@ -402,6 +455,8 @@ export default function ProfileView({
       setIdDisplayDraft(normalizedProfile.idDisplay || '');
       setBioDraft(normalizedProfile.bio || '');
       setAvatarFile(null);
+      setAvatarSelectionMode(null);
+      setAvatarMenuOpen(false);
       setAvatarPreview(nextAvatarUrl || defaultAvatarUrl);
       if (avatarInputRef.current) {
         avatarInputRef.current.value = '';
@@ -451,6 +506,10 @@ export default function ProfileView({
   const email = profile?.email || (isOwnProfile ? localStorage.getItem('user_email') : '') || 'Chưa cập nhật';
   const bioValue = isOwnProfile ? bioDraft : (profile?.bio || 'Chưa có tiểu sử.');
   const hasAuthToken = Boolean(isAuthenticated || localStorage.getItem('auth_session'));
+  const publicProfileLabel = String(profile?.role || profileTarget?.role || '').trim().toLowerCase() === 'artist'
+    ? 'Hồ sơ nghệ sĩ'
+    : 'Hồ sơ người dùng';
+  const pageTitle = isOwnProfile ? 'Chỉnh sửa thông tin tài khoản' : publicProfileLabel;
 
   const handlePlayMedia = (media) => {
     if (!media) return;
@@ -495,7 +554,9 @@ export default function ProfileView({
                 <h3 title={item.title}>{item.title}</h3>
                 <p title={item.subtitle}>{item.subtitle}</p>
                 {item.kind === 'media' ? (
-                  <span>{item.reactionCount || 0} cảm xúc</span>
+                  <ReactionSummary
+                    totalCount={item.reactionCount || 0}
+                  />
                 ) : (
                   <span>{item.mediaType === 'video' ? 'Video' : item.subtitle}</span>
                 )}
@@ -528,7 +589,7 @@ export default function ProfileView({
           </button>
 
           <div className="profile-page-header-copy">
-            <h1>{isOwnProfile ? 'Chỉnh sửa thông tin tài khoản' : 'Hồ sơ nghệ sĩ'}</h1>
+            <h1>{pageTitle}</h1>
           </div>
         </div>
 
@@ -569,15 +630,43 @@ export default function ProfileView({
                     onChange={(event) => handleAvatarChange(event.target.files?.[0] || null)}
                   />
 
-                  <button
-                    type="button"
-                    className="profile-avatar-action"
-                    onClick={triggerAvatarPicker}
-                  >
-                    Thay ảnh
-                  </button>
+                  <div className="profile-avatar-action-group">
+                    <button
+                      type="button"
+                      className="profile-avatar-action profile-avatar-action-trigger"
+                      onClick={() => setAvatarMenuOpen((open) => !open)}
+                      aria-haspopup="menu"
+                      aria-expanded={avatarMenuOpen}
+                    >
+                      <span>Thay ảnh</span>
+                      <span className="material-symbols-outlined fill-icon">expand_more</span>
+                    </button>
 
-                  {avatarFile ? <p className="profile-file-chip">Đã chọn file: {avatarFile.name}</p> : null}
+                    {avatarMenuOpen ? (
+                      <div className="profile-avatar-menu" role="menu" aria-label="Tùy chọn ảnh đại diện">
+                        <button
+                          type="button"
+                          className="profile-avatar-menu-item"
+                          onClick={selectDefaultAvatar}
+                        >
+                          Ảnh mặc định
+                        </button>
+                        <button
+                          type="button"
+                          className="profile-avatar-menu-item"
+                          onClick={triggerAvatarPicker}
+                        >
+                          Chọn ảnh từ máy
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {avatarSelectionMode === 'default' ? (
+                    <p className="profile-file-chip profile-default-avatar-chip">Sẽ dùng ảnh mặc định khi lưu.</p>
+                  ) : avatarFile ? (
+                    <p className="profile-file-chip">Đã chọn file: {avatarFile.name}</p>
+                  ) : null}
                 </div>
 
                 <div className="profile-owner-form-block">
@@ -690,7 +779,7 @@ export default function ProfileView({
         ) : (
           <section className="profile-public-shell">
             <div className="profile-public-card">
-              <div className="profile-public-top">
+              <div className="profile-public-hero profile-public-top">
                 <div className="profile-avatar-editor profile-avatar-static profile-avatar-public">
                   <img
                     src={avatarPreview || defaultAvatarUrl}
@@ -704,24 +793,26 @@ export default function ProfileView({
 
                 <div className="profile-public-heading">
                   <h1>{displayName}</h1>
-                  <p className="profile-public-handle">{idDisplay}</p>
+                  <p className="profile-public-handle">{`_${idDisplay}_`}</p>
                   <p className="profile-public-email">{email}</p>
                 </div>
 
-                <button
-                  type="button"
-                  className={`create-primary profile-follow-button profile-follow-button-public ${isFollowing ? 'profile-following' : ''}`}
-                  onClick={handleFollowToggle}
-                  disabled={followLoading || !profile?.id || !hasAuthToken}
-                >
-                  {followLoading
-                    ? 'Đang xử lý...'
-                    : !hasAuthToken
-                      ? 'Đăng nhập để follow'
-                      : isFollowing
-                        ? 'Hủy follow'
-                        : 'Follow'}
-                </button>
+                <div className="profile-public-actions">
+                  <button
+                    type="button"
+                    className={`create-primary profile-follow-button profile-follow-button-public ${isFollowing ? 'profile-following' : ''}`}
+                    onClick={handleFollowToggle}
+                    disabled={followLoading || !profile?.id || !hasAuthToken}
+                  >
+                    {followLoading
+                      ? 'Đang xử lý...'
+                      : !hasAuthToken
+                        ? 'Đăng nhập để follow'
+                        : isFollowing
+                          ? 'Hủy follow'
+                          : 'Follow'}
+                  </button>
+                </div>
               </div>
 
               <div className="profile-public-stats">

@@ -51,7 +51,7 @@ function formatTime(seconds = 0) {
 }
 
 function normalizeMediaTypeName(value) {
-  const numericMap = ['audio', 'video', 'podcast', 'song'];
+  const numericMap = ['audio', 'video', '', 'song'];
   if (typeof value === 'number') return numericMap[value] || '';
 
   const normalized = String(value || '').trim().toLowerCase();
@@ -254,7 +254,7 @@ export default function App() {
       return;
     }
 
-    if (item && ['song', 'video', 'audio', 'podcast'].includes(String(item.type).toLowerCase())) {
+    if (item && ['song', 'video', 'audio'].includes(String(item.type).toLowerCase())) {
       MediaService.getMediaById(item.id)
         .then((fullMedia) => {
           if (fullMedia) {
@@ -377,17 +377,13 @@ export default function App() {
       return;
     }
 
-    // --- Explicit check for video without audio fallback ---
     const mediaType = normalizeMediaTypeName(media.mediaType ?? media.type);
     const hasAudioSource = resolveAudioSource(media);
 
     if (mediaType === 'video' && !hasAudioSource) {
       console.warn('[TuneVault] Cannot play video without an audio source.');
-      // Optionally, show a user-facing message here.
-      return; // Prevent playback if it's a video without an audio source.
+      return;
     }
-    // --- End explicit check ---
-
 
     audioRef.current?.pause();
     setIsPlaying(false);
@@ -481,9 +477,8 @@ export default function App() {
       ? Math.min(100, Math.round((currentSeconds / durationSeconds) * 100))
       : 0;
 
-    const artistLabel = Array.isArray(media.artists) && media.artists.length > 0
-      ? media.artists.map((artist) => artist.artistName || artist.ArtistName || artist.artistId || artist.ArtistId).filter(Boolean).join(', ')
-      : media.artistName || media.ArtistName || media.artist || media.Artist || media.ownerId || media.OwnerId || 'TuneVault';
+    const artistLabel = media.ownerName || media.OwnerName || media.artistName || media.ArtistName
+      || media.artist || media.Artist || media.ownerId || media.OwnerId || 'TuneVault';
     const audioSource = resolveAudioSource(media);
 
     setPlayerTrack({
@@ -578,9 +573,8 @@ export default function App() {
       if (isMuted) {
         audio.muted = false;
         setIsMuted(false);
-        // Restore volume if it was 0 when muted
         if (volume === 0) {
-          audio.volume = 0.5; // Default to 0.5 if volume was 0
+          audio.volume = 0.5;
           setVolume(0.5);
           localStorage.setItem('player_volume', '0.5');
         } else {
@@ -708,7 +702,6 @@ export default function App() {
     const onPause = () => setIsPlaying(false);
     const onEnded = () => {
       setIsPlaying(false);
-      // Automatically play next track when current one ends
       playNextTrack();
     };
 
@@ -735,68 +728,7 @@ export default function App() {
       window.removeEventListener('beforeunload', persistProgress);
       document.removeEventListener('visibilitychange', persistProgress);
     };
-  }, [isAuthenticated, playerTrack.id, playerQueue, currentQueueIndex]); // Added dependencies for queue and index
-
-  // useEffect(() => {
-  //   if (!isAuthenticated) return undefined;
-  // 
-  //   let cancelled = false;
-  // 
-  //   const timeoutId = window.setTimeout(() => {
-  //     void (async () => {
-  //       if (cancelled || !localStorage.getItem('auth_session')) return;
-  // 
-  //       try {
-  //         const recentHistory = await getRecentHistory().catch(() => []);
-  //         console.log('[App.jsx] Recent History:', recentHistory);
-  //         const recentTrack = recentHistory?.[0];
-  //         console.log('[App.jsx] Recent Track:', recentTrack);
-  //         if (!recentTrack) {
-  //           const fallbackMedia = await getMedia(1, 1).catch(() => []);
-  //           if (fallbackMedia[0] && !cancelled) {
-  //             syncTrackFromMedia(fallbackMedia[0], 0);
-  //             await ensureAudioSource(fallbackMedia[0]);
-  //             // Initialize queue with fallback media if no history
-  //             setPlayerQueue([fallbackMedia[0]]);
-  //             setCurrentQueueIndex(0);
-  //           }
-  //           return;
-  //         }
-  // 
-  //         const resumeInfo = await getResumeInfo(recentTrack.id).catch(() => null);
-  //         console.log('[App.jsx] Resume Info:', resumeInfo);
-  //         const resumeAt = Number(resumeInfo?.stoppedAt ?? 0);
-  //         console.log('[App.jsx] Resume At:', resumeAt);
-  //         if (cancelled) return;
-  //         syncTrackFromMedia(recentTrack, resumeAt);
-  //         await ensureAudioSource(recentTrack);
-  // 
-  //         // When loading from history, we might want to fetch the entire collection
-  //         // to build a queue. This is a simplification for now.
-  //         // A more robust solution would fetch the collection based on recentTrack's type.
-  //         // For now, we'll just set the current track and assume queue will be built later.
-  //         // If recentTrack has collection info, we could use it here.
-  //         // Example: if (recentTrack.collectionId) { ... fetch collection ... }
-  //         // For now, we'll just set the current track and let playMediaItem handle queueing if needed.
-  //         // If we want to load the queue from history, we'd need to store queue info in history/resume.
-  //         // For now, let's assume the queue is built when a new item is explicitly played.
-  //         // If we want to resume a queue, we'd need to store queue and index in backend.
-  // 
-  //       } catch {
-  //         if (!cancelled) {
-  //           setPlayerTrack(fallbackTrack);
-  //           setPlayerQueue([]);
-  //           setCurrentQueueIndex(-1);
-  //         }
-  //       }
-  //     })();
-  //   }, 0);
-  // 
-  //   return () => {
-  //     cancelled = true;
-  //     window.clearTimeout(timeoutId);
-  //   };
-  // }, [authVersion, isAuthenticated]);
+  }, [isAuthenticated, playerTrack.id, playerQueue, currentQueueIndex]);
 
   useEffect(() => () => {
     revokeCurrentAudioObjectUrl();
@@ -827,8 +759,6 @@ export default function App() {
     }
   }, [playerTrack?.id, isPlaying]);
 
-
-  // Effect to fetch available reactions and current favorite status
   useEffect(() => {
     let cancelled = false;
 
@@ -882,7 +812,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [authVersion, isAuthenticated, playerTrack.id]); // Re-run when auth status or playing track changes
+  }, [authVersion, isAuthenticated, playerTrack.id]);
 
   const closeBodyOverlay = () => {
     if (isVideoViewOpen) {
@@ -907,13 +837,12 @@ export default function App() {
     setIsNowPlayingExpanded(false);
   };
 
-  // Handler for opening the playlist modal
   const handleOpenPlaylistModal = () => {
     if (!isAuthenticated) {
       promptLogin('Đăng nhập để thêm bài hát vào playlist.');
       return;
     }
-    if (!playerTrack?.id) return; // Cannot add if no track is playing
+    if (!playerTrack?.id) return;
 
     requireAuth('Đăng nhập để xem danh sách playlist của bạn.', async () => {
       try {
@@ -922,49 +851,41 @@ export default function App() {
         setIsPlaylistModalOpen(true);
       } catch (error) {
         console.error('Error fetching user playlists:', error);
-        // Optionally show an error message to the user
       }
     });
   };
 
-  // Handler for adding a track to a playlist from the modal
   const handleAddToPlaylist = async (playlistId) => {
     if (!playerTrack?.id || !playlistId) return;
 
     try {
       await addTrackToPlaylist(playlistId, playerTrack.id);
-      // Optionally show a success message
-      setIsPlaylistModalOpen(false); // Close modal on success
+      setIsPlaylistModalOpen(false);
     } catch (error) {
       console.error('Error adding track to playlist:', error);
-      // Optionally show an error message to the user
     }
   };
 
-  // Handler for opening the video view
   const handleOpenVideoView = () => {
-    if (!playerTrack?.id) return; // Need a track to view video for
+    if (!playerTrack?.id) return;
     if (!playerTrack.mediaType || playerTrack.mediaType !== 'video') {
-      // Optionally show a message that this track is not a video
       console.log('This track is not a video.');
       return;
     }
     requireAuth('Đăng nhập để xem video.', () => {
       setIsVideoViewOpen(true);
-      setIsInfoPanelOpen(false); // Close info panel if open
+      setIsInfoPanelOpen(false);
     });
   };
 
-  // Handler for opening the media info panel
   const handleOpenInfoPanel = () => {
-    if (!playerTrack?.id) return; // Need a track to view info for
+    if (!playerTrack?.id) return;
     requireAuth('Đăng nhập để xem thông tin media.', () => {
       setIsInfoPanelOpen(true);
-      setIsVideoViewOpen(false); // Close info panel if open
+      setIsVideoViewOpen(false);
     });
   };
 
-  // Handlers for favorite reactions
   const handleToggleFavorite = async (reaction = 'Love') => {
     if (!playerTrack?.id) return;
     if (!isAuthenticated) {
@@ -974,7 +895,7 @@ export default function App() {
     try {
       await MediaService.toggleFavorite(playerTrack.id, reaction);
       setCurrentFavoriteReaction(reaction);
-      setIsFavoritePickerOpen(false); // Close picker after action
+      setIsFavoritePickerOpen(false);
       setLibraryVersion((v) => v + 1);
 
       const countResult = await MediaService.getMediaReactionCount(playerTrack.id).catch(() => null);
@@ -984,7 +905,6 @@ export default function App() {
       }));
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // Optionally show an error message to the user
     }
   };
 
@@ -993,7 +913,7 @@ export default function App() {
   };
 
   const handleUnlikeFavorite = async () => {
-    await handleToggleFavorite(null); // null reaction means unlike
+    await handleToggleFavorite(null);
   };
 
   const toggleFavoritePicker = () => {

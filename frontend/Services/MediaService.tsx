@@ -4,6 +4,12 @@ type ApiEnvelope<T> = {
   message?: string;
 };
 
+export type FavoriteReactionCountResult = {
+  targetId?: string;
+  targetType?: string;
+  totalCount: number;
+};
+
 type RequestOptions = RequestInit & {
   skipAuthRefresh?: boolean;
 };
@@ -25,6 +31,8 @@ type PlaylistPayload = {
   isPublic?: boolean;
   CoverImage?: File | null;
   coverImage?: File | null;
+  CoverImageUrl?: string | null;
+  coverImageUrl?: string | null;
   ContentType?: string | null;
   contentType?: string | null;
   ReleaseDate?: string | null;
@@ -42,22 +50,33 @@ type MediaPayload = {
   genre?: string | null;
   Type?: string | null;
   type?: string | null;
-  AccessLevel?: number | string | null;
-  accessLevel?: number | string | null;
   IsPublic?: boolean;
   isPublic?: boolean;
   ReleaseDate?: string | null;
   releaseDate?: string | null;
-  FeaturedArtistIds?: string[];
-  featuredArtistIds?: string[];
   AudioFile?: File | null;
   audioFile?: File | null;
   VideoFile?: File | null;
   videoFile?: File | null;
   CoverImage?: File | null;
   coverImage?: File | null;
+  CoverImageUrl?: string | null;
+  coverImageUrl?: string | null;
   CanvasFile?: File | null;
   canvasFile?: File | null;
+  DurationSeconds?: number | null;
+  durationSeconds?: number | null;
+};
+
+type SharePayload = {
+  ReceiverId?: string;
+  receiverId?: string;
+  SharedItemId?: string;
+  sharedItemId?: string;
+  ShareType?: string;
+  shareType?: string;
+  Message?: string | null;
+  message?: string | null;
 };
 
 type NormalizedItem = {
@@ -84,7 +103,7 @@ export type UserProfile = {
   UserName?: string;
   name?: string;
   Name?: string;
-  handle?: string; // Added handle property
+  handle?: string;
   email?: string;
   Email?: string;
   avatarUrl?: string | null;
@@ -97,7 +116,7 @@ export type UserProfile = {
   Bio?: string;
 };
 
-const DEFAULT_API_BASE_URL = 'http://localhost:5126/api';
+const DEFAULT_API_BASE_URL = '/api';
 const rawApiBaseUrl = (import.meta.env?.VITE_API_BASE_URL as string | undefined) || DEFAULT_API_BASE_URL;
 const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
 const API_ORIGIN = (() => {
@@ -208,6 +227,22 @@ function asString(value: unknown): string {
   return String(value ?? '').trim();
 }
 
+function toReactionCount(value: unknown): number {
+  const numericValue = Number(value ?? 0);
+  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : 0;
+}
+
+export function normalizeFavoriteReactionCount(payload: Record<string, unknown> | null | undefined): FavoriteReactionCountResult {
+  const raw = payload && typeof payload === 'object' ? payload : {};
+  const totalCount = toReactionCount(raw.totalCount ?? raw.TotalCount ?? raw.count ?? raw.Count ?? raw.total ?? raw.Total);
+
+  return {
+    targetId: typeof raw.targetId === 'string' ? raw.targetId : typeof raw.TargetId === 'string' ? raw.TargetId : undefined,
+    targetType: typeof raw.targetType === 'string' ? raw.targetType : typeof raw.TargetType === 'string' ? raw.TargetType : undefined,
+    totalCount,
+  };
+}
+
 function normalizeRoleList(roles: unknown): string[] {
   if (Array.isArray(roles)) return roles.map((role) => String(role).trim()).filter(Boolean);
   if (typeof roles === 'string') {
@@ -276,7 +311,7 @@ function readNumber(...values: unknown[]): number {
 }
 
 function normalizeMediaType(value: unknown): string {
-  const numericMap = ['audio', 'video', 'podcast', 'song'];
+  const numericMap = ['audio', 'video', '', 'song'];
   if (typeof value === 'number') return numericMap[value] || '';
 
   const normalized = asString(value).toLowerCase();
@@ -305,6 +340,14 @@ export function mediaAudioStreamUrl(mediaId?: string | null): string {
 export function mediaVideoStreamUrl(mediaId?: string | null): string {
   const id = asString(mediaId);
   return id ? `${API_BASE_URL}/media/${id}/video/stream` : '';
+}
+
+export function notificationHubUrl(): string {
+  return `${API_ORIGIN}/hubs/notifications`;
+}
+
+export function getAuthAccessToken(): string {
+  return localStorage.getItem(AUTH_ACCESS_TOKEN_KEY) || '';
 }
 
 export function saveAuthSession(auth: AuthResponse): AuthResponse {
@@ -447,6 +490,33 @@ export async function getUserById(userId: string) {
   return extractData(payload);
 }
 
+export async function getUserByIdDisplay(idDisplay: string) {
+  const response = await fetch(joinApiPath(`/users/by-handle/${encodeURIComponent(idDisplay)}`), {
+    credentials: 'include',
+    headers: buildHeaders({}),
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    let message = `HTTP error ${response.status}`;
+    try {
+      const errorPayload = await parseResponse<ApiEnvelope<unknown>>(response.clone());
+      message = errorPayload?.message || message;
+    } catch {
+      const text = await response.text().catch(() => '');
+      if (text) message = text;
+    }
+
+    throw new Error(message);
+  }
+
+  const payload = await parseResponse<ApiEnvelope<Record<string, unknown>>>(response);
+  return extractData(payload);
+}
+
 export async function getArtists(): Promise<UserProfile[]> {
   const payload = await request<ApiEnvelope<UserProfile[]>>('/users/artists');
   return normalizeArray(payload);
@@ -456,12 +526,21 @@ export async function searchUsers(keyword: string, _page = 1, _pageSize = 10) {
   const trimmed = asString(keyword).toLowerCase();
   if (!trimmed) return [];
 
-  const users = await getArtists().catch(() => []);
-  return users.filter((user) => {
-    const idDisplay = readString(user.idDisplay, user.IdDisplay, user.userName, user.UserName, user.id, user.Id).toLowerCase();
-    const displayName = readString(user.displayName, user.DisplayName, user.name, user.Name).toLowerCase();
-    return idDisplay.includes(trimmed) || displayName.includes(trimmed);
-  });
+  const payload = await searchAll(trimmed, _page, _pageSize).catch(() => null);
+  const data = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {};
+  const result = data.data && typeof data.data === 'object'
+    ? (data.data as Record<string, unknown>)
+    : data.Data && typeof data.Data === 'object'
+      ? (data.Data as Record<string, unknown>)
+      : data;
+
+  const users = Array.isArray(result.artists)
+    ? result.artists
+    : Array.isArray(result.Artists)
+      ? result.Artists
+      : [];
+
+  return users;
 }
 
 export async function searchAll(keyword: string, page = 1, pageSize = 10) {
@@ -519,33 +598,26 @@ export async function getTrendingTracks(top = 10) {
 
 export async function getMediaReactionCount(mediaId: string) {
   const payload = await request<ApiEnvelope<Record<string, unknown>>>(`/favorites/${encodeURIComponent(mediaId)}/reaction-count`);
-  return extractData(payload);
+  return normalizeFavoriteReactionCount(extractData(payload));
 }
 
 export async function getAlbumReactionCount(albumId: string) {
   const payload = await request<ApiEnvelope<Record<string, unknown>>>(`/favorites/albums/${encodeURIComponent(albumId)}/reaction-count`);
-  return extractData(payload);
+  return normalizeFavoriteReactionCount(extractData(payload));
 }
 
 export async function getPlaylistReactionCount(playlistId: string) {
   const payload = await request<ApiEnvelope<Record<string, unknown>>>(`/favorites/playlists/${encodeURIComponent(playlistId)}/reaction-count`);
-  return extractData(payload);
+  return normalizeFavoriteReactionCount(extractData(payload));
 }
 
-export async function getFavoriteReactions() {
-  const payload = await request<ApiEnvelope<Array<{ name: string; value: number }>>>('/favorites/reactions', {
-    skipAuthRefresh: true,
-  });
-  return normalizeArray(payload);
+export async function getFavoriteStatus(mediaId: string): Promise<boolean> {
+  const payload = await request<ApiEnvelope<boolean>>(`/favorites/status/${encodeURIComponent(mediaId)}`);
+  return Boolean(extractData(payload));
 }
 
-export async function getFavoriteStatus(mediaId: string) {
-  const payload = await request<ApiEnvelope<Record<string, unknown>>>(`/favorites/status/${encodeURIComponent(mediaId)}`);
-  return extractData(payload);
-}
-
-export async function toggleFavorite(mediaId: string, reaction: string | null = 'Love'): Promise<void> {
-  if (reaction === null) {
+export async function toggleFavorite(mediaId: string, isActive = true): Promise<void> {
+  if (!isActive) {
     await request<ApiEnvelope<object | null>>(`/favorites/${encodeURIComponent(mediaId)}`, {
       method: 'DELETE',
     });
@@ -554,7 +626,6 @@ export async function toggleFavorite(mediaId: string, reaction: string | null = 
 
   await request<ApiEnvelope<object | null>>(`/favorites/${encodeURIComponent(mediaId)}`, {
     method: 'PUT',
-    body: JSON.stringify({ reaction }),
   });
 }
 
@@ -730,11 +801,6 @@ export async function getUnreadNotifications(limit = 50) {
   return normalizeArray(payload);
 }
 
-export async function getUnreadNotificationCount() {
-  const payload = await request<ApiEnvelope<Record<string, unknown>>>('/notifications/unread-count');
-  return extractData(payload);
-}
-
 export async function markNotificationAsRead(notificationId: string): Promise<void> {
   await request<ApiEnvelope<boolean>>(`/notifications/${encodeURIComponent(notificationId)}/read`, {
     method: 'PATCH',
@@ -751,6 +817,35 @@ export async function deleteNotification(notificationId: string): Promise<void> 
   await request<ApiEnvelope<boolean>>(`/notifications/${encodeURIComponent(notificationId)}`, {
     method: 'DELETE',
   });
+}
+
+export async function shareItem(payload: SharePayload) {
+  const receiverId = readString(payload.receiverId, payload.ReceiverId);
+  const sharedItemId = readString(payload.sharedItemId, payload.SharedItemId);
+  const shareType = readString(payload.shareType, payload.ShareType);
+  const message = readString(payload.message, payload.Message);
+
+  const response = await request<ApiEnvelope<Record<string, unknown>>>('/shares', {
+    method: 'POST',
+    body: JSON.stringify({
+      receiverId,
+      sharedItemId,
+      shareType,
+      message: message || null,
+    }),
+  });
+
+  return extractData(response);
+}
+
+export async function getShareInbox() {
+  const payload = await request<ApiEnvelope<Record<string, unknown>[]>>('/shares/inbox');
+  return normalizeArray(payload);
+}
+
+export async function getShareSent() {
+  const payload = await request<ApiEnvelope<Record<string, unknown>[]>>('/shares/sent');
+  return normalizeArray(payload);
 }
 
 export async function getMyFriends() {
@@ -812,6 +907,7 @@ export async function recordPlayHistory(mediaId: string): Promise<void> {
 export async function recordPlaybackStop(mediaId: string, stoppedAt: number): Promise<void> {
   await request<ApiEnvelope<boolean>>(`/history/${encodeURIComponent(mediaId)}/stop`, {
     method: 'PATCH',
+    keepalive: true,
     body: JSON.stringify({ stoppedAt }),
   });
 }
@@ -864,13 +960,13 @@ function normalizePlayableMedia(
   const mediaId = readString(media.id, media.Id, extra.id);
   const title = readString(media.title, media.Title, extra.title) || mediaId;
   const ownerId = readString(media.ownerId, media.OwnerId);
-  const artists = Array.isArray(media.artists) ? media.artists : Array.isArray(media.Artists) ? media.Artists : [];
   const artistName = readString(
     media.artist,
     media.Artist,
     media.artistName,
     media.ArtistName,
-    artists.map((artist: Record<string, unknown>) => readString(artist.artistName, artist.ArtistName, artist.artistId, artist.ArtistId)).join(', '),
+    media.ownerName,
+    media.OwnerName,
     ownerId,
   ) || 'TuneVault';
   const cover = normalizeAssetUrl(
@@ -912,6 +1008,8 @@ export const MediaService = {
   mediaPosterUrl,
   mediaAudioStreamUrl,
   mediaVideoStreamUrl,
+  notificationHubUrl,
+  getAuthAccessToken,
   getMyProfile,
   updateProfile,
   getUserById,
@@ -930,7 +1028,6 @@ export const MediaService = {
   getMediaReactionCount,
   getAlbumReactionCount,
   getPlaylistReactionCount,
-  getFavoriteReactions,
   getFavoriteStatus,
   toggleFavorite,
   getLikedSongs,
@@ -959,10 +1056,12 @@ export const MediaService = {
   deleteMedia,
   getNotifications,
   getUnreadNotifications,
-  getUnreadNotificationCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
+  shareItem,
+  getShareInbox,
+  getShareSent,
   getMyFriends,
   getIncomingFriendRequests,
   getSentFriendRequests,

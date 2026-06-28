@@ -24,11 +24,27 @@ function toDateText(value) {
   return Number.isNaN(date.getTime()) ? 'Không rõ ngày' : date.toLocaleDateString('vi-VN');
 }
 
+function toTimestamp(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function sortByName(left, right) {
+  return String(left.name || '').localeCompare(String(right.name || ''), 'vi');
+}
+
+function sortByNewest(left, right) {
+  const timeDiff = Number(right.sortTimestamp || 0) - Number(left.sortTimestamp || 0);
+  if (timeDiff !== 0) return timeDiff;
+  return sortByName(left, right);
+}
+
 function mapFriend(friend) {
   const id = pick(friend.userId, friend.UserId, friend.id, friend.Id);
   const handle = pick(friend.idDisplay, friend.IdDisplay, friend.userName, friend.UserName, id);
   const name = pick(friend.displayName, friend.DisplayName, handle, id);
   const avatarUrl = pick(friend.avatarUrl, friend.AvatarUrl);
+  const sortTimestamp = toTimestamp(pick(friend.friendsSince, friend.FriendsSince));
 
   return {
     id,
@@ -37,6 +53,7 @@ function mapFriend(friend) {
     status: `Bạn bè từ ${toDateText(pick(friend.friendsSince, friend.FriendsSince))}`,
     avatar: normalizeAssetUrl(avatarUrl) || defaultAvatarUrl,
     time: 'Bạn bè',
+    sortTimestamp,
   };
 }
 
@@ -46,6 +63,7 @@ function mapRequest(request, kind) {
   const handle = pick(request.idDisplay, request.IdDisplay, request.userName, request.UserName, id);
   const name = pick(request.displayName, request.DisplayName, handle, id);
   const avatarUrl = pick(request.avatarUrl, request.AvatarUrl);
+  const sortTimestamp = toTimestamp(pick(request.requestedAt, request.RequestedAt));
 
   return {
     requestId,
@@ -55,6 +73,7 @@ function mapRequest(request, kind) {
     status: kind === 'incoming' ? 'Đang chờ bạn xác nhận' : 'Đã gửi lời mời',
     avatar: normalizeAssetUrl(avatarUrl) || defaultAvatarUrl,
     time: toDateText(pick(request.requestedAt, request.RequestedAt)),
+    sortTimestamp,
   };
 }
 
@@ -73,7 +92,15 @@ function mapSearchUser(user) {
   };
 }
 
-export default function FriendActivity({ onClose, onOpenProfile }) {
+export default function FriendActivity({
+  onClose,
+  onOpenProfile,
+  shareMode = false,
+  shareItemTitle = '',
+  shareItemType = '',
+  onShareConfirm,
+  onCancelShare,
+}) {
   const [friends, setFriends] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
@@ -81,20 +108,51 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState('friends');
   const [requestStatus, setRequestStatus] = useState('');
+  const [loadNotice, setLoadNotice] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [actionKey, setActionKey] = useState('');
   const [error, setError] = useState('');
+  const [selectedShareUser, setSelectedShareUser] = useState(null);
+  const [shareMessage, setShareMessage] = useState('');
+  const [shareActionStatus, setShareActionStatus] = useState('');
 
   const reloadFriendData = async () => {
-    const [friendsData, incomingData, sentData] = await Promise.all([
+    const [friendsResult, incomingResult, sentResult] = await Promise.allSettled([
       getMyFriends(),
       getIncomingFriendRequests(),
       getSentFriendRequests(),
     ]);
 
-    setFriends(friendsData.map(mapFriend));
-    setIncomingRequests(incomingData.map((request) => mapRequest(request, 'incoming')));
-    setSentRequests(sentData.map((request) => mapRequest(request, 'sent')));
+    const notices = [];
+
+    if (friendsResult.status === 'fulfilled') {
+      setFriends(friendsResult.value.map(mapFriend).sort(sortByNewest));
+    } else {
+      setFriends([]);
+      notices.push('danh sách bạn bè');
+    }
+
+    if (incomingResult.status === 'fulfilled') {
+      setIncomingRequests(incomingResult.value.map((request) => mapRequest(request, 'incoming')).sort(sortByNewest));
+    } else {
+      setIncomingRequests([]);
+      notices.push('thông báo đã nhận');
+    }
+
+    if (sentResult.status === 'fulfilled') {
+      setSentRequests(sentResult.value.map((request) => mapRequest(request, 'sent')).sort(sortByNewest));
+    } else {
+      setSentRequests([]);
+      notices.push('thông báo đã gửi');
+    }
+
+    setLoadNotice(notices.length > 0
+      ? `Một số danh sách bạn bè chưa tải được: ${notices.join(', ')}.`
+      : '');
+
+    if (notices.length === 3) {
+      throw new Error('Không tải được dữ liệu bạn bè.');
+    }
   };
 
   useEffect(() => {
@@ -103,6 +161,7 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
     async function loadFriendData() {
       setIsLoading(true);
       setError('');
+      setLoadNotice('');
 
       try {
         if (!isMounted) return;
@@ -130,6 +189,7 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
     const trimmedQuery = query.trim();
 
     if (trimmedQuery.length < 2) {
+      setSearchResults([]);
       return undefined;
     }
 
@@ -149,6 +209,14 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
       window.clearTimeout(timeoutId);
     };
   }, [query]);
+
+  useEffect(() => {
+    if (!shareMode) {
+      setSelectedShareUser(null);
+      setShareMessage('');
+      setShareActionStatus('');
+    }
+  }, [shareMode]);
 
   const relationMap = useMemo(() => {
     const map = new Map();
@@ -210,9 +278,18 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
       ? 'Không có lời mời kết bạn nào.'
       : 'Chưa gửi lời mời kết bạn nào.';
 
+  const tabCounts = {
+    friends: friends.length,
+    incoming: incomingRequests.length,
+    sent: sentRequests.length,
+  };
+
   const handleQueryChange = (value) => {
     setQuery(value);
     setRequestStatus('');
+    if (!shareMode) {
+      setShareActionStatus('');
+    }
   };
 
   const refreshAndReport = async (message, task, key = 'action') => {
@@ -247,51 +324,115 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
   };
 
   const handleSearchUserAction = async (user) => {
+    if (!user?.id) return;
+
     const relation = relationMap.get(user.id);
 
     if (relation?.type === 'friend') {
-      await refreshAndReport('Đã xóa bạn bè.', () => removeFriend(user.id), `friend:${user.id}`);
+      await refreshAndReport(
+        `Đã xóa bạn bè với ${user.name}.`,
+        () => removeFriend(user.id),
+        `search:remove:${user.id}`,
+      );
       return;
     }
 
-    if (relation?.type === 'incoming' && relation.requestId) {
-      await refreshAndReport('Đã chấp nhận lời mời kết bạn.', () => acceptFriendRequest(relation.requestId), `incoming:${relation.requestId}`);
+    if (relation?.type === 'incoming') {
+      if (!requireRequestId(relation.requestId)) return;
+      await refreshAndReport(
+        `Đã chấp nhận lời mời của ${user.name}.`,
+        () => acceptFriendRequest(relation.requestId),
+        `search:accept:${relation.requestId}`,
+      );
       return;
     }
 
-    if (relation?.type === 'sent' && relation.requestId) {
-      await refreshAndReport('Đã hủy lời mời kết bạn.', () => cancelFriendRequest(relation.requestId), `sent:${relation.requestId}`);
+    if (relation?.type === 'sent') {
+      if (!requireRequestId(relation.requestId)) return;
+      await refreshAndReport(
+        `Đã hủy lời mời gửi đến ${user.name}.`,
+        () => cancelFriendRequest(relation.requestId),
+        `search:cancel:${relation.requestId}`,
+      );
       return;
     }
 
-    if ((relation?.type === 'incoming' || relation?.type === 'sent') && !relation.requestId) {
-      setRequestStatus('Không tìm thấy mã lời mời. Vui lòng tải lại danh sách bạn bè.');
-      return;
-    }
-
-    await refreshAndReport('Đã gửi lời mời kết bạn.', () => sendFriendRequest(user.id), `send:${user.id}`);
+    await refreshAndReport(
+      `Đã gửi lời mời kết bạn tới ${user.name}.`,
+      () => sendFriendRequest(user.id),
+      `search:add:${user.id}`,
+    );
   };
+
+  const selectShareUser = (user) => {
+    if (!shareMode || !user?.id) return;
+    setSelectedShareUser(user);
+    setShareActionStatus(`Đã chọn ${user.name}.`);
+  };
+
+  const handleShareConfirm = async () => {
+    if (!shareMode) return;
+    if (!selectedShareUser?.id) {
+      setShareActionStatus('Chọn một người nhận trước khi xác nhận.');
+      return;
+    }
+
+    if (!onShareConfirm) {
+      setShareActionStatus('Thiếu callback gửi chia sẻ.');
+      return;
+    }
+
+    try {
+      setActionKey(`share:${selectedShareUser.id}`);
+      await onShareConfirm({
+        receiverId: selectedShareUser.id,
+        message: shareMessage.trim() || null,
+      });
+      setShareActionStatus('Đã gửi chia sẻ thành công.');
+      setSelectedShareUser(null);
+      setShareMessage('');
+      onCancelShare?.();
+    } catch (error) {
+      setShareActionStatus(error instanceof Error ? error.message : 'Không thể chia sẻ nội dung.');
+    } finally {
+      setActionKey('');
+    }
+  };
+
+  const shareLabel = shareItemType ? String(shareItemType).toUpperCase() : 'NỘI DUNG';
 
   return (
     <aside className="friend-activity">
       <div className="friend-activity-header">
-        <span>Bạn bè</span>
+        <span>{shareMode ? 'Chọn người nhận' : 'Bạn bè'}</span>
         <button type="button" aria-label="Đóng bạn bè" onClick={onClose}>
           <span className="material-symbols-outlined">close</span>
         </button>
       </div>
 
-      <label className="friend-activity-search">
-        <span className="material-symbols-outlined">search</span>
-        <input
-          type="text"
-          placeholder="Tìm theo ID hoặc tên"
-          value={query}
-          onChange={(event) => handleQueryChange(event.target.value)}
-        />
-      </label>
+      {shareMode ? (
+        <div className="friend-share-banner">
+          <strong>Chia sẻ {shareLabel}</strong>
+          <span>{shareItemTitle || 'Nội dung đang phát'}</span>
+          <button type="button" className="friend-share-banner-button" onClick={onCancelShare}>Hủy chia sẻ</button>
+        </div>
+      ) : null}
+
+      {!shareMode ? (
+        <label className="friend-activity-search">
+          <span className="material-symbols-outlined">search</span>
+          <input
+            type="text"
+            placeholder="Tìm theo ID hoặc tên"
+            value={query}
+            onChange={(event) => handleQueryChange(event.target.value)}
+          />
+        </label>
+      ) : null}
 
       {requestStatus && <div className="friend-activity-status">{requestStatus}</div>}
+      {loadNotice && <div className="friend-activity-status muted">{loadNotice}</div>}
+      {shareActionStatus && <div className="friend-activity-status muted">{shareActionStatus}</div>}
 
       {isLoading ? (
         <div className="friend-activity-empty">Đang tải dữ liệu bạn bè...</div>
@@ -299,68 +440,40 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
         <div className="friend-activity-empty error">{error}</div>
       ) : null}
 
-      <div className="friend-tabs">
-        <button type="button" className={activeTab === 'friends' ? 'active' : ''} onClick={() => setActiveTab('friends')}>
-          Bạn bè
-        </button>
-        <button type="button" className={activeTab === 'incoming' ? 'active' : ''} onClick={() => setActiveTab('incoming')}>
-          Đã nhận
-        </button>
-        <button type="button" className={activeTab === 'sent' ? 'active' : ''} onClick={() => setActiveTab('sent')}>
-          Đã gửi
-        </button>
-      </div>
+      {!shareMode ? (
+        <div className="friend-tabs">
+          <button type="button" className={activeTab === 'friends' ? 'active' : ''} onClick={() => setActiveTab('friends')}>
+            <span>Bạn bè</span>
+            <strong>{tabCounts.friends}</strong>
+          </button>
+          <button type="button" className={activeTab === 'incoming' ? 'active' : ''} onClick={() => setActiveTab('incoming')}>
+            <span>Đã nhận</span>
+            <strong>{tabCounts.incoming}</strong>
+          </button>
+          <button type="button" className={activeTab === 'sent' ? 'active' : ''} onClick={() => setActiveTab('sent')}>
+            <span>Đã gửi</span>
+            <strong>{tabCounts.sent}</strong>
+          </button>
+        </div>
+      ) : null}
 
       <div className="friend-activity-list">
-        {filteredSearchResults.length > 0 && (
-          <>
-            <div className="friend-activity-search-label">Kết quả tìm kiếm</div>
-            {filteredSearchResults.map((user) => {
-              const relation = relationMap.get(user.id);
-              const actionLabel = relation?.type === 'friend'
-                ? 'Xóa bạn'
-                : relation?.type === 'incoming'
-                  ? 'Chấp nhận'
-                  : relation?.type === 'sent'
-                    ? 'Hủy lời mời'
-                    : 'Kết bạn';
-
-              return (
-                <article className="friend-activity-item suggested" key={user.id}>
-                  <button type="button" className="friend-activity-profile-trigger avatar-trigger" onClick={() => openProfile(user)} aria-label={`Mở hồ sơ ${user.name}`}>
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      onError={(event) => {
-                        event.currentTarget.onerror = null;
-                        event.currentTarget.src = defaultAvatarUrl;
-                      }}
-                    />
-                  </button>
-                  <button type="button" className="friend-activity-profile-trigger friend-activity-copy-trigger" onClick={() => openProfile(user)}>
-                    <strong>{user.name}</strong>
-                    <span>{relation?.type === 'friend' ? 'Đã là bạn bè' : user.status}</span>
-                    <small>@{user.handle} • Kết quả tìm kiếm</small>
-                  </button>
-                  <button
-                    type="button"
-                    className="friend-activity-action-button"
-                    disabled={Boolean(actionKey)}
-                    onClick={() => handleSearchUserAction(user)}
-                  >
-                    {actionLabel}
-                  </button>
-                </article>
-              );
-            })}
-          </>
+        {!shareMode && activeTab === 'friends' && incomingRequests.length > 0 && (
+          <div className="friend-activity-notice">
+            <div className="friend-activity-notice-copy">
+              <span className="material-symbols-outlined">notifications</span>
+              <div>
+                <strong>Có {incomingRequests.length} lời mời kết bạn đang chờ</strong>
+                <small>Chuyển sang tab Đã nhận để xử lý các thông báo này.</small>
+              </div>
+            </div>
+            <button type="button" className="friend-activity-notice-button" onClick={() => setActiveTab('incoming')}>
+              Xem Đã nhận
+            </button>
+          </div>
         )}
 
-        {!isLoading && !error && query.trim().length < 2 && activeTabItems.length === 0 && (
-          <div className="friend-activity-empty">{activeTabEmptyMessage}</div>
-        )}
-
-        {activeTab === 'friends' && activeTabItems.map((friend) => (
+        {!shareMode && activeTab === 'friends' && activeTabItems.map((friend) => (
           <article className="friend-activity-item" key={friend.id}>
             <button type="button" className="friend-activity-profile-trigger avatar-trigger" onClick={() => openProfile(friend)} aria-label={`Mở hồ sơ ${friend.name}`}>
               <img
@@ -379,16 +492,96 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
             </button>
             <button
               type="button"
-              className="friend-activity-action-button"
+              className="friend-activity-action-button secondary"
               disabled={Boolean(actionKey)}
-              onClick={() => refreshAndReport('Đã xóa bạn bè.', () => removeFriend(friend.id), `friend:${friend.id}`)}
+              onClick={() => {
+                if (!friend?.id) return;
+                void refreshAndReport(`Đã xóa bạn bè với ${friend.name}.`, () => removeFriend(friend.id), `friend:${friend.id}`);
+              }}
             >
-              Xóa
+              Xóa bạn
             </button>
           </article>
         ))}
 
-        {activeTab === 'incoming' && activeTabItems.map((request) => (
+        {!shareMode && filteredSearchResults.length > 0 && (
+          <>
+            <div className="friend-activity-search-label">{shareMode ? 'Người có thể nhận' : 'Kết quả tìm kiếm'}</div>
+            {filteredSearchResults.map((user) => {
+              const relation = relationMap.get(user.id);
+              const actionLabel = shareMode
+                ? (selectedShareUser?.id === user.id ? 'Đã chọn' : 'Chọn')
+                : relation?.type === 'friend'
+                  ? 'Xóa bạn'
+                  : relation?.type === 'incoming'
+                    ? 'Chấp nhận'
+                    : relation?.type === 'sent'
+                      ? 'Hủy lời mời'
+                      : 'Kết bạn';
+
+              return (
+                <article className={`friend-activity-item ${shareMode ? 'suggested' : ''} ${selectedShareUser?.id === user.id ? 'selected' : ''}`} key={user.id}>
+                  <button type="button" className="friend-activity-profile-trigger avatar-trigger" onClick={() => openProfile(user)} aria-label={`Mở hồ sơ ${user.name}`}>
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = defaultAvatarUrl;
+                      }}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    className="friend-activity-profile-trigger friend-activity-copy-trigger"
+                    onClick={() => (shareMode ? selectShareUser(user) : openProfile(user))}
+                  >
+                    <strong>{user.name}</strong>
+                    <span>{shareMode ? 'Chọn người nhận' : relation?.type === 'friend' ? 'Đã là bạn bè' : user.status}</span>
+                    <small>@{user.handle} • {shareMode ? 'Chọn để chia sẻ' : 'Kết quả tìm kiếm'}</small>
+                  </button>
+                  <button
+                    type="button"
+                    className="friend-activity-action-button"
+                    disabled={Boolean(actionKey)}
+                    onClick={() => (shareMode ? selectShareUser(user) : handleSearchUserAction(user))}
+                  >
+                    {actionLabel}
+                  </button>
+                </article>
+              );
+            })}
+          </>
+        )}
+
+        {!shareMode && !isLoading && !error && query.trim().length < 2 && activeTabItems.length === 0 && (
+          <div className="friend-activity-empty">{activeTabEmptyMessage}</div>
+        )}
+
+        {shareMode && friends.map((friend) => (
+          <article className="friend-activity-item" key={friend.id}>
+            <button type="button" className="friend-activity-profile-trigger avatar-trigger" onClick={() => openProfile(friend)} aria-label={`Mở hồ sơ ${friend.name}`}>
+              <img
+                src={friend.avatar}
+                alt={friend.name}
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = defaultAvatarUrl;
+                }}
+              />
+            </button>
+            <button type="button" className="friend-activity-profile-trigger friend-activity-copy-trigger" onClick={() => openProfile(friend)}>
+              <strong>{friend.name}</strong>
+              <span>{friend.status}</span>
+              <small>@{friend.handle} • {friend.time}</small>
+            </button>
+            <button type="button" className="friend-activity-action-button" disabled={Boolean(actionKey)} onClick={() => selectShareUser(friend)}>
+              Chọn
+            </button>
+          </article>
+        ))}
+
+        {!shareMode && activeTab === 'incoming' && activeTabItems.map((request) => (
           <article className="friend-activity-item suggested" key={request.requestId}>
             <button type="button" className="friend-activity-profile-trigger avatar-trigger" onClick={() => openProfile(request)} aria-label={`Mở hồ sơ ${request.name}`}>
               <img
@@ -432,7 +625,7 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
           </article>
         ))}
 
-        {activeTab === 'sent' && activeTabItems.map((request) => (
+        {!shareMode && activeTab === 'sent' && activeTabItems.map((request) => (
           <article className="friend-activity-item suggested" key={request.requestId}>
             <button type="button" className="friend-activity-profile-trigger avatar-trigger" onClick={() => openProfile(request)} aria-label={`Mở hồ sơ ${request.name}`}>
               <img
@@ -467,6 +660,30 @@ export default function FriendActivity({ onClose, onOpenProfile }) {
           <div className="friend-activity-empty">Không tìm thấy người dùng phù hợp.</div>
         )}
       </div>
+
+      {shareMode ? (
+        <div className="friend-share-confirm">
+          <div className="friend-share-confirm-copy">
+            <strong>{selectedShareUser ? `Gửi tới ${selectedShareUser.name}` : 'Chọn một người nhận'}</strong>
+            <span>{selectedShareUser ? `@${selectedShareUser.handle}` : 'Nhấn chọn ở kết quả tìm kiếm để xác nhận.'}</span>
+          </div>
+          <label className="friend-share-message">
+            <span>Lời nhắn</span>
+            <textarea
+              rows={3}
+              value={shareMessage}
+              onChange={(event) => setShareMessage(event.target.value)}
+              placeholder="Gửi kèm lời nhắn..."
+            />
+          </label>
+          <div className="friend-share-actions">
+            <button type="button" className="friend-share-cancel" onClick={onCancelShare}>Hủy</button>
+            <button type="button" className="friend-share-confirm-button" onClick={handleShareConfirm} disabled={Boolean(actionKey)}>
+              {actionKey ? 'Đang gửi...' : 'Xác nhận'}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </aside>
   );
 }

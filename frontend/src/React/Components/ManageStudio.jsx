@@ -11,7 +11,9 @@ import {
   getMyMedia,
   getMyPlaylists,
   getTrackById,
+  mediaAudioStreamUrl,
   mediaPosterUrl,
+  mediaVideoStreamUrl,
   normalizeAssetUrl,
   reorderTrackInAlbum,
   reorderTrackInPlaylist,
@@ -27,7 +29,7 @@ import '../../CSS/Home.css';
 const manageTabs = [
   { key: 'song', label: 'Thêm nhạc', kind: 'Song', scope: 'media' },
   { key: 'video', label: 'Video', kind: 'Video', scope: 'media' },
-  { key: 'audio', label: 'Audio', kind: 'Podcast', scope: 'media' },
+  { key: 'audio', label: 'Audio', kind: 'Audio', scope: 'media' },
   { key: 'playlist', label: 'Playlist', kind: 'Playlist', scope: 'collection' },
   { key: 'album', label: 'Album', kind: 'Album', scope: 'collection' },
 ];
@@ -37,8 +39,29 @@ const sessionSkipRemoveTrackKey = 'tunevault_skip_remove_track_confirm';
 const defaultCoverUrl = normalizeAssetUrl('/uploads/default-cover/Default.png')
   || 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80';
 
+const defaultCoverOptions = [
+  { value: '/uploads/default-cover/Default.png', label: 'Default' },
+  { value: '/uploads/default-cover/Option1.png', label: 'Option 1' },
+  { value: '/uploads/default-cover/Option2.png', label: 'Option 2' },
+  { value: '/uploads/default-cover/Option3.png', label: 'Option 3' },
+  { value: '/uploads/default-cover/Option4.png', label: 'Option 4' },
+  { value: '/uploads/default-cover/Option5.png', label: 'Option 5' },
+  { value: '/uploads/default-cover/Option6.png', label: 'Option 6' },
+  { value: '/uploads/default-cover/Option7.png', label: 'Option 7' },
+  { value: '/uploads/default-cover/Option8.png', label: 'Option 8' },
+  { value: '/uploads/default-cover/Option9.png', label: 'Option 9' },
+  { value: '/uploads/default-cover/Option10.png', label: 'Option 10' },
+  { value: '/uploads/default-cover/Option11.png', label: 'Option 11' },
+  { value: '/uploads/default-cover/Option12.png', label: 'Option 12' },
+];
+
+function normalizeDefaultCoverUrl(value) {
+  const normalized = String(value || '').trim();
+  return defaultCoverOptions.some((option) => option.value === normalized) ? normalized : '';
+}
+
 function normalizeType(value) {
-  const numericMap = ['audio', 'video', 'podcast', 'song'];
+  const numericMap = ['audio', 'video', '', 'song'];
   if (typeof value === 'number') return numericMap[value] || '';
 
   const normalized = String(value || '').trim().toLowerCase();
@@ -63,7 +86,7 @@ function fromDateTimeLocal(value) {
 
 function getMediaKindFromTab(tabKey) {
   if (tabKey === 'video') return 'Video';
-  if (tabKey === 'audio') return 'Podcast';
+  if (tabKey === 'audio') return 'Audio';
   return 'Song';
 }
 
@@ -74,7 +97,7 @@ function getMediaRouteKind(tabKey) {
 
 function getMediaTypeLabel(tabKey) {
   if (tabKey === 'video') return 'Video';
-  if (tabKey === 'audio') return 'Podcast';
+  if (tabKey === 'audio') return 'Audio';
   return 'Song';
 }
 
@@ -86,10 +109,26 @@ function durationToLabel(seconds) {
   return `${minutes}:${remain}`;
 }
 
+function readDurationValue(item) {
+  const rawSeconds = Number(
+    item?.durationSeconds
+      ?? item?.DurationSeconds
+      ?? item?.duration
+      ?? item?.Duration
+      ?? 0
+  );
+  if (Number.isFinite(rawSeconds) && rawSeconds > 0) return rawSeconds;
+
+  const rawMinutes = Number(item?.durationMinutes ?? item?.DurationMinutes ?? 0);
+  if (Number.isFinite(rawMinutes) && rawMinutes > 0) return rawMinutes * 60;
+
+  return 0;
+}
+
 function isMediaTabItem(tabKey, item) {
   const mediaType = normalizeType(item?.mediaType || item?.type);
   if (tabKey === 'video') return mediaType === 'video';
-  if (tabKey === 'audio') return mediaType === 'audio' || mediaType === 'podcast';
+  if (tabKey === 'audio') return mediaType === 'audio';
   return mediaType === 'song';
 }
 
@@ -120,7 +159,7 @@ async function readDurationFromFile(file, mediaType) {
   });
 }
 
-function createMediaDraft(tabKey, currentUserName) {
+function createMediaDraft(tabKey) {
   return {
     tabKey,
     title: '',
@@ -128,14 +167,13 @@ function createMediaDraft(tabKey, currentUserName) {
     genre: '',
     releaseDate: toDateTimeLocal(new Date()),
     isPublic: true,
-    accessLevel: 'Normal',
     coverFile: null,
+    coverImageUrl: '',
     canvasFile: null,
     mediaFile: null,
     coverPreview: '',
     mediaPreview: '',
     durationSeconds: 0,
-    ownerLabel: currentUserName || 'Tự động theo tài khoản đang đăng nhập',
     typeLabel: getMediaTypeLabel(tabKey),
   };
 }
@@ -149,23 +187,28 @@ function createCollectionDraft(kind) {
     isPublic: true,
     contentType: 'Song',
     coverFile: null,
+    coverImageUrl: '',
     coverPreview: '',
-    ownerLabel: 'Tự động theo tài khoản đang đăng nhập',
   };
 }
 
-function buildMediaDraft(item, tabKey, currentUserName) {
+function buildMediaDraft(item, tabKey) {
+  const id = item?.id || item?.Id || '';
+  const mediaType = normalizeType(item?.mediaType || item?.MediaType || item?.type || item?.Type || getMediaKindFromTab(tabKey));
+  const uploadedMediaUrl = normalizeAssetUrl(item?.audioUrl || item?.AudioUrl || item?.videoUrl || item?.VideoUrl)
+    || (id ? (mediaType === 'video' ? mediaVideoStreamUrl(id) : mediaAudioStreamUrl(id)) : '');
+
   return {
-    ...createMediaDraft(tabKey, currentUserName),
+    ...createMediaDraft(tabKey),
     title: item?.title || item?.Title || '',
     description: item?.description || item?.Description || '',
     genre: item?.genre || item?.Genre || '',
     releaseDate: toDateTimeLocal(item?.releaseDate || item?.ReleaseDate || new Date()),
     isPublic: item?.isPublic ?? item?.IsPublic ?? true,
-    accessLevel: item?.accessLevel || item?.AccessLevel || 'Normal',
-    coverPreview: mediaPosterUrl(item?.id || item?.Id || '') || normalizeAssetUrl(item?.coverImageUrl || item?.CoverImageUrl) || defaultCoverUrl,
-    mediaPreview: normalizeAssetUrl(item?.audioUrl || item?.AudioUrl || item?.videoUrl || item?.VideoUrl) || '',
-    durationSeconds: Number(item?.durationSeconds ?? item?.DurationSeconds ?? 0),
+    coverImageUrl: normalizeDefaultCoverUrl(item?.coverImageUrl || item?.CoverImageUrl),
+    coverPreview: mediaPosterUrl(id) || normalizeAssetUrl(item?.coverImageUrl || item?.CoverImageUrl) || defaultCoverUrl,
+    mediaPreview: uploadedMediaUrl,
+    durationSeconds: readDurationValue(item),
     typeLabel: getMediaTypeLabel(tabKey),
   };
 }
@@ -178,8 +221,65 @@ function buildCollectionDraft(item, kind) {
     releaseDate: toDateTimeLocal(item?.releaseDate || item?.ReleaseDate || new Date()),
     isPublic: item?.isPublic ?? item?.IsPublic ?? true,
     contentType: item?.contentType || item?.ContentType || 'Song',
+    coverImageUrl: normalizeDefaultCoverUrl(item?.coverImgUrl || item?.coverImageUrl || item?.CoverImgUrl || item?.CoverImageUrl),
     coverPreview: normalizeAssetUrl(item?.coverImgUrl || item?.coverImageUrl || item?.CoverImgUrl || item?.CoverImageUrl) || defaultCoverUrl,
   };
+}
+
+function DefaultCoverPicker({ value, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = defaultCoverOptions.find((option) => option.value === value);
+
+  return (
+    <div className="manage-default-cover-picker">
+      <span className="manage-default-cover-label">Ảnh bìa mặc định</span>
+      <button
+        className="manage-default-cover-trigger"
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+      >
+        {selectedOption ? (
+          <>
+            <img src={normalizeAssetUrl(selectedOption.value)} alt="" />
+            <span>{selectedOption.label}</span>
+          </>
+        ) : (
+          <span>Không dùng ảnh mặc định</span>
+        )}
+        <span className="material-symbols-outlined">expand_more</span>
+      </button>
+
+      {isOpen ? (
+        <div className="manage-default-cover-menu">
+          <button
+            className={!value ? 'is-selected' : ''}
+            type="button"
+            onClick={() => {
+              onChange('');
+              setIsOpen(false);
+            }}
+          >
+            <span>Không dùng</span>
+          </button>
+          {defaultCoverOptions.map((option) => (
+            <button
+              className={value === option.value ? 'is-selected' : ''}
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+            >
+              <img src={normalizeAssetUrl(option.value)} alt="" />
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function entityKey(tabKey, item) {
@@ -308,7 +408,7 @@ export default function ManageStudio({
       setTrackRows([]);
       setDraft(
         activeTabConfig.scope === 'media'
-          ? createMediaDraft(activeTab, localStorage.getItem('user_name'))
+          ? createMediaDraft(activeTab)
           : createCollectionDraft(activeTab)
       );
       return;
@@ -317,7 +417,7 @@ export default function ManageStudio({
     setSelectedEntity(item);
 
     if (activeTabConfig.scope === 'media') {
-      setDraft(buildMediaDraft(item, activeTab, localStorage.getItem('user_name')));
+      setDraft(buildMediaDraft(item, activeTab));
       setTrackRows([]);
       return;
     }
@@ -379,7 +479,7 @@ export default function ManageStudio({
           setViewMode('editor');
           setDirty(false);
           if (nextKind === 'media') {
-            setDraft(buildMediaDraft(matched, nextTab, localStorage.getItem('user_name')));
+            setDraft(buildMediaDraft(matched, nextTab));
             setTrackRows([]);
           } else {
             const collectionDraft = buildCollectionDraft(matched, nextTab);
@@ -453,10 +553,27 @@ export default function ManageStudio({
     updateDraft({
       [field]: file,
       [`${field.replace('File', 'Preview')}`]: previewUrl,
-      ...(field === 'coverFile' ? { coverPreview: previewUrl } : {}),
+      ...(field === 'coverFile' ? { coverPreview: previewUrl, coverImageUrl: '' } : {}),
       ...(field === 'mediaFile' ? { mediaPreview: previewUrl, durationSeconds } : {}),
     });
   };
+
+  const selectDefaultCover = (coverImageUrl) => {
+    const normalizedUrl = normalizeDefaultCoverUrl(coverImageUrl);
+    updateDraft({
+      coverImageUrl: normalizedUrl,
+      coverFile: null,
+      coverPreview: normalizedUrl ? normalizeAssetUrl(normalizedUrl) : '',
+    });
+  };
+
+  const currentMediaFileLabel = draft.mediaFile
+    ? draft.mediaFile.name
+    : draft.mediaPreview
+      ? 'Đã upload'
+      : 'Chưa chọn file';
+
+  const currentMediaFileUrl = !draft.mediaFile && draft.mediaPreview ? draft.mediaPreview : '';
 
   const openDeleteConfirm = (message, onConfirmAction, allowSkip = false) => {
     setDontAskAgain(false);
@@ -614,10 +731,9 @@ export default function ManageStudio({
           Description: draft.description || '',
           Genre: draft.genre || '',
           Type: getMediaKindFromTab(activeTab),
-          AccessLevel: 0,
+          DurationSeconds: Math.round(Number(draft.durationSeconds || 0)),
           IsPublic: draft.isPublic,
           ReleaseDate: fromDateTimeLocal(draft.releaseDate),
-          FeaturedArtistIds: [],
         };
 
         const mediaField = activeTab === 'video' ? 'VideoFile' : 'AudioFile';
@@ -633,6 +749,7 @@ export default function ManageStudio({
 
         if (mediaFile) payload[mediaField] = mediaFile;
         if (draft.coverFile) payload.CoverImage = draft.coverFile;
+        if (draft.coverImageUrl) payload.CoverImageUrl = draft.coverImageUrl;
         if (draft.canvasFile) payload.CanvasFile = draft.canvasFile;
 
         if (selectedEntity) {
@@ -648,6 +765,7 @@ export default function ManageStudio({
           Description: draft.description || '',
           IsPublic: draft.isPublic,
           CoverImage: draft.coverFile,
+          CoverImageUrl: draft.coverImageUrl,
           ContentType: draft.contentType || 'Song',
           ReleaseDate: fromDateTimeLocal(draft.releaseDate),
         };
@@ -663,6 +781,7 @@ export default function ManageStudio({
           Description: draft.description || '',
           IsPublic: draft.isPublic,
           CoverImage: draft.coverFile,
+          CoverImageUrl: draft.coverImageUrl,
           ContentType: draft.contentType || 'Song',
           ReleaseDate: fromDateTimeLocal(draft.releaseDate),
         };
@@ -866,7 +985,6 @@ export default function ManageStudio({
                 </div>
                 <div className="create-cover-copy">
                   <strong>{draft.title || 'Untitled'}</strong>
-                  <span>{draft.ownerLabel}</span>
                 </div>
               </div>
 
@@ -959,7 +1077,12 @@ export default function ManageStudio({
                           />
                         </label>
                       </div>
-                      {draft.mediaFile ? <p className="create-help">Đã chọn: {draft.mediaFile.name}</p> : null}
+                      {draft.mediaFile || draft.mediaPreview ? (
+                        <p className="create-help manage-media-upload-state">
+                          {draft.mediaFile ? `Đã chọn: ${draft.mediaFile.name}` : 'Đã upload file media'}
+                          {currentMediaFileUrl ? <span>{currentMediaFileUrl}</span> : null}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="create-field-row">
@@ -973,6 +1096,10 @@ export default function ManageStudio({
                             onChange={(event) => setPreviewFile('coverFile', event.target.files?.[0])}
                           />
                         </label>
+                        <DefaultCoverPicker
+                          value={draft.coverImageUrl}
+                          onChange={selectDefaultCover}
+                        />
                       </div>
                       {activeTabConfig.scope === 'media' && draft.tabKey !== 'video' && (
                         <div className="create-field">
@@ -1001,6 +1128,10 @@ export default function ManageStudio({
                           onChange={(event) => setPreviewFile('coverFile', event.target.files?.[0])}
                         />
                       </label>
+                      <DefaultCoverPicker
+                        value={draft.coverImageUrl}
+                        onChange={selectDefaultCover}
+                      />
                     </div>
 
                     <div className="manage-track-panel">
@@ -1101,11 +1232,6 @@ export default function ManageStudio({
                   </button>
                 </div>
 
-                <div className="manage-access-note">
-                  <strong>Quyền truy cập</strong>
-                  <p>Tự động theo tài khoản đang tạo nội dung.</p>
-                </div>
-
                 <div className="create-actions">
                   <button type="button" className="create-primary" onClick={handleSave} disabled={saving}>
                     {saving ? 'Đang lưu...' : selectedEntity ? 'Lưu thay đổi' : `Tạo ${activeTabConfig.label.toLowerCase()} mới`}
@@ -1150,13 +1276,16 @@ export default function ManageStudio({
                 </div>
 
                 {activeTabConfig.scope === 'media' ? (
-                  <div className="manage-preview-card">
-                    <span className="manage-preview-label">File hiện chọn</span>
-                    <strong>{draft.mediaFile ? draft.mediaFile.name : 'Chưa chọn file'}</strong>
-                    <span className="manage-preview-muted">
-                      Duration: {durationToLabel(draft.durationSeconds)}
-                    </span>
-                  </div>
+	                  <div className="manage-preview-card">
+	                    <span className="manage-preview-label">File hiện chọn</span>
+	                    <strong>{currentMediaFileLabel}</strong>
+	                    {currentMediaFileUrl ? (
+	                      <span className="manage-preview-muted">{currentMediaFileUrl}</span>
+	                    ) : null}
+	                    <span className="manage-preview-muted">
+	                      Duration: {draft.durationSeconds > 0 ? durationToLabel(draft.durationSeconds) : 'Chưa có trong database'}
+	                    </span>
+	                  </div>
                 ) : (
                   <div className="manage-preview-card">
                     <span className="manage-preview-label">Track count</span>
