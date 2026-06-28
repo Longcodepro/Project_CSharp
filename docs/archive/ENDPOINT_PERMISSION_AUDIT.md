@@ -34,7 +34,6 @@ Base route: `/api/media`
 | `GET /api/media/{id}` | Không | Không | Public detail | Repository chỉ lọc `IsActive = 1`; DTO trả stream endpoint, không trả path vật lý | Hiện chưa chặn `IsPublic = 0` hoặc `IsValid = 1` ở detail |
 | `GET /api/media/my-media` | Có | Có | Chỉ lấy media của user hiện tại | Lấy theo `OwnerId`, `IsActive = 1`; owner vẫn thấy media bị khóa `IsValid = 1` | Hợp lý cho trang quản lý của artist |
 | `GET /api/media/artist/{userId}` | Không | Không | Public xem media theo artist id | Dùng chung `GetByOwnerAsync`, chỉ lọc `OwnerId` và `IsActive = 1` | Public vẫn có thể thấy media private/vi phạm; nên siết `IsPublic = 1 AND IsValid = 0` |
-| `GET /api/media/stream/{id}` | Không | Không | Public stream primary asset | Lọc `IsActive = 1 AND IsValid = 0`, trả file bằng `PhysicalFile`, có Range | Chưa chặn media private; nếu theo rule mới thì cần yêu cầu login và check owner/public |
 | `GET /api/media/{id}/audio/stream` | Không | Không | Public stream audio | Lọc `IsActive = 1 AND IsValid = 0`, không lộ path server | Chưa chặn `IsPublic = 0` |
 | `GET /api/media/{id}/video/stream` | Không | Không | Public stream video | Chỉ stream khi `MediaType = Video`; lọc `IsActive = 1 AND IsValid = 0`, không lộ path server | Chưa chặn `IsPublic = 0` |
 | `GET /api/media/{id}/poster` | Không | Không | Public poster | Lọc `IsActive = 1 AND IsValid = 0`, trả ảnh nếu file tồn tại | Chưa chặn `IsPublic = 0` |

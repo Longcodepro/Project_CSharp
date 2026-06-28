@@ -1,6 +1,6 @@
 # DATABASE_SCHEMA.md — TuneVault Database Schema
 
-> File này được tạo từ `Untitled.sql` hiện tại. Dùng làm nguồn tham chiếu cho AI Agent khi viết Dapper Repository, DTO mapping và endpoint.
+> File này được tạo từ `database.sql` hiện tại. Dùng làm nguồn tham chiếu cho AI Agent khi viết Dapper Repository, DTO mapping và endpoint.
 
 > Lưu ý: Vì project dùng Dapper, AI **không được đoán tên bảng/cột**. Nếu bảng/cột không có trong file này thì phải hỏi lại trước khi code.
 
