@@ -49,19 +49,15 @@ public class UnfollowUserCommandHandler : IRequestHandler<UnfollowUserCommand, b
         if (request.FollowerId == request.FolloweeId)
             throw new DomainException("Người dùng không thể tự bỏ theo dõi chính mình.");
 
-        // Step 1: Lấy Entity của người được theo dõi (cần để giảm TotalFollowers)
         var followee = await _userRepository.GetByIdAsync(request.FolloweeId, ct);
 
-        // Step 2: Kiểm tra sự tồn tại của followee
         if (followee is null || !followee.IsActive)
             throw new DomainException("Không tìm thấy người dùng cần bỏ theo dõi hoặc tài khoản này hiện không còn hoạt động.");
 
-        // Step 3: Kiểm tra quan hệ follow có tồn tại không — tránh thao tác vô nghĩa
         var isFollowing = await _userRepository.IsFollowingAsync(request.FollowerId, request.FolloweeId, ct);
         if (!isFollowing)
             throw new DomainException("Bạn chưa theo dõi người dùng này.");
 
-        // Step 4: Xóa bản ghi quan hệ follow khỏi bảng UserFollows và trả về kết quả.
         // TotalFollowers sẽ được cập nhật bởi FollowRepository.
         return await _userRepository.UnfollowUserAsync(request.FollowerId, request.FolloweeId, ct);
     }

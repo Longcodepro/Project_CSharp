@@ -5,60 +5,43 @@ using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Auth.Commands.Login;
 
+/// <summary>
+/// Xác thực đăng nhập và cấp token cho người dùng.
+/// </summary>
 public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto>
 {
     private readonly IUserRepository _userRepo;
-    private readonly IAdminRepository _adminRepo;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
 
+    /// <summary>
+    /// Khởi tạo handler đăng nhập.
+    /// </summary>
     public LoginCommandHandler(
         IUserRepository userRepo,
-        IAdminRepository adminRepo,
         IJwtTokenGenerator jwtTokenGenerator)
     {
         _userRepo = userRepo;
-        _adminRepo = adminRepo;
         _jwtTokenGenerator = jwtTokenGenerator;
     }
 
+    /// <summary>
+    /// Kiểm tra mật khẩu và trả về access token, refresh token.
+    /// </summary>
     public async Task<AuthResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        var roles = new List<string>();
-        string userId;
-        string tokenUsername;
-        string passwordHashInDb;
+        var user = await _userRepo.GetByIdDisplayAsync(request.IdDisplay, cancellationToken);
 
-        // BƯỚC 1: Thử tìm Admin theo username (= email của admin)
-        var admin = await _adminRepo.GetByUsernameAsync(request.IdDisplay, cancellationToken);
+        if (user == null)
+            throw new UnauthorizedAccessException("Tài khoản hoặc mật khẩu không chính xác.");
 
-        if (admin != null)
-        {
-            userId          = admin.Id;
-            tokenUsername   = admin.Email;
-            passwordHashInDb = admin.PasswordHash;
-            roles.Add("Admin");
-            roles.Add(admin.Role);
-        }
-        else
-        {
-            // BƯỚC 2: Tìm User thường theo IdDisplay
-            var user = await _userRepo.GetByIdDisplayAsync(request.IdDisplay, cancellationToken);
+        var roles = new List<string> { user.IsArtist ? "Artist" : "Listener" };
+        var userId = user.Id;
+        var tokenUsername = user.IdDisplay;
+        var passwordHashInDb = user.PasswordHash;
 
-            if (user == null)
-                throw new UnauthorizedAccessException("Tài khoản hoặc mật khẩu không chính xác.");
-
-            userId          = user.Id;
-            tokenUsername   = user.IdDisplay;
-            passwordHashInDb = user.PasswordHash;
-
-            roles.Add(user.IsArtist ? "Artist" : "Listener");
-        }
-
-        // BƯỚC 3: Xác minh mật khẩu bằng BCrypt
         if (!BCrypt.Net.BCrypt.Verify(request.Password, passwordHashInDb))
             throw new UnauthorizedAccessException("Tài khoản hoặc mật khẩu không chính xác.");
 
-        // BƯỚC 4: Sinh JWT
         var token = _jwtTokenGenerator.GenerateToken(userId, tokenUsername, string.Join(",", roles));
         var refreshToken = _jwtTokenGenerator.GenerateRefreshToken(userId, tokenUsername, string.Join(",", roles));
 

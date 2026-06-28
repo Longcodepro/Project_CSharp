@@ -38,8 +38,8 @@ public sealed class GetUserMediaQueryHandler : IRequestHandler<GetUserMediaQuery
 
         foreach (var item in items)
         {
-            var artists = await _mediaRepository.GetArtistsByMediaIdAsync(item.Id, ct);
-            result.Add(MediaDtoMapper.ToOwnerDetailDto(item, artists));
+            var ownerName = await _mediaRepository.GetOwnerDisplayNameAsync(item.Id, ct);
+            result.Add(MediaDtoMapper.ToOwnerDetailDto(item, ownerName));
         }
 
         return result;

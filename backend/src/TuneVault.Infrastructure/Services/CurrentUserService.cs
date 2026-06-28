@@ -1,8 +1,7 @@
 using System;
 using System.Security.Claims;
-using System.Linq; // Added for Select, Any, Distinct
+using System.Linq;
 using Microsoft.AspNetCore.Http;
-// Removed: using Microsoft.IdentityModel.Tokens; // Not needed for explicit claim access
 using TuneVault.Application.Abstractions;
 using TuneVault.Domain.Interfaces;
 
@@ -25,8 +24,6 @@ public class CurrentUserService : ICurrentUserService, ICurrentUserContext
     {
         _httpContextAccessor = httpContextAccessor;
     }
-
-    // ====== ICurrentUserService (Application) ======
 
     /// <summary>
     /// Lấy UserId dưới dạng string từ claim "sub" (JWT subject).
@@ -54,8 +51,6 @@ public class CurrentUserService : ICurrentUserService, ICurrentUserContext
     /// </summary>
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 
-    // ====== ICurrentUserContext (Domain) ======
-
     /// <summary>
     /// Lấy UserId dưới dạng string (format: U001, A001, v.v.).
     /// Ưu tiên claim "sub", fallback sang NameIdentifier.
@@ -65,7 +60,6 @@ public class CurrentUserService : ICurrentUserService, ICurrentUserContext
         if (_httpContextAccessor.HttpContext?.User == null)
             return null;
 
-        // Use explicit claim access instead of FindFirstValue extension method
         return _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value 
             ?? _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
     }

@@ -1,11 +1,13 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MediatR;
-using TuneVault.Application.Common; // Added for ApiResponse
+using TuneVault.Application.Common;
 using TuneVault.Application.Common.Behaviors;
 using TuneVault.Application.Abstractions;
 using TuneVault.Application.Features.User.Queries.GetUserById;
@@ -24,6 +26,14 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 500_000_000;
+});
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 500_000_000;
+});
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -77,7 +87,6 @@ builder.Services.AddValidatorsFromAssembly(typeof(GetUserByIdQueryHandler).Assem
 builder.Services.Configure<DatabaseOptions>(
     builder.Configuration.GetSection("DatabaseOptions"));
 
-// Chỉ đăng ký IDbConnectionFactory — KHÔNG đăng ký DapperContext (Rule 4.1)
 builder.Services.AddScoped<IDbConnectionFactory, DbConnectionFactory>();
 
 // =========================================================================
@@ -85,23 +94,10 @@ builder.Services.AddScoped<IDbConnectionFactory, DbConnectionFactory>();
 // =========================================================================
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IUserRepository,
                             TuneVault.Infrastructure.Repositories.UserRepository>();
-
-// Removed DapperContext registration and test endpoint as per Rule 4.1 and Rule 10
-// builder.Services.AddSingleton<DapperContext>(); // Removed
-// app.MapGet("/test-db", async (DapperContext context) => // Removed
-// { // Removed
-//     return Results.Ok(new { status = "ok", service = "TuneVault API" }); // Removed
-// }) // Removed
-// .WithName("Health"); // Removed
-
-// Note: The Health endpoint was also removed as it was on the same line as the test-db endpoint.
-// If Health endpoint is needed, it should be re-added separately.
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IOtpLogRepository,
                             TuneVault.Infrastructure.Repositories.OtpLogRepository>();
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IMediaRepository,
                             TuneVault.Infrastructure.Repositories.MediaRepository>();
-builder.Services.AddScoped<TuneVault.Domain.Interfaces.IAdminRepository,
-                            TuneVault.Infrastructure.Repositories.AdminRepository>();
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IFavoriteRepository,
                             TuneVault.Infrastructure.Repositories.FavoriteRepository>();
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.IFollowRepository,
@@ -133,7 +129,6 @@ builder.Services.AddScoped<IFileStorageService,
 builder.Services.AddScoped<TuneVault.Application.Abstractions.ICurrentUserService,
                             TuneVault.Infrastructure.Services.CurrentUserService>();
 
-// Register ICurrentUserContext (Domain level) — implement by CurrentUserService
 builder.Services.AddScoped<TuneVault.Domain.Interfaces.ICurrentUserContext,
                             TuneVault.Infrastructure.Services.CurrentUserService>();
                             
@@ -159,6 +154,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                   "http://localhost:3000",
                   "http://127.0.0.1:3000",
+                  "http://localhost:5128",
+                  "http://127.0.0.1:5128",
                   "http://localhost:5173",
                   "http://127.0.0.1:5173",
                   "http://localhost:5174",
@@ -175,8 +172,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// FIX: đọc từ "JwtSettings:SecretKey" để khớp với JwtTokenGenerator
-// Đồng thời sync appsettings.json (xem ghi chú bên dưới)
 var jwtSecretKey = ReadRequiredConfiguration(
     builder.Configuration,
     "JwtSettings:SecretKey",
@@ -206,7 +201,7 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer              = jwtIssuer,
         ValidateAudience         = true,
         ValidAudience            = jwtAudience,
-        ClockSkew                = TimeSpan.FromSeconds(5), // Allow for minor clock differences
+        ClockSkew                = TimeSpan.FromSeconds(5),
         NameClaimType            = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.UniqueName,
         RoleClaimType            = "role"
     };
@@ -317,17 +312,14 @@ app.UseExceptionHandler(errApp =>
     });
 });
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "TuneVault API v1"));
-}
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TuneVault API v1"));
 
 app.UseStaticFiles();
 app.UseCors("Frontend");
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
 app.UseAuthentication();
@@ -335,7 +327,12 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<TuneVault.Infrastructure.Realtime.NotificationHub>("/hubs/notifications");
-app.MapGet("/", () => Results.Ok(new { service = "TuneVault API" }));
+app.MapGet("/", () => Results.Ok(new
+{
+    success = true,
+    message = "TuneVault API is running",
+    environment = app.Environment.EnvironmentName
+}));
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "TuneVault API" }))
    .WithName("Health");
 

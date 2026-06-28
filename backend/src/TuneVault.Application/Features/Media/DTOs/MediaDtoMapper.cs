@@ -11,10 +11,12 @@ public static class MediaDtoMapper
     /// <summary>
     /// Map media sang DTO công khai dành cho người xem thông thường.
     /// </summary>
-    public static MediaPublicDto ToPublicDto(MediaItem mediaItem, IEnumerable<MediaArtist> artists)
+    public static MediaPublicDto ToPublicDto(MediaItem mediaItem, string? ownerName)
     {
         return new MediaPublicDto(
             Id: mediaItem.Id,
+            OwnerId: mediaItem.OwnerId,
+            OwnerName: ownerName,
             Title: mediaItem.Title,
             Description: mediaItem.Description,
             Genre: mediaItem.Genre,
@@ -25,19 +27,19 @@ public static class MediaDtoMapper
             FavoriteCount: mediaItem.FavoriteCount,
             ViewCount: mediaItem.ViewCount,
             UploadedAt: mediaItem.UploadedAt,
-            ReleaseDate: mediaItem.ReleaseDate,
-            Artists: artists.Select(a => new MediaArtistDto(a.ArtistId, a.Role, a.ArtistName))
+            ReleaseDate: mediaItem.ReleaseDate
         );
     }
 
     /// <summary>
     /// Map media sang DTO chi tiết dành cho owner.
     /// </summary>
-    public static MediaOwnerDetailDto ToOwnerDetailDto(MediaItem mediaItem, IEnumerable<MediaArtist> artists)
+    public static MediaOwnerDetailDto ToOwnerDetailDto(MediaItem mediaItem, string? ownerName)
     {
         return new MediaOwnerDetailDto(
             Id: mediaItem.Id,
             OwnerId: mediaItem.OwnerId,
+            OwnerName: ownerName,
             Title: mediaItem.Title,
             Description: mediaItem.Description,
             Genre: mediaItem.Genre,
@@ -47,15 +49,12 @@ public static class MediaDtoMapper
             CoverImageUrl: string.IsNullOrWhiteSpace(mediaItem.CoverImageUrl) ? null : MediaEndpointBuilder.Poster(mediaItem.Id),
             CanvasUrl: mediaItem.CanvasUrl,
             DurationSeconds: mediaItem.Duration.TotalSeconds,
-            AccessLevel: mediaItem.AccessLevel.ToString(),
             IsPublic: mediaItem.IsPublic,
             IsActive: mediaItem.IsActive,
-            IsValid: mediaItem.IsValid,
             FavoriteCount: mediaItem.FavoriteCount,
             ViewCount: mediaItem.ViewCount,
             UploadedAt: mediaItem.UploadedAt,
-            ReleaseDate: mediaItem.ReleaseDate,
-            Artists: artists.Select(a => new MediaArtistDto(a.ArtistId, a.Role, a.ArtistName))
+            ReleaseDate: mediaItem.ReleaseDate
         );
     }
 }

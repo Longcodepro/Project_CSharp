@@ -34,6 +34,7 @@ public interface IFavoriteRepository
         string userId,
         string targetId,
         FavoriteTargetType targetType,
+        bool includeInactive = false,
         CancellationToken ct = default);
 
     /// <summary>
@@ -97,7 +98,7 @@ public interface IFavoriteRepository
     Task UpdateAsync(Favorite favorite, CancellationToken ct = default);
 
     /// <summary>
-    /// Xóa một bản ghi Favorite khỏi database.
+    /// Vô hiệu hóa một bản ghi Favorite trong database mà không xóa vật lý.
     /// </summary>
     /// <param name="id">Mã định danh của bản ghi Favorite cần xóa.</param>
     /// <param name="ct">Token hủy tác vụ bất đồng bộ.</param>

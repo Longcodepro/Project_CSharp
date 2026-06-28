@@ -6,13 +6,9 @@ using TuneVault.Application.Common;
 using TuneVault.Application.Features.User.Commands.FollowUser;
 using TuneVault.Application.Features.User.Commands.UnfollowUser;
 using TuneVault.Application.Features.User.Commands.UpdateProfile;
-using TuneVault.Application.Features.User.Commands.VerifyAsArtist;
 using TuneVault.Application.Features.User.DTOs;
-using TuneVault.Application.Features.User.Queries.CountFollowers;
 using TuneVault.Application.Features.User.Queries.CheckFollowStatus;
 using TuneVault.Application.Features.User.Queries.GetAllArtists;
-using TuneVault.Application.Features.User.Queries.GetFollowers;
-using TuneVault.Application.Features.User.Queries.GetFollowing;
 using TuneVault.Application.Features.User.Queries.GetProfile;
 using TuneVault.Application.Features.User.Queries.GetUserById;
 using TuneVault.Application.Features.User.Queries.GetUserByIdDisplay;
@@ -44,6 +40,8 @@ public class UsersController : BaseApiController
         ".png",
         ".webp"
     ];
+
+    private const string DefaultAvatarFileName = "Default.png";
 
     private readonly IMediator _mediator;
     private readonly ICurrentUserContext _currentUserContext;
@@ -165,31 +163,6 @@ public class UsersController : BaseApiController
     }
 
     /// <summary>
-    /// Xác thực một tài khoản người dùng thành nghệ sĩ.
-    /// </summary>
-    /// <param name="id">Mã định danh hệ thống của người dùng cần xác thực.</param>
-    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
-    /// <returns>ApiResponse chứa hồ sơ người dùng sau khi được xác thực nghệ sĩ.</returns>
-    [HttpPatch("{id}/verify-artist")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(typeof(ApiResponse<UserProfileDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> VerifyArtist(string id, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            return BadRequest(ApiResponse<object?>.Fail("Mã người dùng cần xác thực nghệ sĩ không được để trống."));
-        }
-
-        var result = await _mediator.Send(new VerifyAsArtistCommand(id), ct);
-
-        return Ok(ApiResponse<UserProfileDto>.Ok(result, "Xác thực tài khoản nghệ sĩ thành công."));
-    }
-
-    /// <summary>
     /// Lấy danh sách tài khoản nghệ sĩ đang hoạt động.
     /// </summary>
     /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
@@ -212,6 +185,7 @@ public class UsersController : BaseApiController
     /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
     /// <returns>ApiResponse chứa thông tin người dùng công khai nếu tìm thấy.</returns>
     [HttpGet("by-handle/{idDisplay}")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status401Unauthorized)]
@@ -242,11 +216,9 @@ public class UsersController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(string id, CancellationToken ct)
     {
-        // Bước 1: Gửi query GetUserByIdQuery tới MediatR.
         var query = new GetUserByIdQuery(id);
         var result = await _mediator.Send(query, ct);
 
-        // Bước 2: Trả về kết quả hoặc 404 nếu không tìm thấy.
         return result == null
             ? NotFound(ApiResponse<object?>.Fail("Không tìm thấy người dùng hoặc tài khoản này hiện không còn hoạt động."))
             : Ok(ApiResponse<UserPublicDetailDto>.Ok(result, "Lấy thông tin người dùng thành công."));
@@ -345,115 +317,6 @@ public class UsersController : BaseApiController
     }
 
     /// <summary>
-    /// Route cũ được giữ lại để tránh phá client hiện tại, nhưng vẫn chỉ cho phép kiểm tra theo tài khoản đang đăng nhập.
-    /// </summary>
-    /// <param name="followerId">Mã follower từ route cũ.</param>
-    /// <param name="followeeId">Mã người dùng đang được xem.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>ApiResponse chứa trạng thái theo dõi của tài khoản hiện tại.</returns>
-    [HttpGet("{followerId}/is-following/{followeeId}")]
-    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetFollowStatusLegacy(string followerId, string followeeId, CancellationToken ct)
-    {
-        var currentUserId = _currentUserContext.GetCurrentUserId();
-        if (string.IsNullOrWhiteSpace(currentUserId))
-        {
-            return Unauthorized(ApiResponse<object?>.Fail("Bạn cần đăng nhập để kiểm tra trạng thái theo dõi."));
-        }
-
-        if (!currentUserId.Equals(followerId, StringComparison.OrdinalIgnoreCase))
-        {
-            return StatusCode(
-                StatusCodes.Status403Forbidden,
-                ApiResponse<object?>.Fail("Bạn không có quyền kiểm tra trạng thái theo dõi của người dùng khác."));
-        }
-
-        return await GetFollowStatus(followeeId, ct);
-    }
-
-    /// <summary>
-    /// Gets a list of users that a given user is following.
-    /// </summary>
-    /// <param name="id">The ID of the user whose following list to retrieve.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>An ApiResponse containing a list of users being followed.</returns>
-    [HttpGet("{id}/following")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<UserDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetFollowing(string id, CancellationToken ct)
-    {
-        // Bước 1: Gửi query GetFollowingQuery tới MediatR.
-        var query = new GetFollowingQuery(id);
-        var result = await _mediator.Send(query, ct);
-
-        // Bước 2: Trả về kết quả.
-        return Ok(ApiResponse<IEnumerable<UserDto>>.Ok(result, "Lấy danh sách đang theo dõi thành công."));
-    }
-
-    /// <summary>
-    /// Gets a list of users who are following a given user.
-    /// </summary>
-    /// <param name="id">The ID of the user whose followers list to retrieve.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>An ApiResponse containing a list of followers.</returns>
-    [HttpGet("{id}/followers")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<UserDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetFollowers(string id, CancellationToken ct)
-    {
-        var currentUserId = _currentUserContext.GetCurrentUserId();
-        if (string.IsNullOrWhiteSpace(currentUserId))
-        {
-            return Unauthorized(ApiResponse<object?>.Fail("Bạn cần đăng nhập để xem danh sách người theo dõi."));
-        }
-
-        if (!currentUserId.Equals(id, StringComparison.OrdinalIgnoreCase))
-        {
-            return StatusCode(
-                StatusCodes.Status403Forbidden,
-                ApiResponse<object?>.Fail("Bạn không có quyền xem danh sách người theo dõi của tài khoản khác."));
-        }
-
-        var targetUser = await _mediator.Send(new GetUserByIdQuery(id), ct);
-        if (targetUser is null)
-        {
-            return NotFound(ApiResponse<object?>.Fail("Không tìm thấy người dùng hoặc tài khoản này hiện không còn hoạt động."));
-        }
-
-        var query = new GetFollowersQuery(id);
-        var result = await _mediator.Send(query, ct);
-
-        return Ok(ApiResponse<IEnumerable<UserDto>>.Ok(result, "Lấy danh sách người theo dõi thành công."));
-    }
-
-    /// <summary>
-    /// Đếm số lượng follower hiện tại của một người dùng/nghệ sĩ.
-    /// </summary>
-    /// <param name="id">Mã định danh người dùng cần đếm follower.</param>
-    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
-    /// <returns>ApiResponse chứa số lượng follower (int).</returns>
-    [HttpGet("{id}/followers-count")]
-    [AllowAnonymous] // Followers count can be public
-    [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CountFollowers(string id, CancellationToken ct)
-    {
-        var targetUser = await _mediator.Send(new GetUserByIdQuery(id), ct);
-        if (targetUser is null)
-        {
-            return NotFound(ApiResponse<object?>.Fail("Không tìm thấy người dùng hoặc tài khoản này hiện không còn hoạt động."));
-        }
-
-        var result = await _mediator.Send(new CountFollowersQuery(id), ct);
-        return Ok(ApiResponse<int>.Ok(result, "Lấy số lượng người theo dõi thành công."));
-    }
-
-    /// <summary>
     /// Chỉ chấp nhận các định dạng ảnh phổ biến để tránh người dùng upload nhầm file không hiển thị được.
     /// </summary>
     private static void ValidateAvatarFile(IFormFile? avatarFile)
@@ -499,7 +362,8 @@ public class UsersController : BaseApiController
         }
 
         var fileName = Path.GetFileName(avatarUrl);
-        if (string.IsNullOrWhiteSpace(fileName))
+        if (string.IsNullOrWhiteSpace(fileName) ||
+            string.Equals(fileName, DefaultAvatarFileName, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }

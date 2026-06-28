@@ -13,7 +13,7 @@ public record MediaDuration
     public int Seconds { get; }
 
     /// <summary>
-    /// Tổng thời lượng tính theo giây — dùng để lưu vào DB (cột DurationSeconds / TrailerSeconds).
+    /// Tổng thời lượng tính theo giây — dùng để lưu vào cột DurationSeconds.
     /// </summary>
     public int TotalSeconds => Minutes * 60 + Seconds;
 

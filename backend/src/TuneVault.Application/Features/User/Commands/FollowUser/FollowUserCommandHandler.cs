@@ -9,7 +9,7 @@ namespace TuneVault.Application.Features.User.Commands.FollowUser;
 /// Luồng xử lý: kiểm tra xác thực & quyền (FollowerId phải là người dùng hiện tại)
 /// → kiểm tra tự follow → kiểm tra tồn tại → kiểm tra đã follow rồi chưa
 /// → gọi <c>IncrementFollowers()</c> trên Entity → persist Entity → tạo bản ghi UserFollows.
-/// Phân quyền: chỉ Listener / Artist / Admin đã đăng nhập và đang thao tác cho chính mình.
+/// Phân quyền: chỉ người dùng đã đăng nhập và đang thao tác cho chính mình.
 /// </summary>
 public class FollowUserCommandHandler : IRequestHandler<FollowUserCommand, bool>
 {
@@ -41,35 +41,28 @@ public class FollowUserCommandHandler : IRequestHandler<FollowUserCommand, bool>
     /// </exception>
     public async Task<bool> Handle(FollowUserCommand request, CancellationToken ct)
     {
-        // Step 0: Kiểm tra đã xác thực chưa
         var currentUserId = _currentUserContext.GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
             throw new UnauthorizedAccessException("Chưa xác thực. Vui lòng đăng nhập trước khi thực hiện theo dõi.");
 
-        // Step 0.1: Chỉ cho phép người dùng thực hiện follow cho chính mình (FollowerId phải khớp người dùng hiện tại)
         if (!currentUserId.Equals(request.FollowerId, StringComparison.OrdinalIgnoreCase))
             throw new ForbiddenAccessException("Bạn không có quyền thực hiện theo dõi thay cho người dùng khác.");
 
-        // Step 1: Guard clause — không cho phép tự follow chính mình
         if (request.FollowerId == request.FolloweeId)
             throw new DomainException("Người dùng không thể tự theo dõi chính mình.");
 
-        // Step 2: Lấy cả hai User Entity đồng thời để tối ưu hiệu năng
         var follower = await _userRepository.GetByIdAsync(request.FollowerId, ct);
         var followee = await _userRepository.GetByIdAsync(request.FolloweeId, ct);
 
-        // Step 3: Kiểm tra sự tồn tại của cả hai tài khoản
         if (follower is null)
             throw new DomainException($"Người dùng với Id '{request.FollowerId}' không tồn tại.");
         if (followee is null || !followee.IsActive)
             throw new DomainException("Không tìm thấy người dùng cần theo dõi hoặc tài khoản này hiện không còn hoạt động.");
 
-        // Step 4: Kiểm tra quan hệ follow đã tồn tại chưa — tránh duplicate
         var alreadyFollowing = await _userRepository.IsFollowingAsync(request.FollowerId, request.FolloweeId, ct);
         if (alreadyFollowing)
             throw new DomainException("Bạn đã theo dõi người dùng này rồi.");
 
-        // Step 5: Tạo bản ghi quan hệ follow trong bảng UserFollows.
         // TotalFollowers sẽ được cập nhật bởi FollowRepository.
         return await _userRepository.FollowUserAsync(request.FollowerId, request.FolloweeId, ct);
     }

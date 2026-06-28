@@ -71,7 +71,8 @@ public sealed class CreateAlbumCommandHandler : IRequestHandler<CreateAlbumComma
         if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        if (Enum.TryParse<MediaType>(value, ignoreCase: true, out var mediaType))
+        if (Enum.TryParse<MediaType>(value, ignoreCase: true, out var mediaType)
+            && Enum.IsDefined(typeof(MediaType), mediaType))
             return mediaType;
 
         throw new DomainException("Kiểu nội dung album không hợp lệ.");

@@ -7,6 +7,7 @@ namespace TuneVault.Application.Features.Media.DTOs;
 public sealed record MediaOwnerDetailDto(
     string Id,
     string OwnerId,
+    string? OwnerName,
     string Title,
     string? Description,
     string? Genre,
@@ -16,13 +17,10 @@ public sealed record MediaOwnerDetailDto(
     string? CoverImageUrl,
     string? CanvasUrl,
     int DurationSeconds,
-    string AccessLevel,
     bool IsPublic,
     bool IsActive,
-    bool IsValid,
     int FavoriteCount,
     int ViewCount,
     DateTime UploadedAt,
-    DateTime? ReleaseDate,
-    IEnumerable<MediaArtistDto> Artists
+    DateTime? ReleaseDate
 );

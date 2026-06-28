@@ -14,6 +14,9 @@ public sealed class CreateAlbumFormRequestDto
     /// <summary>File ảnh bìa album.</summary>
     public IFormFile? CoverImage { get; init; }
 
+    /// <summary>URL ảnh bìa mặc định trong /uploads/default-cover.</summary>
+    public string? CoverImageUrl { get; init; }
+
     /// <summary>Album có công khai hay không.</summary>
     public bool IsPublic { get; init; } = true;
 

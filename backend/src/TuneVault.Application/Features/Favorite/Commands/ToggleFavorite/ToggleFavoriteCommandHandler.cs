@@ -8,9 +8,9 @@ using FavoriteEntity = TuneVault.Domain.Entities.Favorite;
 namespace TuneVault.Application.Features.Favorite.Commands.ToggleFavorite;
 
 /// <summary>
-/// Xử lý command để thêm, cập nhật hoặc xóa trạng thái cảm xúc của media, album hoặc playlist.
+/// Xử lý command để thêm hoặc xóa trạng thái yêu thích của media, album hoặc playlist.
 /// </summary>
-public sealed class ToggleFavoriteCommandHandler : IRequestHandler<ToggleFavoriteCommand, ApiResponse<FavoriteReaction?>>
+public sealed class ToggleFavoriteCommandHandler : IRequestHandler<ToggleFavoriteCommand, ApiResponse<bool>>
 {
     private readonly IFavoriteRepository _favoriteRepository;
     private readonly ICurrentUserContext _currentUserContext;
@@ -21,7 +21,7 @@ public sealed class ToggleFavoriteCommandHandler : IRequestHandler<ToggleFavorit
         _currentUserContext = currentUserContext;
     }
 
-    public async Task<ApiResponse<FavoriteReaction?>> Handle(ToggleFavoriteCommand request, CancellationToken ct)
+    public async Task<ApiResponse<bool>> Handle(ToggleFavoriteCommand request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.TargetId))
         {
@@ -31,11 +31,6 @@ public sealed class ToggleFavoriteCommandHandler : IRequestHandler<ToggleFavorit
         if (!Enum.IsDefined(typeof(FavoriteTargetType), request.TargetType))
         {
             throw new DomainException("Loại đối tượng cần tương tác không hợp lệ.");
-        }
-
-        if (!Enum.IsDefined(typeof(FavoriteReaction), request.Reaction))
-        {
-            throw new DomainException("Loại cảm xúc không hợp lệ.");
         }
 
         var userId = _currentUserContext.GetCurrentUserId();
@@ -54,34 +49,36 @@ public sealed class ToggleFavoriteCommandHandler : IRequestHandler<ToggleFavorit
             userId,
             request.TargetId,
             request.TargetType,
-            ct);
+            includeInactive: true,
+            ct: ct);
 
-        if (request.Reaction == FavoriteReaction.Remove)
+        if (!request.IsActive)
         {
-            if (existingFavorite is not null)
+            if (existingFavorite is not null && existingFavorite.IsActive)
             {
+                existingFavorite.Deactivate();
                 await _favoriteRepository.RemoveAsync(existingFavorite.Id, ct);
-                return ApiResponse<FavoriteReaction?>.Ok(null, $"Đã xóa cảm xúc khỏi {GetTargetDisplayName(request.TargetType)}.");
+                return ApiResponse<bool>.Ok(false, $"Đã hủy yêu thích khỏi {GetTargetDisplayName(request.TargetType)}.");
             }
 
-            return ApiResponse<FavoriteReaction?>.Ok(null, $"{GetTargetDisplayName(request.TargetType, capitalize: true)} này chưa có cảm xúc để xóa.");
+            return ApiResponse<bool>.Ok(false, $"{GetTargetDisplayName(request.TargetType, capitalize: true)} này hiện chưa được yêu thích.");
         }
 
         if (existingFavorite is null)
         {
-            var newFavorite = new FavoriteEntity("FV00", userId, request.TargetId, request.TargetType, request.Reaction);
+            var newFavorite = new FavoriteEntity("FV00", userId, request.TargetId, request.TargetType);
             await _favoriteRepository.AddAsync(newFavorite, ct);
-            return ApiResponse<FavoriteReaction?>.Ok(request.Reaction, $"Đã thêm cảm xúc {request.Reaction} cho {GetTargetDisplayName(request.TargetType)}.");
+            return ApiResponse<bool>.Ok(true, $"Đã thêm yêu thích cho {GetTargetDisplayName(request.TargetType)}.");
         }
 
-        if (existingFavorite.Reaction == request.Reaction)
+        if (existingFavorite.IsActive)
         {
-            return ApiResponse<FavoriteReaction?>.Ok(request.Reaction, $"{GetTargetDisplayName(request.TargetType, capitalize: true)} này đã có cảm xúc {request.Reaction}.");
+            return ApiResponse<bool>.Ok(true, $"{GetTargetDisplayName(request.TargetType, capitalize: true)} này đã được yêu thích.");
         }
 
-        existingFavorite.UpdateReaction(request.Reaction);
+        existingFavorite.Activate();
         await _favoriteRepository.UpdateAsync(existingFavorite, ct);
-        return ApiResponse<FavoriteReaction?>.Ok(request.Reaction, $"Đã cập nhật cảm xúc thành {request.Reaction}.");
+        return ApiResponse<bool>.Ok(true, $"Đã khôi phục yêu thích cho {GetTargetDisplayName(request.TargetType)}.");
     }
 
     private static string GetTargetDisplayName(FavoriteTargetType targetType, bool capitalize = false)

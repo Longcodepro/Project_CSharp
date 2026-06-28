@@ -76,22 +76,6 @@ public sealed class NotificationController : ControllerBase
     }
 
     /// <summary>
-    /// Đếm số notification chưa đọc của user hiện tại.
-    /// </summary>
-    /// <param name="ct">Token hủy thao tác bất đồng bộ.</param>
-    /// <returns>Số notification chưa đọc.</returns>
-    [HttpGet("unread-count")]
-    public async Task<IActionResult> CountUnread(CancellationToken ct)
-    {
-        if (GetUserIdOrUnauthorizedResult(out var userId) is { } unauthorizedResult)
-            return unauthorizedResult;
-
-        var count = await _mediator.Send(new CountUnreadNotificationsQuery(userId), ct);
-        var result = new UnreadNotificationCountDto(userId, count);
-        return Ok(ApiResponse<UnreadNotificationCountDto>.Ok(result, "Lấy số lượng thông báo chưa đọc thành công."));
-    }
-
-    /// <summary>
     /// Đánh dấu một notification là đã đọc.
     /// </summary>
     /// <param name="notificationId">Mã notification cần đánh dấu đã đọc.</param>

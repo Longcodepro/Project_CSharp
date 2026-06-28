@@ -6,6 +6,8 @@ namespace TuneVault.Application.Features.Media.DTOs;
 /// </summary>
 public sealed record MediaPublicDto(
     string Id,
+    string OwnerId,
+    string? OwnerName,
     string Title,
     string? Description,
     string? Genre,
@@ -16,6 +18,5 @@ public sealed record MediaPublicDto(
     int FavoriteCount,
     int ViewCount,
     DateTime UploadedAt,
-    DateTime? ReleaseDate,
-    IEnumerable<MediaArtistDto> Artists
+    DateTime? ReleaseDate
 );

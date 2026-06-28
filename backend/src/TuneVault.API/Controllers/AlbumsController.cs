@@ -125,7 +125,11 @@ public sealed class AlbumsController : ControllerBase
         try
         {
             ValidateImageFile(request.CoverImage, "Ảnh bìa album");
-            var coverUrl = await SaveCoverAsync(request.CoverImage, "album-covers", cancellationToken);
+            var coverUrl = ResolveDefaultCoverUrl(request.CoverImageUrl);
+
+            if (request.CoverImage is not null)
+                coverUrl = await SaveCoverAsync(request.CoverImage, "album-covers", cancellationToken);
+
             savedCoverPath = ResolvePhysicalUploadPath(coverUrl);
 
             var commandRequest = new CreateAlbumRequestDto(
@@ -164,6 +168,12 @@ public sealed class AlbumsController : ControllerBase
 
             var currentAlbum = await _mediator.Send(new GetAlbumByIdQuery(id, CurrentUserId), cancellationToken);
             var coverUrl = request.KeepCurrentCover ? currentAlbum?.CoverImageUrl : null;
+
+            if (!string.IsNullOrWhiteSpace(request.CoverImageUrl))
+            {
+                coverUrl = ResolveDefaultCoverUrl(request.CoverImageUrl);
+                previousCoverPath = ResolvePhysicalUploadPath(currentAlbum?.CoverImageUrl);
+            }
 
             if (request.CoverImage is not null)
             {
@@ -283,8 +293,39 @@ public sealed class AlbumsController : ControllerBase
             return null;
         }
 
+        if (publicUrl.StartsWith("/uploads/default-cover/", StringComparison.OrdinalIgnoreCase))
+            return null;
+
         var relativePath = publicUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
         return Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath);
+    }
+
+    private static string? ResolveDefaultCoverUrl(string? coverImageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(coverImageUrl))
+            return null;
+
+        var normalizedUrl = coverImageUrl.Trim();
+        const string prefix = "/uploads/default-cover/";
+        if (!normalizedUrl.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            throw new DomainException("Ảnh bìa mặc định không hợp lệ.");
+
+        var fileName = Path.GetFileName(normalizedUrl);
+        if (string.IsNullOrWhiteSpace(fileName) ||
+            !string.Equals(normalizedUrl, prefix + fileName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new DomainException("Ảnh bìa mặc định không hợp lệ.");
+        }
+
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        if (!AllowedImageExtensions.Contains(extension))
+            throw new DomainException("Ảnh bìa mặc định chỉ hỗ trợ .jpg, .jpeg, .png hoặc .webp.");
+
+        var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "default-cover", fileName);
+        if (!System.IO.File.Exists(physicalPath))
+            throw new DomainException("Ảnh bìa mặc định không tồn tại.");
+
+        return prefix + fileName;
     }
 
     /// <summary>

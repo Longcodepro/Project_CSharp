@@ -9,7 +9,7 @@ namespace TuneVault.Application.Features.User.Queries.GetProfile;
 /// Handler xử lý <see cref="GetUserProfileQuery"/>.
 /// Lấy <see cref="TuneVault.Domain.Entities.User"/> Entity từ repository và map sang
 /// <see cref="UserProfileDto"/> để trả về thông tin profile đầy đủ mà không lộ dữ liệu nhạy cảm.
-/// Phân quyền: yêu cầu người dùng đã đăng nhập (Listener / Artist / Admin) — có thể xem profile của bất kỳ ai.
+/// Phân quyền: yêu cầu người dùng đã đăng nhập — có thể xem profile của bất kỳ ai.
 /// </summary>
 public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, UserProfileDto>
 {
@@ -38,22 +38,17 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, U
     /// <exception cref="DomainException">Ném ra nếu không tìm thấy User với Id tương ứng.</exception>
     public async Task<UserProfileDto> Handle(GetUserProfileQuery request, CancellationToken ct)
     {
-        // Step 0: Kiểm tra đã xác thực chưa
         if (string.IsNullOrWhiteSpace(_currentUserContext.GetCurrentUserId()))
             throw new UnauthorizedAccessException("Chưa xác thực. Vui lòng đăng nhập để xem profile.");
 
-        // Step 1: Truy vấn User Entity từ repository theo Id hệ thống
         var user = await _userRepository.GetByIdAsync(request.Id, ct);
 
-        // Step 2: Kiểm tra sự tồn tại — ném exception nếu không tìm thấy
         if (user is null)
             throw new DomainException($"Người dùng với Id '{request.Id}' không tồn tại.");
 
-        // Step 3: Lấy số follow từ bảng quan hệ active để hiển thị trên profile owner
         var followerCount = (await _userRepository.GetFollowersAsync(user.Id, ct)).Count();
         var followingCount = (await _userRepository.GetFollowingAsync(user.Id, ct)).Count();
 
-        // Step 4: Map Entity sang UserProfileDto — ẩn Id hệ thống, PasswordHash
         return new UserProfileDto
         {
             IdDisplay      = user.IdDisplay,

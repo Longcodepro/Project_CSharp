@@ -18,7 +18,6 @@ namespace TuneVault.Infrastructure.Repositories
     {
         private readonly IDbConnectionFactory _dbConnectionFactory; // Inject IDbConnectionFactory
 
-        // Constructor updated to inject IDbConnectionFactory
         public NotificationRepository(IDbConnectionFactory dbConnectionFactory)
         {
             _dbConnectionFactory = dbConnectionFactory ?? throw new ArgumentNullException(nameof(dbConnectionFactory));
@@ -96,22 +95,6 @@ namespace TuneVault.Infrastructure.Repositories
                 UserId = userId,
                 Limit = limit
             });
-        }
-
-        /// <summary>
-        /// Đếm số notification chưa đọc.
-        /// </summary>
-        public async Task<int> CountUnreadNotificationsAsync(string userId)
-        {
-            using var connection = _dbConnectionFactory.CreateConnection(); // Use IDbConnectionFactory to create connection
-
-            return await connection.ExecuteScalarAsync<int>(@"
-                SELECT COUNT(1)
-                FROM Notifications
-                WHERE UserId = @UserId
-                  AND IsActive = 1
-                  AND IsRead = 0;",
-                new { UserId = userId });
         }
 
         /// <summary>
@@ -265,13 +248,12 @@ namespace TuneVault.Infrastructure.Repositories
                     n.NotifyType,
                     n.NotifyType AS TypeId,
                     CASE n.NotifyType
-                        WHEN 1 THEN 'NewFollower'
-                        WHEN 2 THEN 'FriendRequest'
-                        WHEN 3 THEN 'MediaShared'
-                        WHEN 4 THEN 'SystemAlert'
-                        WHEN 5 THEN 'FriendAccepted'
-                        WHEN 6 THEN 'ArtistNewMedia'
-                        ELSE 'SystemAlert'
+                        WHEN 1 THEN 'FriendRequest'
+                        WHEN 2 THEN 'FriendAccepted'
+                        WHEN 3 THEN 'ShareSong'
+                        WHEN 4 THEN 'ShareVideo'
+                        WHEN 5 THEN 'ShareAudio'
+                        ELSE 'FriendRequest'
                     END AS Type,
                     n.Title,
                     n.Message,

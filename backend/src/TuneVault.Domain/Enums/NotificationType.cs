@@ -1,39 +1,34 @@
 namespace TuneVault.Domain.Enums;
 
 /// <summary>
-/// Định nghĩa các loại hình thông báo hệ thống phát sinh trong ứng dụng TuneVault.
+/// Định nghĩa các loại thông báo dùng trong TuneVault.
 /// </summary>
 public enum NotificationType
 {
     /// <summary>
-    /// Thông báo khi có người dùng khác bấm theo dõi (Follow).
+    /// Thông báo khi có lời mời kết bạn mới.
     /// </summary>
-    NewFollower = 1,
+    FriendRequest = 1,
 
     /// <summary>
-    /// Thông báo khi nhận được lời mời kết bạn mới (Chờ duyệt).
+    /// Thông báo khi lời mời kết bạn đã được chấp nhận.
     /// </summary>
-    FriendRequest = 2,
+    FriendAccepted = 2,
 
     /// <summary>
-    /// Thông báo khi một người bạn chia sẻ nội dung âm nhạc (MediaShare) nội bộ.
+    /// Thông báo khi bài hát được chia sẻ.
     /// </summary>
-    MediaShared = 3,
+    ShareSong = 3,
 
     /// <summary>
-    /// Thông báo quảng bá hoặc nhắc nhở từ hệ thống quản trị TuneVault.
+    /// Thông báo khi video được chia sẻ.
     /// </summary>
-    SystemAlert = 4,
+    ShareVideo = 4,
 
     /// <summary>
-    /// Thông báo khi đối phương chính thức chấp nhận lời mời kết bạn của bạn.
+    /// Thông báo khi audio được chia sẻ.
     /// </summary>
-    FriendAccepted = 5,
-
-    /// <summary>
-    /// Thông báo khi nghệ sĩ đang follow đăng bài mới.
-    /// </summary>
-    ArtistNewMedia = 6
+    ShareAudio = 5
 }
 
 /// <summary>
@@ -51,12 +46,11 @@ public static class NotificationTypeExtensions
     {
         return type switch
         {
-            NotificationType.NewFollower => "Người theo dõi mới",
             NotificationType.FriendRequest => "Lời mời kết bạn",
-            NotificationType.MediaShared => "Nội dung được chia sẻ",
-            NotificationType.SystemAlert => "Thông báo hệ thống",
             NotificationType.FriendAccepted => "Lời mời kết bạn đã được chấp nhận",
-            NotificationType.ArtistNewMedia => "Nghệ sĩ đăng bài mới",
+            NotificationType.ShareSong => "Bài hát được chia sẻ",
+            NotificationType.ShareVideo => "Video được chia sẻ",
+            NotificationType.ShareAudio => "Audio được chia sẻ",
             _ => "Thông báo mới"
         };
     }

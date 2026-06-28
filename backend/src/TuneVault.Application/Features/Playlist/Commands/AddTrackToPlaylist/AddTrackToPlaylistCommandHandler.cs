@@ -6,30 +6,14 @@ using TuneVault.Domain.Interfaces;
 namespace TuneVault.Application.Features.Playlist.Commands.AddTrackToPlaylist;
 
 /// <summary>
-/// COMMAND HANDLER - THÊM TRACK VÀO PLAYLIST (Application Layer)
-/// ==============================================================
-/// Mục đích: Xử lý logic nghiệp vụ thêm một bài hát vào Playlist.
-/// 
-/// Luồng xử lý:
-/// 1. Controller gửi AddTrackToPlaylistCommand
-/// 2. Handler sinh ID tự động theo format PT001, PT002...
-/// 3. Handler lấy Playlist từ Repository
-/// 4. Handler đẩy các track hiện tại xuống dưới và chèn track mới lên đầu
-/// 5. Handler tạo PlaylistTrack Entity (Domain tự validate)
-/// 6. Handler gọi playlist.AddTrack() — Entity tự kiểm tra logic
-/// 7. Handler gọi Repository lưu Track xuống Database
-/// 
-/// Logic trackOrder:
-/// - Track mới luôn nhận vị trí 1
-/// - Toàn bộ track cũ được tăng TrackOrder thêm 1
-/// - Ví dụ: 1,2,3 -> thêm mới thành 1(new),2,3,4
+/// Thêm media vào playlist của người dùng.
 /// </summary>
 public sealed class AddTrackToPlaylistCommandHandler : IRequestHandler<AddTrackToPlaylistCommand, Unit>
 {
     private readonly IPlaylistRepository _playlistRepository;
 
     /// <summary>
-    /// Khởi tạo Handler với Repository được inject qua DI container.
+    /// Khởi tạo handler thêm track vào playlist.
     /// </summary>
     /// <param name="playlistRepository">Repository xử lý truy cập database cho Playlist.</param>
     public AddTrackToPlaylistCommandHandler(IPlaylistRepository playlistRepository)
@@ -38,8 +22,7 @@ public sealed class AddTrackToPlaylistCommandHandler : IRequestHandler<AddTrackT
     }
 
     /// <summary>
-    /// Thực thi logic thêm Track vào Playlist từ Command.
-    /// Track mới luôn được thêm lên đầu playlist.
+    /// Thêm track mới lên đầu playlist.
     /// </summary>
     /// <param name="command">Command chứa PlaylistId và MediaItemId.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>

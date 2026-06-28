@@ -29,7 +29,13 @@ public sealed class GetNotificationsQueryHandler : IRequestHandler<GetNotificati
         return new NotificationDto(
             Id: row["Id"]?.ToString() ?? string.Empty,
             UserId: row["UserId"]?.ToString() ?? string.Empty,
+            SenderId: row.TryGetValue("SenderId", out var senderId) ? senderId?.ToString() : null,
+            SenderIdDisplay: row.TryGetValue("SenderIdDisplay", out var senderIdDisplay) ? senderIdDisplay?.ToString() : null,
+            SenderDisplayName: row.TryGetValue("SenderDisplayName", out var senderDisplayName) ? senderDisplayName?.ToString() : null,
+            SenderAvatarUrl: row.TryGetValue("SenderAvatarUrl", out var senderAvatarUrl) ? senderAvatarUrl?.ToString() : null,
             Type: row.TryGetValue("Type", out var type) ? type?.ToString() ?? string.Empty : string.Empty,
+            Title: row.TryGetValue("Title", out var title) ? title?.ToString() : null,
+            Message: row.TryGetValue("Message", out var message) ? message?.ToString() : null,
             TargetType: row.TryGetValue("TargetType", out var targetType) && targetType is not null ? Convert.ToInt32(targetType) : null,
             TargetId: row.TryGetValue("TargetId", out var targetId) ? targetId?.ToString() : null,
             PayloadJson: row.TryGetValue("PayloadJson", out var payloadJson) ? payloadJson?.ToString() : null,

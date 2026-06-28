@@ -1,6 +1,5 @@
 using MediatR;
 using TuneVault.Application.Features.Media.DTOs;
-using TuneVault.Domain.Enums;
 using TuneVault.Domain.Exceptions;
 using TuneVault.Domain.Interfaces;
 using TuneVault.Domain.ValueObjects;
@@ -10,7 +9,7 @@ namespace TuneVault.Application.Features.Media.Commands.UpdateMedia;
 /// <summary>
 /// Handler xử lý <see cref="UpdateMediaCommand"/>.
 /// Luồng: lấy Entity → kiểm tra quyền → cập nhật metadata qua method Entity
-///         → persist → lấy lại danh sách nghệ sĩ → trả về DTO.
+///         → persist → lấy tên owner → trả về DTO.
 /// </summary>
 public sealed class UpdateMediaCommandHandler : IRequestHandler<UpdateMediaCommand, MediaItemDto>
 {
@@ -37,41 +36,33 @@ public sealed class UpdateMediaCommandHandler : IRequestHandler<UpdateMediaComma
     {
         var dto = request.Request;
 
-        // Step 1: Lấy MediaItem Entity từ database
         var mediaItem = await _mediaRepository.GetByIdAsync(request.MediaId, ct)
             ?? throw new DomainException($"Bài hát với Id '{request.MediaId}' không tồn tại hoặc đã bị xóa.");
 
-        // Step 2: Kiểm tra quyền — chỉ OwnerId (ca sĩ chính) mới được cập nhật
         if (mediaItem.OwnerId != request.RequesterId)
             throw new ForbiddenAccessException(
                 $"Bạn không có quyền chỉnh sửa bài hát này. Chỉ ca sĩ chính (Owner) mới có thể cập nhật bài hát.");
 
-        // Step 3: Cập nhật metadata qua method nghiệp vụ của Entity (Entity tự validate)
         mediaItem.UpdateDetails(dto.Title, dto.Description, dto.Genre);
 
-        // Step 4: Cập nhật file media gốc nếu client gửi lên đường dẫn mới
         if (!string.IsNullOrWhiteSpace(dto.MediaUrl))
             mediaItem.SetMediaUrl(new MediaUrl(dto.MediaUrl));
 
-        // Step 5: Cập nhật ảnh bìa nếu được cung cấp
         if (!string.IsNullOrWhiteSpace(dto.CoverImageUrl))
             mediaItem.SetCoverImage(dto.CoverImageUrl);
 
-        // Step 6: Cập nhật Canvas nếu được cung cấp
         if (!string.IsNullOrWhiteSpace(dto.CanvasUrl))
             mediaItem.SetCanvas(dto.CanvasUrl);
 
-        // Step 7: Cập nhật chính sách truy cập (giữ nguyên trailer nếu đã có)
-        mediaItem.UpdateAccessPolicy((AccessLevel)dto.AccessLevel, 0, 0);
+        if (dto.DurationSeconds is > 0)
+            mediaItem.SetDuration(dto.DurationSeconds.Value / 60, dto.DurationSeconds.Value % 60);
+
         mediaItem.SetVisibility(dto.IsPublic);
 
-        // Step 8: Persist Entity vào database
         await _mediaRepository.UpdateAsync(mediaItem, ct);
 
-        // Step 9: Lấy danh sách nghệ sĩ để trả về DTO đầy đủ
-        var artists = await _mediaRepository.GetArtistsByMediaIdAsync(request.MediaId, ct);
+        var ownerName = await _mediaRepository.GetOwnerDisplayNameAsync(request.MediaId, ct);
 
-        // Step 10: Map Entity + artists → DTO
         return new MediaItemDto(
             Id:             mediaItem.Id,
             OwnerId:        mediaItem.OwnerId,
@@ -84,15 +75,13 @@ public sealed class UpdateMediaCommandHandler : IRequestHandler<UpdateMediaComma
             CoverImageUrl:  string.IsNullOrWhiteSpace(mediaItem.CoverImageUrl) ? null : MediaEndpointBuilder.Poster(mediaItem.Id),
             CanvasUrl:      mediaItem.CanvasUrl,
             DurationSeconds: mediaItem.Duration.TotalSeconds,
-            AccessLevel:    mediaItem.AccessLevel.ToString(),
             IsPublic:       mediaItem.IsPublic,
             IsActive:       mediaItem.IsActive,
-            IsValid:        mediaItem.IsValid,
             FavoriteCount:  mediaItem.FavoriteCount,
             ViewCount:      mediaItem.ViewCount,
             UploadedAt:     mediaItem.UploadedAt,
             ReleaseDate:    mediaItem.ReleaseDate,
-            Artists:        artists.Select(a => new MediaArtistDto(a.ArtistId, a.Role, a.ArtistName))
+            OwnerName:      ownerName
         );
     }
 }

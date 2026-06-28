@@ -1,25 +1,7 @@
 namespace TuneVault.Application.Features.Playlist.DTOs;
 
 /// <summary>
-/// DTO - PLAYLIST RESPONSE (Application Layer)
-/// ==========================================
-/// Mục đích: Đại diện cho playlist trả về cho client.
-/// 
-/// Sử dụng:
-/// - PlaylistController.GetByUserId() -> PlaylistDto[]
-/// - PlaylistController.Create() -> PlaylistDto
-/// 
-/// Properties:
-///   - Id: Mã playlist
-///   - OwnerId: Mã user sở hữu playlist
-///   - Title: Tiêu đề playlist
-///   - Description: Mô tả playlist
-///   - CoverImgUrl: URL ảnh bìa
-///   - IsPublic: Trạng thái công khai
-///   - ContentType: Kiểu nội dung chung của playlist
-///   - ReleaseDate: Ngày phát hành playlist
-///   - CreatedAt: Thời điểm tạo
-///   - Tracks: Danh sách track trong playlist
+/// Thông tin playlist trả về cho client.
 /// </summary>
 public sealed record PlaylistDto(
     string Id,

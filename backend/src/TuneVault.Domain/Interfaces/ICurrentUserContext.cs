@@ -19,7 +19,7 @@ public interface ICurrentUserContext
     /// Lấy danh sách các vai trò (Roles) của người dùng hiện tại từ JWT claim.
     /// </summary>
     /// <returns>
-    /// Danh sách tên vai trò (ví dụ: "Admin", "Artist", "Listener").
+    /// Danh sách tên vai trò hiện có (ví dụ: "Artist", "Listener").
     /// Trả về empty list nếu không có role.
     /// </returns>
     IEnumerable<string> GetCurrentUserRoles();
@@ -27,7 +27,7 @@ public interface ICurrentUserContext
     /// <summary>
     /// Kiểm tra xem người dùng hiện tại có một role cụ thể không.
     /// </summary>
-    /// <param name="role">Tên vai trò cần kiểm tra (ví dụ: "Admin", "Artist").</param>
+    /// <param name="role">Tên vai trò cần kiểm tra (ví dụ: "Artist", "Listener").</param>
     /// <returns>True nếu người dùng có vai trò; False nếu không.</returns>
     bool HasRole(string role);
 
