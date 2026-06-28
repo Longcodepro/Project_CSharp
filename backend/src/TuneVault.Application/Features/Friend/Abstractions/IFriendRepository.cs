@@ -9,8 +9,11 @@ public sealed record FriendRelationSnapshot(
     string Id,
     string RequestedById,
     string RequestedToId,
-    FriendStatus Status,
-    DateTime CreatedAt);
+    byte StatusRaw,
+    DateTime CreatedAt)
+{
+    public FriendStatus Status => (FriendStatus)StatusRaw;
+}
 
 /// <summary>
 /// Dữ liệu hiển thị một người bạn trong danh sách bạn bè.

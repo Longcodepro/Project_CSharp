@@ -5,26 +5,14 @@ using TuneVault.Domain.Interfaces;
 namespace TuneVault.Application.Features.Playlist.Commands.DeletePlaylist;
 
 /// <summary>
-/// COMMAND HANDLER - XÓA PLAYLIST (Application Layer)
-/// ===================================================
-/// Mục đích: Xử lý logic nghiệp vụ xóa toàn bộ một Playlist.
-/// 
-/// Luồng xử lý:
-/// 1. Controller gửi DeletePlaylistCommand
-/// 2. Handler lấy Playlist từ Repository (GetByIdAsync)
-/// 3. Handler gọi playlist.Delete() — Entity thực thi logic nghiệp vụ xóa
-/// 4. Handler gọi Repository xóa Playlist khỏi Database
-/// 
-/// Lý do gọi Entity.Delete() thay vì gọi Repository trực tiếp:
-/// - Đảm bảo toàn vẹn Aggregate Root
-/// - Logic nghiệp vụ trước khi xóa tập trung trong Entity
+/// Xóa playlist của người dùng hiện tại.
 /// </summary>
 public sealed class DeletePlaylistCommandHandler : IRequestHandler<DeletePlaylistCommand, Unit>
 {
     private readonly IPlaylistRepository _playlistRepository;
 
     /// <summary>
-    /// Khởi tạo Handler với Repository được inject qua DI container.
+    /// Khởi tạo handler xóa playlist.
     /// </summary>
     /// <param name="playlistRepository">Repository xử lý truy cập database cho Playlist.</param>
     public DeletePlaylistCommandHandler(IPlaylistRepository playlistRepository)
@@ -33,8 +21,7 @@ public sealed class DeletePlaylistCommandHandler : IRequestHandler<DeletePlaylis
     }
 
     /// <summary>
-    /// Thực thi logic xóa Playlist từ Command.
-    /// Gọi Entity.Delete() trước khi xóa khỏi Database.
+    /// Xóa playlist nếu người dùng là chủ sở hữu.
     /// </summary>
     /// <param name="command">Command chứa PlaylistId cần xóa.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>

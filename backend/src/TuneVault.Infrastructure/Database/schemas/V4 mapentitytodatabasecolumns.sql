@@ -1,8 +1,8 @@
 -- V4: Map Entity ValueObjects to Database Columns
--- Purpose: Add columns to match Entity.Url (ValueObject), Duration (ValueObject), DurationTrailer (ValueObject)
--- Migration: AudioUrl/VideoUrl → Url, DurationSeconds → (DurationMinutes, DurationSeconds), etc.
+-- Purpose: Add columns to match Entity.Url and Duration value objects.
+-- Migration: AudioUrl/VideoUrl → Url, DurationSeconds → DurationMinutes.
 
-USE TuneVault;
+USE [TuneVaultDb];
 
 -- ============================================================================
 -- Step 1: Add new columns to MediaItems TABLE FIRST (before any UPDATE/SELECT)
@@ -32,18 +32,6 @@ BEGIN
     PRINT 'Column DurationMinutes already exists.';
 END;
 
-IF NOT EXISTS (SELECT 1
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME = 'MediaItems' AND COLUMN_NAME = 'TrailerMinutes')
-BEGIN
-    ALTER TABLE [MediaItems] ADD TrailerMinutes int DEFAULT 0 NOT NULL;
-    PRINT 'Column TrailerMinutes added successfully.';
-END
-ELSE
-BEGIN
-    PRINT 'Column TrailerMinutes already exists.';
-END;
-
 -- ============================================================================
 -- Step 2: Migrate data from AudioUrl/VideoUrl to Url (if not already done)
 -- ============================================================================
@@ -71,19 +59,7 @@ WHERE DurationMinutes = 0 AND DurationSeconds > 0;
 PRINT 'DurationMinutes migration completed.';
 
 -- ============================================================================
--- Step 4: Migrate TrailerSeconds to TrailerMinutes (only if needed)
--- ============================================================================
-
-PRINT 'Starting data migration for TrailerMinutes column...';
-
-UPDATE [MediaItems]
-SET TrailerMinutes = TrailerSeconds / 60
-WHERE TrailerMinutes = 0 AND TrailerSeconds > 0;
-
-PRINT 'TrailerMinutes migration completed.';
-
--- ============================================================================
--- Step 5: Set Url as NOT NULL after migration (ensure no NULLs remain)
+-- Step 4: Set Url as NOT NULL after migration (ensure no NULLs remain)
 -- ============================================================================
 
 PRINT 'Making Url column NOT NULL...';
@@ -93,14 +69,14 @@ ALTER TABLE [MediaItems] ALTER COLUMN Url varchar(500) COLLATE SQL_Latin1_Genera
 PRINT 'Url column is now NOT NULL.';
 
 -- ============================================================================
--- Step 6: Create index on Url (for optimization if needed later)
+-- Step 5: Create index on Url (for optimization if needed later)
 -- ============================================================================
 
 IF NOT EXISTS (SELECT 1
 FROM sys.indexes
 WHERE name = 'IX_MediaItems_Url' AND object_id = OBJECT_ID('MediaItems'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IX_MediaItems_Url ON TuneVault.dbo.MediaItems (Url ASC)
+    CREATE NONCLUSTERED INDEX IX_MediaItems_Url ON TuneVaultDb.dbo.MediaItems (Url ASC)
         WITH (PAD_INDEX = OFF, FILLFACTOR = 100, SORT_IN_TEMPDB = OFF, 
               IGNORE_DUP_KEY = OFF, STATISTICS_NORECOMPUTE = OFF, 
               ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
@@ -115,7 +91,7 @@ END;
 PRINT '=============================================================';
 PRINT 'V4 Migration completed successfully!';
 PRINT '=============================================================';
-PRINT 'New columns added: Url, DurationMinutes, TrailerMinutes';
-PRINT 'Old columns retained: AudioUrl, VideoUrl, DurationSeconds, TrailerSeconds (for backward compatibility)';
+PRINT 'New columns added: Url, DurationMinutes';
+PRINT 'Old columns retained: AudioUrl, VideoUrl, DurationSeconds (for backward compatibility)';
 PRINT 'Next step: Update application code to use new columns';
 PRINT '=============================================================';

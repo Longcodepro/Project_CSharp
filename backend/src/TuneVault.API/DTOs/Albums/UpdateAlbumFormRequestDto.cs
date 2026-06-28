@@ -14,6 +14,9 @@ public sealed class UpdateAlbumFormRequestDto
     /// <summary>File ảnh bìa album mới.</summary>
     public IFormFile? CoverImage { get; init; }
 
+    /// <summary>URL ảnh bìa mặc định trong /uploads/default-cover.</summary>
+    public string? CoverImageUrl { get; init; }
+
     /// <summary>Giữ ảnh bìa hiện tại nếu không gửi file mới.</summary>
     public bool KeepCurrentCover { get; init; } = true;
 

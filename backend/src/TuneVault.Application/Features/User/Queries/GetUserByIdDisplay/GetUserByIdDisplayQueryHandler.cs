@@ -34,17 +34,13 @@ public class GetUserByIdDisplayQueryHandler : IRequestHandler<GetUserByIdDisplay
     /// </returns>
     public async Task<UserDto?> Handle(GetUserByIdDisplayQuery request, CancellationToken ct)
     {
-        // Step 1: Chuẩn hóa IdDisplay về lowercase trước khi truy vấn (khớp với quy tắc lưu trong Domain)
         var normalizedHandle = request.IdDisplay.Trim().ToLowerInvariant();
 
-        // Step 2: Truy vấn User Entity từ repository theo handle đã chuẩn hóa
         var user = await _userRepository.GetByIdDisplayAsync(normalizedHandle, ct);
 
-        // Step 3: Trả về null nếu không tìm thấy (soft not-found)
         if (user is null)
             return null;
 
-        // Step 4: Map Entity sang UserDto — ẩn Id hệ thống, Email, PasswordHash
         return new UserDto
         {
             Id          = user.Id,

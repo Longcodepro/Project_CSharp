@@ -77,14 +77,10 @@ public class PlayHistory
     /// Ghi nhận vị trí dừng phát để lần sau frontend có thể phát tiếp đúng đoạn.
     /// </summary>
     /// <param name="stoppedAt">Vị trí dừng phát theo giây trong media.</param>
-    /// <exception cref="DomainException">Ném ra khi bản ghi này không phải bản ghi mới nhất hoặc vị trí dừng không hợp lệ.</exception>
+    /// <exception cref="DomainException">Ném ra khi vị trí dừng không hợp lệ.</exception>
     public void Stop(int stoppedAt)
     {
-        if (HistoryOrder != 1)
-            throw new DomainException("Chức năng dừng phát (Stop) chỉ có hiệu lực với bản ghi lịch sử mới nhất (Vị trí số 1).");
-
         ValidateStoppedAt(stoppedAt);
-
         StoppedAt = stoppedAt;
     }
 

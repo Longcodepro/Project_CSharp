@@ -7,12 +7,12 @@ using TuneVault.Domain.Enums;
 namespace TuneVault.Application.Features.History.Queries.GetRecentHistory;
 
 /// <summary>
-/// Handler for retrieving the user's recent play history.
+/// Lấy lịch sử phát gần đây của người dùng.
 /// </summary>
 public sealed class GetRecentHistoryQueryHandler : IRequestHandler<GetRecentHistoryQuery, List<MediaItemDto>>
 {
     private readonly IPlayHistoryRepository _playHistoryRepository;
-    private readonly IMediaRepository _mediaRepository; // Assuming we need this to fetch MediaItem details
+    private readonly IMediaRepository _mediaRepository;
 
     public GetRecentHistoryQueryHandler(IPlayHistoryRepository playHistoryRepository, IMediaRepository mediaRepository)
     {
@@ -22,21 +22,17 @@ public sealed class GetRecentHistoryQueryHandler : IRequestHandler<GetRecentHist
 
     public async Task<List<MediaItemDto>> Handle(GetRecentHistoryQuery request, CancellationToken cancellationToken)
     {
-        // Fetch recent play history items
         var playHistoryItems = await _playHistoryRepository.GetRecentByUserIdAsync(request.UserId, ct: cancellationToken);
 
         var mediaItemDtos = new List<MediaItemDto>();
 
         foreach (var historyItem in playHistoryItems)
         {
-            // Fetch media item details for each history item
             var mediaItem = await _mediaRepository.GetByIdAsync(historyItem.MediaItemId, cancellationToken);
 
             if (mediaItem != null)
             {
-                // Map PlayHistory and MediaItem to MediaItemDto
-                // This mapping needs to be carefully implemented based on the DTO structure and available data.
-                var artists = await _mediaRepository.GetArtistsByMediaIdAsync(mediaItem.Id, cancellationToken);
+                var ownerName = await _mediaRepository.GetOwnerDisplayNameAsync(mediaItem.Id, cancellationToken);
                 var mediaItemDto = new MediaItemDto(
                     Id: mediaItem.Id,
                     OwnerId: mediaItem.OwnerId,
@@ -49,15 +45,13 @@ public sealed class GetRecentHistoryQueryHandler : IRequestHandler<GetRecentHist
                     CoverImageUrl: string.IsNullOrWhiteSpace(mediaItem.CoverImageUrl) ? null : MediaEndpointBuilder.Poster(mediaItem.Id),
                     CanvasUrl: mediaItem.CanvasUrl,
                     DurationSeconds: mediaItem.Duration.TotalSeconds,
-                    AccessLevel: mediaItem.AccessLevel.ToString(),
                     IsPublic: mediaItem.IsPublic,
                     IsActive: mediaItem.IsActive,
-                    IsValid: mediaItem.IsValid,
                     FavoriteCount: mediaItem.FavoriteCount,
                     ViewCount: mediaItem.ViewCount,
                     UploadedAt: mediaItem.UploadedAt,
                     ReleaseDate: mediaItem.ReleaseDate,
-                    Artists: artists.Select(a => new MediaArtistDto(a.ArtistId, a.Role, a.ArtistName))
+                    OwnerName: ownerName
                 );
                 mediaItemDtos.Add(mediaItemDto);
             }

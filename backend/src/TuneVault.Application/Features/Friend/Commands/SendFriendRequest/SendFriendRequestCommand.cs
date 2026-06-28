@@ -1,7 +1,11 @@
 using MediatR;
+using TuneVault.Application.Abstractions;
+using TuneVault.Application.Features.Notification.Commands;
+using TuneVault.Application.Features.Notification.DTOs;
 using TuneVault.Application.Features.Friend.Abstractions;
 using TuneVault.Domain.Enums;
 using TuneVault.Domain.Exceptions;
+using TuneVault.Domain.Interfaces;
 
 namespace TuneVault.Application.Features.Friend.Commands.SendFriendRequest;
 
@@ -16,13 +20,23 @@ public sealed record SendFriendRequestCommand(string CurrentUserId, string Recei
 public sealed class SendFriendRequestCommandHandler : IRequestHandler<SendFriendRequestCommand, string>
 {
     private readonly IFriendRepository _friendRepository;
+    private readonly INotificationCommandRepository _notificationRepository;
+    private readonly INotificationPusher _notificationPusher;
+    private readonly IUserRepository _userRepository;
 
     /// <summary>
     /// Khởi tạo handler gửi lời mời kết bạn.
     /// </summary>
-    public SendFriendRequestCommandHandler(IFriendRepository friendRepository)
+    public SendFriendRequestCommandHandler(
+        IFriendRepository friendRepository,
+        INotificationCommandRepository notificationRepository,
+        INotificationPusher notificationPusher,
+        IUserRepository userRepository)
     {
         _friendRepository = friendRepository ?? throw new ArgumentNullException(nameof(friendRepository));
+        _notificationRepository = notificationRepository ?? throw new ArgumentNullException(nameof(notificationRepository));
+        _notificationPusher = notificationPusher ?? throw new ArgumentNullException(nameof(notificationPusher));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
     }
 
     /// <summary>
@@ -57,6 +71,37 @@ public sealed class SendFriendRequestCommandHandler : IRequestHandler<SendFriend
             }
         }
 
-        return await _friendRepository.CreateRequestAsync(request.CurrentUserId, request.ReceiverId, cancellationToken);
+        var requestId = await _friendRepository.CreateRequestAsync(request.CurrentUserId, request.ReceiverId, cancellationToken);
+
+        var sender = await _userRepository.GetByIdAsync(request.CurrentUserId, cancellationToken);
+        var notification = new NotificationInsertModel
+        {
+            UserId = request.ReceiverId,
+            SenderId = request.CurrentUserId,
+            NotifyType = NotificationType.FriendRequest,
+            Title = NotificationType.FriendRequest.ToTitle(),
+            Message = sender is null
+                ? "Bạn có một lời mời kết bạn mới."
+                : $"{sender.DisplayName} đã gửi lời mời kết bạn cho bạn.",
+        };
+
+        var notificationId = await _notificationRepository.InsertNotificationAsync(notification);
+        await _notificationPusher.PushAsync(request.ReceiverId, new NotificationDto(
+            Id: notificationId,
+            UserId: request.ReceiverId,
+            SenderId: request.CurrentUserId,
+            SenderIdDisplay: sender?.IdDisplay,
+            SenderDisplayName: sender?.DisplayName,
+            SenderAvatarUrl: sender?.AvatarUrl,
+            Type: NotificationType.FriendRequest.ToString(),
+            Title: notification.Title,
+            Message: notification.Message,
+            TargetType: null,
+            TargetId: null,
+            PayloadJson: null,
+            IsRead: false,
+            CreatedAt: DateTime.UtcNow), cancellationToken);
+
+        return requestId;
     }
 }

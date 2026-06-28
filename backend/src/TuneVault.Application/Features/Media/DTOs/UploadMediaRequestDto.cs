@@ -8,19 +8,14 @@ namespace TuneVault.Application.Features.Media.DTOs;
 /// <param name="Title">Tiêu đề bài hát (tối đa 30 ký tự, bắt buộc).</param>
 /// <param name="Description">Mô tả bài hát (nullable, tối đa 500 ký tự).</param>
 /// <param name="Genre">Thể loại âm nhạc (nullable).</param>
-/// <param name="Type">Loại media: Audio, Video, Podcast, Song.</param>
-/// <param name="AudioUrl">Đường dẫn file audio (nullable — dùng khi Type là Audio/Song/Podcast).</param>
+/// <param name="Type">Loại media: Audio, Video, Song.</param>
+/// <param name="AudioUrl">Đường dẫn file audio (nullable — dùng khi Type là Audio/Song).</param>
 /// <param name="VideoUrl">Đường dẫn file video (nullable — dùng khi Type là Video).</param>
 /// <param name="CoverImageUrl">Đường dẫn ảnh bìa (nullable).</param>
 /// <param name="CanvasUrl">Đường dẫn canvas động (nullable — chỉ dùng cho Audio/Song).</param>
-/// <param name="AccessLevel">Cấp độ truy cập: Normal (0) hoặc Premium (1).</param>
+/// <param name="DurationSeconds">Thời lượng media theo giây.</param>
 /// <param name="IsPublic">Trạng thái công khai (mặc định <c>true</c>).</param>
 /// <param name="ReleaseDate">Ngày phát hành chính thức (nullable — null = phát hành ngay).</param>
-/// <param name="FeaturedArtistIds">
-/// Danh sách mã định danh ca sĩ phụ (FeaturedArtist).
-/// Mỗi ca sĩ phụ không có quyền sở hữu bài hát — chỉ được credit.
-/// Có thể rỗng nếu bài hát chỉ có một ca sĩ.
-/// </param>
 public sealed record UploadMediaRequestDto(
     string OwnerId,
     string Title,
@@ -31,8 +26,7 @@ public sealed record UploadMediaRequestDto(
     string? VideoUrl,
     string? CoverImageUrl,
     string? CanvasUrl,
-    int AccessLevel,
+    int? DurationSeconds,
     bool IsPublic,
-    DateTime? ReleaseDate,
-    IEnumerable<string> FeaturedArtistIds
+    DateTime? ReleaseDate
 );

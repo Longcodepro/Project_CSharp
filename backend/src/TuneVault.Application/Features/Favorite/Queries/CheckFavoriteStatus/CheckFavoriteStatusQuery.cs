@@ -4,7 +4,7 @@ using TuneVault.Domain.Enums;
 namespace TuneVault.Application.Features.Favorite.Queries.CheckFavoriteStatus;
 
 /// <summary>
-/// Query lấy cảm xúc hiện tại của người dùng với media, album hoặc playlist.
+/// Query lấy trạng thái yêu thích hiện tại của người dùng với media, album hoặc playlist.
 /// </summary>
 /// <param name="UserId">Mã người dùng hiện tại.</param>
 /// <param name="TargetId">Mã đối tượng cần kiểm tra.</param>
@@ -12,4 +12,4 @@ namespace TuneVault.Application.Features.Favorite.Queries.CheckFavoriteStatus;
 public record CheckFavoriteStatusQuery(
     string UserId,
     string TargetId,
-    FavoriteTargetType TargetType) : IRequest<FavoriteReaction?>;
+    FavoriteTargetType TargetType) : IRequest<bool>;

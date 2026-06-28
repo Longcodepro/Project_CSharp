@@ -31,7 +31,12 @@ public sealed class PlayHistoryRepository : IPlayHistoryRepository
                 StoppedAt
             FROM PlayHistory
             WHERE UserId = @UserId
-              AND MediaItemId = @MediaItemId;";
+              AND MediaItemId = @MediaItemId
+            ORDER BY
+                HistoryOrder ASC,
+                CASE WHEN StoppedAt IS NULL THEN 1 ELSE 0 END ASC,
+                StoppedAt DESC,
+                Id DESC;";
 
         return await connection.QueryFirstOrDefaultAsync<PlayHistory>(sql, new
         {

@@ -5,7 +5,7 @@ namespace TuneVault.Domain.Entities;
 
 /// <summary>
 /// Đại diện cho một thông báo (Notification) trong hệ thống TuneVault.
-/// Người gửi (SenderId) có thể là User hoặc Admin.
+/// Người gửi (SenderId) là User phát sinh thông báo.
 /// Người nhận (UserId) luôn là User.
 /// Thực thể tự động đồng bộ Title theo NotificationType.
 /// </summary>
@@ -29,7 +29,7 @@ public class Notification
     public string UserId { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Mã định danh của người gửi thông báo (User hoặc Admin).
+    /// Mã định danh của người gửi thông báo (User hoặc thông báo hệ thống).
     /// Nullable — thông báo hệ thống tự động không cần người gửi cụ thể.
     /// </summary>
     public string? SenderId { get; private set; } = string.Empty;
@@ -77,7 +77,7 @@ public class Notification
     /// </summary>
     /// <param name="id">Mã định danh duy nhất (4–5 ký tự).</param>
     /// <param name="userId">Mã định danh người nhận thông báo.</param>
-    /// <param name="senderId">Mã định danh người gửi (User hoặc Admin). Null nếu là thông báo hệ thống.</param>
+    /// <param name="senderId">Mã định danh người gửi (User). Null nếu là thông báo hệ thống.</param>
     /// <param name="type">Loại thông báo — tự động xác định tiêu đề.</param>
     /// <param name="message">Nội dung thông báo (tối đa 500 ký tự).</param>
     /// <param name="isRead">Trạng thái đã đọc ban đầu (thường là false).</param>
@@ -142,11 +142,11 @@ public class Notification
     {
         return type switch
         {
-            NotificationType.NewFollower    => "Người theo dõi mới",
             NotificationType.FriendRequest  => "Lời mời kết bạn",
-            NotificationType.MediaShared    => "Nội dung được chia sẻ",
-            NotificationType.SystemAlert    => "Thông báo hệ thống",
             NotificationType.FriendAccepted => "Lời mời kết bạn đã được chấp nhận",
+            NotificationType.ShareSong      => "Bài hát được chia sẻ",
+            NotificationType.ShareVideo     => "Video được chia sẻ",
+            NotificationType.ShareAudio     => "Audio được chia sẻ",
             _                               => "Thông báo mới"
         };
     }

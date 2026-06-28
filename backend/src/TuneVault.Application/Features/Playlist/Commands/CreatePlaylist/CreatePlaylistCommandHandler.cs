@@ -8,29 +8,14 @@ using PlaylistEntity = TuneVault.Domain.Entities.Playlist;
 namespace TuneVault.Application.Features.Playlist.Commands.CreatePlaylist;
 
 /// <summary>
-/// COMMAND HANDLER - TẠO PLAYLIST (Application Layer)
-/// ===================================================
-/// Mục đích: Xử lý logic nghiệp vụ tạo Playlist mới.
-/// 
-/// Luồng xử lý:
-/// 1. Controller gửi CreatePlaylistCommand
-/// 2. Handler sinh ID tự động theo format PL001, PL002... (tách chữ + tăng số)
-/// 3. Handler tạo Entity Playlist (Domain Layer tự validate)
-/// 4. Handler gọi Repository lưu xuống Database
-/// 5. Trả về PlaylistDto cho Controller
-/// 
-/// Logic sinh ID:
-/// - Query DB lấy ID lớn nhất hiện tại (ví dụ PL006)
-/// - Tách phần chữ (PL) và phần số (006)
-/// - Tăng số lên 1 → 007
-/// - Ghép lại → PL007
+/// Tạo playlist mới cho người dùng.
 /// </summary>
 public sealed class CreatePlaylistCommandHandler : IRequestHandler<CreatePlaylistCommand, PlaylistDto>
 {
     private readonly IPlaylistRepository _playlistRepository;
 
     /// <summary>
-    /// Khởi tạo Handler với Repository được inject qua DI container.
+    /// Khởi tạo handler tạo playlist.
     /// </summary>
     /// <param name="playlistRepository">Repository xử lý truy cập database cho Playlist.</param>
     public CreatePlaylistCommandHandler(IPlaylistRepository playlistRepository)
@@ -39,20 +24,17 @@ public sealed class CreatePlaylistCommandHandler : IRequestHandler<CreatePlaylis
     }
 
     /// <summary>
-    /// Thực thi logic tạo Playlist mới từ Command.
-    /// Gọi Entity Constructor để tự validate các ràng buộc nghiệp vụ trước khi lưu.
+    /// Tạo playlist, lưu xuống database và trả về DTO.
     /// </summary>
     /// <param name="command">Command chứa OwnerId và thông tin Playlist cần tạo.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>
     /// <returns>PlaylistDto đại diện cho Playlist vừa được tạo.</returns>
     public async Task<PlaylistDto> Handle(CreatePlaylistCommand command, CancellationToken cancellationToken = default)
     {
-        // Sinh ID tự động theo format PL001, PL002...
         var playlistId = await GenerateNextIdAsync(cancellationToken);
 
         var contentType = ParseContentType(command.Request.ContentType);
 
-        // Gọi Entity Constructor — Domain tự validate toàn bộ ràng buộc nghiệp vụ
         var playlist = new PlaylistEntity(
             playlistId,
             command.OwnerId,
@@ -64,10 +46,8 @@ public sealed class CreatePlaylistCommandHandler : IRequestHandler<CreatePlaylis
             command.Request.ReleaseDate
         );
 
-        // Lưu Entity xuống Database thông qua Repository
         await _playlistRepository.AddAsync(playlist, cancellationToken);
 
-        // Map Entity sang DTO trả về cho Controller
         return new PlaylistDto(
             playlist.Id,
             playlist.UserId,
@@ -90,7 +70,8 @@ public sealed class CreatePlaylistCommandHandler : IRequestHandler<CreatePlaylis
         if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        if (Enum.TryParse<MediaType>(value, ignoreCase: true, out var mediaType))
+        if (Enum.TryParse<MediaType>(value, ignoreCase: true, out var mediaType)
+            && Enum.IsDefined(typeof(MediaType), mediaType))
             return mediaType;
 
         throw new DomainException("Kiểu nội dung playlist không hợp lệ.");

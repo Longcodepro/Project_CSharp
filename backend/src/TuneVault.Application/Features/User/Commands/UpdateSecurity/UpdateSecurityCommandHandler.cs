@@ -8,7 +8,7 @@ namespace TuneVault.Application.Features.User.Commands.UpdateSecurity;
 /// Handler xử lý <see cref="UpdateSecurityCommand"/>.
 /// Điều phối luồng thay đổi mật khẩu: kiểm tra xác thực & quyền sở hữu → lấy Entity → gọi <c>ChangePassword</c> → persist.
 /// Không trả về DTO vì đây là thao tác bảo mật — không cần expose dữ liệu nhạy cảm.
-/// Phân quyền: chỉ Listener / Artist / Admin đã đăng nhập và đang đổi mật khẩu của chính mình.
+/// Phân quyền: chỉ người dùng đã đăng nhập và đang đổi mật khẩu của chính mình.
 /// </summary>
 public class UpdateSecurityCommandHandler : IRequestHandler<UpdateSecurityCommand, bool>
 {
@@ -38,27 +38,21 @@ public class UpdateSecurityCommandHandler : IRequestHandler<UpdateSecurityComman
     /// <exception cref="DomainException">Ném ra nếu User không tồn tại hoặc hash không hợp lệ.</exception>
     public async Task<bool> Handle(UpdateSecurityCommand request, CancellationToken ct)
     {
-        // Step 0: Kiểm tra đã xác thực chưa
         var currentUserId = _currentUserContext.GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
             throw new UnauthorizedAccessException("Chưa xác thực. Vui lòng đăng nhập trước khi cập nhật bảo mật.");
 
-        // Step 0.1: Chỉ cho phép người dùng đổi mật khẩu của chính mình
         if (!currentUserId.Equals(request.Id, StringComparison.OrdinalIgnoreCase))
             throw new ForbiddenAccessException("Bạn không có quyền thay đổi mật khẩu của người dùng khác.");
 
-        // Step 1: Lấy User Entity từ repository theo Id hệ thống
         var user = await _userRepository.GetByIdAsync(request.Id, ct);
 
-        // Step 2: Kiểm tra sự tồn tại — ném exception nếu không tìm thấy
         if (user is null)
             throw new DomainException($"Người dùng với Id '{request.Id}' không tồn tại.");
 
-        // Step 3: Gọi method nghiệp vụ của Entity để thay đổi mật khẩu
-        //         Entity tự validate: hash phải ≥ 60 ký tự (BCrypt standard)
+        // Entity tự kiểm tra độ dài hash BCrypt.
         user.ChangePassword(request.NewPasswordHash);
 
-        // Step 4: Persist trạng thái Entity đã thay đổi vào cơ sở dữ liệu
         return await _userRepository.UpdateAsync(user, ct);
     }
 }

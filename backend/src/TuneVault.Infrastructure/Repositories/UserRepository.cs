@@ -1,4 +1,3 @@
-// Infrastructure/Repositories/UserRepository.cs
 using Dapper;
 using TuneVault.Domain.Entities;
 using TuneVault.Domain.Interfaces;
@@ -356,7 +355,6 @@ public sealed class UserRepository : IUserRepository
         /// <returns>true nếu follow thành công, false nếu đã follow rồi</returns>
         public async Task<bool> FollowUserAsync(string followerId, string followeeId, CancellationToken ct)
         {
-            // Bước 1: Kiểm tra bản ghi cũ (Soft delete pattern)
             const string checkSql = @"
                 SELECT TOP 1 Id, IsActive FROM Follows
                 WHERE FollowerId = @FollowerId AND FolloweeId = @FolloweeId";
@@ -366,10 +364,8 @@ public sealed class UserRepository : IUserRepository
 
             if (existing.HasValue)
             {
-                // Bước 3: Nếu đã active rồi, trả về false
                 if (existing.Value.IsActive) return false; 
                 
-                // Bước 4: Nếu inactive, reactivate bản ghi cũ
                 const string reactivateSql = @"
                     UPDATE Follows SET IsActive = 1, FollowedAt = GETUTCDATE()
                     WHERE Id = @Id";
@@ -377,7 +373,6 @@ public sealed class UserRepository : IUserRepository
                 return true;
             }
 
-            // Bước 5: Tạo mới nếu không tồn tại
             var newId = await GenerateNextFollowIdAsync(ct); // Sử dụng phương thức mới để sinh ID
             const string insertSql = @"
                 INSERT INTO Follows (Id, FollowerId, FolloweeId, FollowedAt, IsActive)

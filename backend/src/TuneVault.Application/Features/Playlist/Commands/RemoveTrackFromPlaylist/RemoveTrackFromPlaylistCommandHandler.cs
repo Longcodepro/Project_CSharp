@@ -5,36 +5,14 @@ using TuneVault.Domain.Interfaces;
 namespace TuneVault.Application.Features.Playlist.Commands.RemoveTrackFromPlaylist;
 
 /// <summary>
-/// COMMAND HANDLER - XÓA TRACK KHỎI PLAYLIST (Application Layer)
-/// ==============================================================
-/// Mục đích: Xử lý logic nghiệp vụ xóa một bài hát khỏi Playlist.
-/// 
-/// Luồng xử lý:
-/// 1. Controller gửi RemoveTrackFromPlaylistCommand
-/// 2. Handler lấy Playlist từ Repository — kiểm tra tồn tại
-/// 3. Handler lấy toàn bộ PlaylistTrack từ DB, lọc theo PlaylistId
-/// 4. Handler tìm PlaylistTrack cần xóa theo MediaItemId — lấy TrackOrder và PlaylistTrack.Id
-/// 5. Handler gọi playlist.RemoveTrack() — Entity tự validate (nhận PlaylistTrack.Id)
-/// 6. Handler gọi Repository xóa Track khỏi Database
-/// 7. Handler cập nhật lại TrackOrder của các track phía sau (giảm 1)
-/// 
-/// Lưu ý quan trọng:
-/// - GetTracksAsync() trả về MediaItem (không có TrackOrder) → KHÔNG dùng
-/// - GetAllTracksAsync() trả về PlaylistTrack (có đủ Id, MediaItemId, TrackOrder) → dùng cái này
-/// - RemoveTrack() nhận PlaylistTrack.Id (PT001...), KHÔNG phải MediaItemId
-/// 
-/// Logic điều chỉnh vị trí sau khi xóa:
-/// - Xóa track ở vị trí 3
-/// - Track ở vị trí 4 → xuống vị trí 3
-/// - Track ở vị trí 5 → xuống vị trí 4
-/// - ... và cứ tiếp tục
+/// Xóa một media khỏi playlist và cập nhật lại thứ tự.
 /// </summary>
 public sealed class RemoveTrackFromPlaylistCommandHandler : IRequestHandler<RemoveTrackFromPlaylistCommand, Unit>
 {
     private readonly IPlaylistRepository _playlistRepository;
 
     /// <summary>
-    /// Khởi tạo Handler với Repository được inject qua DI container.
+    /// Khởi tạo handler xóa track khỏi playlist.
     /// </summary>
     /// <param name="playlistRepository">Repository xử lý truy cập database cho Playlist.</param>
     public RemoveTrackFromPlaylistCommandHandler(IPlaylistRepository playlistRepository)
@@ -43,8 +21,7 @@ public sealed class RemoveTrackFromPlaylistCommandHandler : IRequestHandler<Remo
     }
 
     /// <summary>
-    /// Thực thi logic xóa Track khỏi Playlist từ Command.
-    /// Sau khi xóa, tự động điều chỉnh lại TrackOrder của các track phía sau.
+    /// Xóa track khỏi playlist nếu người dùng là chủ sở hữu.
     /// </summary>
     /// <param name="command">Command chứa PlaylistId và MediaItemId cần xóa.</param>
     /// <param name="cancellationToken">Token hủy thao tác bất đồng bộ.</param>

@@ -51,7 +51,7 @@ public sealed class FriendRepository : IFriendRepository
                 Id,
                 RequestedById,
                 RequestedToId,
-                Status,
+                CAST(Status AS tinyint) AS StatusRaw,
                 CreatedAt
             FROM Friends
             WHERE Id = @RequestId
@@ -72,7 +72,7 @@ public sealed class FriendRepository : IFriendRepository
                 Id,
                 RequestedById,
                 RequestedToId,
-                Status,
+                CAST(Status AS tinyint) AS StatusRaw,
                 CreatedAt
             FROM Friends
             WHERE (

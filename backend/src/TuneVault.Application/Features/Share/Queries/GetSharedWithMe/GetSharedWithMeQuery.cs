@@ -18,9 +18,18 @@ public sealed class GetSharedWithMeQueryHandler : IRequestHandler<GetSharedWithM
         return items.Select(i => new SharedItemDto(
             Id: i.Id.ToString(),
             SenderId: i.SenderId,
+            SenderIdDisplay: i.SenderIdDisplay?.ToString(),
+            SenderDisplayName: i.SenderDisplayName?.ToString(),
+            SenderAvatarUrl: i.SenderAvatarUrl?.ToString(),
             ReceiverId: i.ReceiverId,
+            ReceiverIdDisplay: i.ReceiverIdDisplay?.ToString(),
+            ReceiverDisplayName: i.ReceiverDisplayName?.ToString(),
+            ReceiverAvatarUrl: i.ReceiverAvatarUrl?.ToString(),
             ShareType: i.ShareTypeName?.ToString() ?? i.ShareType.ToString(),
             SharedItemId: i.SharedItemId,
+            ItemTitle: i.ItemTitle?.ToString(),
+            ItemCoverImageUrl: i.ItemCoverImageUrl?.ToString() ?? i.ItemCoverImgUrl?.ToString(),
+            Message: i.Message?.ToString(),
             SharedAt: i.SharedAt,
             IsRead: i.IsRead is bool isRead && isRead
         )).ToList();

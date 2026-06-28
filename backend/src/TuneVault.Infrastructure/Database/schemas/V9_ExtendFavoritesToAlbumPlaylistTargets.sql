@@ -1,4 +1,4 @@
-USE TuneVault;
+USE [TuneVaultDb];
 GO
 
 IF COL_LENGTH('dbo.Favorites', 'TargetId') IS NULL
@@ -48,7 +48,7 @@ WHERE name = 'IX_Favorites_User_Target'
     AND object_id = OBJECT_ID('dbo.Favorites')
 )
 BEGIN
-    CREATE NONCLUSTERED INDEX IX_Favorites_User_Target
+    CREATE UNIQUE NONCLUSTERED INDEX IX_Favorites_User_Target
     ON dbo.Favorites (UserId, TargetType, TargetId);
 END
 GO

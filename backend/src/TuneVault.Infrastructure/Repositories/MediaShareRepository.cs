@@ -154,7 +154,6 @@ public sealed class MediaShareRepository :
             FROM MediaItems
             WHERE Id = @MediaItemId
               AND IsActive = 1
-              AND IsValid = 0
               AND (IsPublic = 1 OR OwnerId = @SenderId);",
             new
             {
@@ -369,8 +368,8 @@ public sealed class MediaShareRepository :
                 COALESCE(mi.AudioUrl, mi.VideoUrl) AS MediaUrl,
                 mi.AudioUrl,
                 mi.VideoUrl,
-                mi.DurationSeconds AS Duration,
-                mi.DurationSeconds,
+                (ISNULL(mi.DurationMinutes, 0) * 60 + ISNULL(mi.DurationSeconds, 0)) AS Duration,
+                (ISNULL(mi.DurationMinutes, 0) * 60 + ISNULL(mi.DurationSeconds, 0)) AS DurationSeconds,
                 mi.MediaType AS Type,
                 mi.MediaType,
                 mi.Genre
