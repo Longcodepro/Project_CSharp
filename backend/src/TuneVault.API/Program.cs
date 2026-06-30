@@ -165,7 +165,8 @@ builder.Services.AddCors(options =>
                   "http://localhost:5176",
                   "http://127.0.0.1:5176",
                   "http://localhost:5177",
-                  "http://127.0.0.1:5177")
+                  "http://127.0.0.1:5177",
+                  "https://project-c-sharp.vercel.app")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

@@ -75,6 +75,8 @@ PLANS/
 *.gif
 *.bmp
 *.tiff
+!docs/images/clean-architecture.png
+!docs/images/clean-architecture-response.png
 *.mp4
 *.mov
 *.mkv
